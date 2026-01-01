@@ -81,8 +81,9 @@ export async function addOrUpdateDebt(debtData: Partial<Debt> & { name: string; 
         const debtRef = doc(db, 'debts', debtData.id);
         await updateDoc(debtRef, { ...debtData, lastUpdated: Timestamp.now() });
     } else {
+        const { id, ...newDebtData } = debtData;
         const debtsCol = collection(db, 'debts');
-        await addDoc(debtsCol, { ...debtData, lastUpdated: Timestamp.now() });
+        await addDoc(debtsCol, { ...newDebtData, lastUpdated: Timestamp.now() });
     }
 }
 
@@ -91,8 +92,9 @@ export async function addOrUpdateAsset(assetData: Partial<Asset> & { name: strin
         const assetRef = doc(db, 'assets', assetData.id);
         await updateDoc(assetRef, { ...assetData, lastUpdated: Timestamp.now() });
     } else {
+        const { id, ...newAssetData } = assetData;
         const assetsCol = collection(db, 'assets');
-        await addDoc(assetsCol, { ...assetData, lastUpdated: Timestamp.now() });
+        await addDoc(assetsCol, { ...newAssetData, lastUpdated: Timestamp.now() });
     }
 }
 
