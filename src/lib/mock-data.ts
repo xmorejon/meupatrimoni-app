@@ -32,6 +32,15 @@ let assets: Asset[] = [
     { id: 'a2', name: 'Toyota Corolla', value: 22000.00, type: 'Car', lastUpdated: subDays(new Date(), 90) },
 ];
 
+const bankIdMap: {[key: string]: string} = {};
+const getBankId = (bankName: string) => {
+    if (!bankIdMap[bankName]) {
+        bankIdMap[bankName] = `b${Object.keys(bankIdMap).length + 1}`;
+    }
+    return bankIdMap[bankName];
+}
+balanceEntries.forEach(entry => getBankId(entry.bank));
+
 
 export const getDashboardData = (): DashboardData => {
   // 1. Get latest balance for each bank
@@ -60,6 +69,7 @@ export const getDashboardData = (): DashboardData => {
   // 5. Create Bank Breakdown
   const bankBreakdown: BankStatus[] = Array.from(latestBalances.values())
     .map(entry => ({
+      id: getBankId(entry.bank),
       name: entry.bank,
       balance: entry.balance,
       lastUpdated: entry.timestamp,
@@ -119,9 +129,19 @@ export const addBalanceEntry = (bank: string, balance: number) => {
 };
 
 export const addOrUpdateBank = (bankData: Partial<BankStatus>) => {
-    const existingEntry = balanceEntries.find(e => e.bank === bankData.name);
-    if (existingEntry) {
-        // This is an edit, just add a new balance entry
+    const banks = getDashboardData().bankBreakdown;
+    const existingBank = banks.find(b => b.id === bankData.id);
+    
+    if (existingBank) {
+        // Find all balance entries for the old bank name and update them to the new name
+        if (bankData.name && existingBank.name !== bankData.name) {
+            balanceEntries.forEach(entry => {
+                if (entry.bank === existingBank.name) {
+                    entry.bank = bankData.name!;
+                }
+            });
+        }
+        // Add a new balance entry for the (potentially new) bank name
         addBalanceEntry(bankData.name!, bankData.balance!);
     } else {
         // This is a new bank
@@ -132,6 +152,7 @@ export const addOrUpdateBank = (bankData: Partial<BankStatus>) => {
 export const addOrUpdateDebt = (debtData: Partial<Debt>) => {
     const existingDebt = debts.find(d => d.id === debtData.id);
     if (existingDebt) {
+        existingDebt.name = debtData.name!;
         existingDebt.balance = debtData.balance!;
         existingDebt.lastUpdated = new Date();
     } else {
@@ -149,6 +170,7 @@ export const addOrUpdateDebt = (debtData: Partial<Debt>) => {
 export const addOrUpdateAsset = (assetData: Partial<Asset>) => {
     const existingAsset = assets.find(a => a.id === assetData.id);
     if (existingAsset) {
+        existingAsset.name = assetData.name!;
         existingAsset.value = assetData.value!;
         existingAsset.lastUpdated = new Date();
     } else {

@@ -73,10 +73,10 @@ export const EntryDialog: FC<EntryDialogProps> = ({ type, onEntry, trigger, item
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
     defaultValues: {
-      id: (item as any)?.id ?? (item as any)?.name ?? undefined,
+      id: item?.id,
       name: item?.name ?? "",
       [valueFieldName]: (item as any)?.balance ?? (item as any)?.value ?? 0,
-      type: (item as any)?.type ?? "",
+      type: (item as any)?.type ?? (type === 'Bank' ? 'Current Account' : ''),
     },
   });
 
@@ -111,7 +111,7 @@ export const EntryDialog: FC<EntryDialogProps> = ({ type, onEntry, trigger, item
                 <FormItem>
                   <FormLabel>{type} Name</FormLabel>
                   <FormControl>
-                    <Input placeholder={type === 'Bank' ? 'e.g., NuBank' : (type === 'Debt' ? 'e.g., Visa Credit Card' : 'e.g., Primary Residence')} {...field} disabled={isEditing && type === 'Bank'}/>
+                    <Input placeholder={type === 'Bank' ? 'e.g., NuBank' : (type === 'Debt' ? 'e.g., Visa Credit Card' : 'e.g., Primary Residence')} {...field} />
                   </FormControl>
                   <FormMessage />
                 </FormItem>

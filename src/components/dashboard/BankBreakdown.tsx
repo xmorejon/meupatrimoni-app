@@ -37,7 +37,7 @@ export const BankBreakdown: FC<BankBreakdownProps> = ({ banks, onEntry }) => {
           </TableHeader>
           <TableBody>
             {banks.map((bank) => (
-              <TableRow key={bank.name}>
+              <TableRow key={bank.id}>
                 <TableCell>
                   <div className="flex items-center gap-3">
                     <div className="p-2 bg-muted rounded-md">

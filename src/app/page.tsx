@@ -7,7 +7,7 @@ import { NetWorthChart } from "@/components/dashboard/NetWorthChart";
 import { BankBreakdown } from "@/components/dashboard/BankBreakdown";
 import { DebtBreakdown } from "@/components/dashboard/DebtBreakdown";
 import { AssetBreakdown } from "@/components/dashboard/AssetBreakdown";
-import { addBalanceEntry, getDashboardData, simulateRealtimeUpdate, addOrUpdateDebt, addOrUpdateAsset, addOrUpdateBank } from "@/lib/mock-data";
+import { getDashboardData, simulateRealtimeUpdate, addOrUpdateDebt, addOrUpdateAsset, addOrUpdateBank } from "@/lib/mock-data";
 import type { DashboardData, BankStatus, Debt, Asset } from "@/lib/types";
 import { Skeleton } from "@/components/ui/skeleton";
 import type { z } from 'zod';
@@ -52,7 +52,7 @@ export default function Home() {
   const handleEntry = (values: z.infer<typeof baseSchema> & { balance?: number, value?: number }, type: 'Bank' | 'Debt' | 'Asset') => {
     switch (type) {
         case 'Bank':
-            addOrUpdateBank({name: values.name, balance: values.balance});
+            addOrUpdateBank(values as BankStatus);
             break;
         case 'Debt':
             addOrUpdateDebt(values as Debt);

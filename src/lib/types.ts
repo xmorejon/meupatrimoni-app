@@ -6,6 +6,7 @@ export interface BalanceEntry {
 }
 
 export interface BankStatus {
+  id: string;
   name: string;
   balance: number;
   lastUpdated: Date;
