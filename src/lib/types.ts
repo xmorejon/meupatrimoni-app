@@ -11,6 +11,14 @@ export interface BankStatus {
   lastUpdated: Date;
 }
 
+export interface Debt {
+  id: string;
+  name: string;
+  balance: number;
+  type: 'Credit Card' | 'Mortgage';
+  lastUpdated: Date;
+}
+
 export interface ChartDataPoint {
   date: string;
   netWorth: number;
@@ -21,4 +29,5 @@ export interface DashboardData {
   netWorthChange: number;
   historicalData: ChartDataPoint[];
   bankBreakdown: BankStatus[];
+  debtBreakdown: Debt[];
 }

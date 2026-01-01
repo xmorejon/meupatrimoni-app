@@ -5,6 +5,7 @@ import { Header } from "@/components/Header";
 import { NetWorthCard } from "@/components/dashboard/NetWorthCard";
 import { NetWorthChart } from "@/components/dashboard/NetWorthChart";
 import { BankBreakdown } from "@/components/dashboard/BankBreakdown";
+import { DebtBreakdown } from "@/components/dashboard/DebtBreakdown";
 import { addBalanceEntry, getDashboardData, simulateRealtimeUpdate } from "@/lib/mock-data";
 import type { DashboardData } from "@/lib/types";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -17,6 +18,10 @@ const DashboardSkeleton = () => (
     <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
       <Skeleton className="lg:col-span-2 h-96 rounded-lg" />
       <Skeleton className="lg:col-span-1 h-96 rounded-lg" />
+    </div>
+    <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+      <Skeleton className="h-96 rounded-lg" />
+      <Skeleton className="h-96 rounded-lg" />
     </div>
   </div>
 );
@@ -57,12 +62,13 @@ export default function Home() {
           <div className="p-4 md:p-8 space-y-8">
             <NetWorthCard totalNetWorth={data.totalNetWorth} change={data.netWorthChange} />
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-              <div className="lg:col-span-2">
+              <div className="lg:col-span-3">
                 <NetWorthChart data={data.historicalData} />
               </div>
-              <div className="lg:col-span-1">
+            </div>
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
                 <BankBreakdown banks={data.bankBreakdown} />
-              </div>
+                <DebtBreakdown debts={data.debtBreakdown} />
             </div>
           </div>
         )}

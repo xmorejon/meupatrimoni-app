@@ -1,4 +1,4 @@
-import { BalanceEntry, BankStatus, ChartDataPoint, DashboardData } from '@/lib/types';
+import { BalanceEntry, BankStatus, ChartDataPoint, DashboardData, Debt } from '@/lib/types';
 import { subDays, format, startOfToday, eachDayOfInterval, endOfToday } from 'date-fns';
 
 let balanceEntries: BalanceEntry[] = [
@@ -22,6 +22,12 @@ let balanceEntries: BalanceEntry[] = [
   { id: '12', bank: 'Banco Inter', balance: 15500.00, timestamp: subDays(new Date(), 5) },
 ];
 
+let debts: Debt[] = [
+    { id: 'd1', name: 'Visa Credit Card', balance: 850.50, type: 'Credit Card', lastUpdated: subDays(new Date(), 3) },
+    { id: 'd2', name: 'House Mortgage', balance: 185000.00, type: 'Mortgage', lastUpdated: subDays(new Date(), 1) },
+];
+
+
 export const getDashboardData = (): DashboardData => {
   // 1. Get latest balance for each bank
   const latestBalances = new Map<string, BalanceEntry>();
@@ -30,11 +36,17 @@ export const getDashboardData = (): DashboardData => {
       latestBalances.set(entry.bank, entry);
     }
   }
+  
+  // 2. Get total assets
+  const totalAssets = Array.from(latestBalances.values()).reduce((sum, entry) => sum + entry.balance, 0);
 
-  // 2. Calculate Total Net Worth
-  const totalNetWorth = Array.from(latestBalances.values()).reduce((sum, entry) => sum + entry.balance, 0);
+  // 3. Get total debts
+  const totalDebts = debts.reduce((sum, debt) => sum + debt.balance, 0);
 
-  // 3. Create Bank Breakdown
+  // 4. Calculate Total Net Worth
+  const totalNetWorth = totalAssets - totalDebts;
+
+  // 5. Create Bank Breakdown
   const bankBreakdown: BankStatus[] = Array.from(latestBalances.values())
     .map(entry => ({
       name: entry.bank,
@@ -42,33 +54,39 @@ export const getDashboardData = (): DashboardData => {
       lastUpdated: entry.timestamp,
     }))
     .sort((a, b) => b.balance - a.balance);
+    
+  // 6. Create Debt Breakdown
+  const debtBreakdown: Debt[] = debts.sort((a,b) => b.balance - a.balance);
 
-  // 4. Calculate historical net worth for the chart
+  // 7. Calculate historical net worth for the chart
   const today = startOfToday();
   const thirtyDaysAgo = subDays(today, 30);
   const dateInterval = eachDayOfInterval({ start: thirtyDaysAgo, end: endOfToday() });
 
   const historicalData = dateInterval.map(date => {
-    const netWorthAtDate = Array.from(new Set(balanceEntries.map(e => e.bank))).reduce((sum, bank) => {
+    const assetsAtDate = Array.from(new Set(balanceEntries.map(e => e.bank))).reduce((sum, bank) => {
       const latestEntryForBankAtDate = balanceEntries
         .filter(e => e.bank === bank && e.timestamp <= date)
         .sort((a, b) => b.timestamp.getTime() - a.timestamp.getTime())[0];
       return sum + (latestEntryForBankAtDate?.balance || 0);
     }, 0);
+    
+    // For simplicity, assuming debts are constant over the last 30 days
+    const debtsAtDate = debts.reduce((sum, debt) => sum + debt.balance, 0);
 
     return {
       date: format(date, 'MMM d'),
-      netWorth: netWorthAtDate,
+      netWorth: assetsAtDate - debtsAtDate,
     };
   });
   
-  // 5. Calculate net worth change from yesterday
+  // 8. Calculate net worth change from yesterday
   const yesterdayNetWorth = historicalData.find(d => d.date === format(subDays(today, 1), 'MMM d'))?.netWorth || 0;
   const todayNetWorth = historicalData.find(d => d.date === format(today, 'MMM d'))?.netWorth || 0;
-  const netWorthChange = todayNetWorth > 0 && yesterdayNetWorth > 0 ? ((todayNetWorth - yesterdayNetWorth) / yesterdayNetWorth) * 100 : 0;
+  const netWorthChange = todayNetWorth > 0 && yesterdayNetWorth > 0 && yesterdayNetWorth !== todayNetWorth ? ((todayNetWorth - yesterdayNetWorth) / Math.abs(yesterdayNetWorth)) * 100 : 0;
 
 
-  return { totalNetWorth, netWorthChange, historicalData, bankBreakdown };
+  return { totalNetWorth, netWorthChange, historicalData, bankBreakdown, debtBreakdown };
 };
 
 export const addBalanceEntry = (bank: string, balance: number) => {
