@@ -1,14 +1,7 @@
 import type { FC } from 'react';
 import { DollarSign } from 'lucide-react';
-import { ManualEntryDialog } from './dashboard/ManualEntryDialog';
-import type { z } from 'zod';
-import type { manualEntrySchema } from './dashboard/ManualEntryDialog';
 
-interface HeaderProps {
-  onAddBalance: (values: z.infer<typeof manualEntrySchema>) => void;
-}
-
-export const Header: FC<HeaderProps> = ({ onAddBalance }) => {
+export const Header: FC = () => {
   return (
     <header className="sticky top-0 z-10 flex h-16 items-center justify-between border-b bg-card px-4 md:px-8">
       <div className="flex items-center gap-2">
@@ -17,7 +10,6 @@ export const Header: FC<HeaderProps> = ({ onAddBalance }) => {
           MeuPatrimoni
         </h1>
       </div>
-      <ManualEntryDialog onAddBalance={onAddBalance} />
     </header>
   );
 };

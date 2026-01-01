@@ -7,11 +7,11 @@ import { NetWorthChart } from "@/components/dashboard/NetWorthChart";
 import { BankBreakdown } from "@/components/dashboard/BankBreakdown";
 import { DebtBreakdown } from "@/components/dashboard/DebtBreakdown";
 import { AssetBreakdown } from "@/components/dashboard/AssetBreakdown";
-import { addBalanceEntry, getDashboardData, simulateRealtimeUpdate } from "@/lib/mock-data";
-import type { DashboardData } from "@/lib/types";
+import { addBalanceEntry, getDashboardData, simulateRealtimeUpdate, addOrUpdateDebt, addOrUpdateAsset, addOrUpdateBank } from "@/lib/mock-data";
+import type { DashboardData, BankStatus, Debt, Asset } from "@/lib/types";
 import { Skeleton } from "@/components/ui/skeleton";
 import type { z } from 'zod';
-import type { manualEntrySchema } from '@/components/dashboard/ManualEntryDialog';
+import type { entrySchema } from '@/components/dashboard/EntryDialog';
 
 const DashboardSkeleton = () => (
   <div className="p-4 md:p-8 space-y-8">
@@ -49,14 +49,24 @@ export default function Home() {
     return () => clearInterval(interval);
   }, []);
 
-  const handleAddBalance = (values: z.infer<typeof manualEntrySchema>) => {
-    addBalanceEntry(values.bank, values.balance);
+  const handleEntry = (values: z.infer<typeof entrySchema>, type: 'Bank' | 'Debt' | 'Asset') => {
+    switch (type) {
+        case 'Bank':
+            addOrUpdateBank(values as BankStatus);
+            break;
+        case 'Debt':
+            addOrUpdateDebt(values as Debt);
+            break;
+        case 'Asset':
+            addOrUpdateAsset(values as Asset);
+            break;
+    }
     refreshData();
   };
 
   return (
     <div className="flex flex-col min-h-screen bg-background text-foreground">
-      <Header onAddBalance={handleAddBalance} />
+      <Header />
       <main className="flex-1">
         {loading || !data ? (
           <DashboardSkeleton />
@@ -69,9 +79,9 @@ export default function Home() {
               </div>
             </div>
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-                <BankBreakdown banks={data.bankBreakdown} />
-                <DebtBreakdown debts={data.debtBreakdown} />
-                <AssetBreakdown assets={data.assetBreakdown} />
+                <BankBreakdown banks={data.bankBreakdown} onEntry={handleEntry} />
+                <DebtBreakdown debts={data.debtBreakdown} onEntry={handleEntry} />
+                <AssetBreakdown assets={data.assetBreakdown} onEntry={handleEntry} />
             </div>
           </div>
         )}

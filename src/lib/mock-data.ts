@@ -118,6 +118,52 @@ export const addBalanceEntry = (bank: string, balance: number) => {
   balanceEntries.push(newEntry);
 };
 
+export const addOrUpdateBank = (bankData: Partial<BankStatus>) => {
+    const existingEntry = balanceEntries.find(e => e.bank === bankData.name);
+    if (existingEntry) {
+        // This is an edit, just add a new balance entry
+        addBalanceEntry(bankData.name!, bankData.balance!);
+    } else {
+        // This is a new bank
+        addBalanceEntry(bankData.name!, bankData.balance!);
+    }
+}
+
+export const addOrUpdateDebt = (debtData: Partial<Debt>) => {
+    const existingDebt = debts.find(d => d.id === debtData.id);
+    if (existingDebt) {
+        existingDebt.balance = debtData.balance!;
+        existingDebt.lastUpdated = new Date();
+    } else {
+        const newDebt: Debt = {
+            id: `d${debts.length + 1}`,
+            name: debtData.name!,
+            balance: debtData.balance!,
+            type: debtData.type!,
+            lastUpdated: new Date()
+        };
+        debts.push(newDebt);
+    }
+};
+
+export const addOrUpdateAsset = (assetData: Partial<Asset>) => {
+    const existingAsset = assets.find(a => a.id === assetData.id);
+    if (existingAsset) {
+        existingAsset.value = assetData.value!;
+        existingAsset.lastUpdated = new Date();
+    } else {
+        const newAsset: Asset = {
+            id: `a${assets.length + 1}`,
+            name: assetData.name!,
+            value: assetData.value!,
+            type: assetData.type!,
+            lastUpdated: new Date()
+        };
+        assets.push(newAsset);
+    }
+};
+
+
 // Simulate Cloud Function adding data
 export const simulateRealtimeUpdate = () => {
   const banks = ['Banco Neon', 'NuBank', 'Banco Inter', 'C6 Bank'];

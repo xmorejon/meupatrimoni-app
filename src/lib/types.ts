@@ -42,3 +42,5 @@ export interface DashboardData {
   debtBreakdown: Debt[];
   assetBreakdown: Asset[];
 }
+
+export type Entry = BankStatus | Debt | Asset;
