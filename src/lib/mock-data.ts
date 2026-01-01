@@ -1,4 +1,4 @@
-import { BalanceEntry, BankStatus, ChartDataPoint, DashboardData, Debt } from '@/lib/types';
+import { BalanceEntry, BankStatus, ChartDataPoint, DashboardData, Debt, Asset } from '@/lib/types';
 import { subDays, format, startOfToday, eachDayOfInterval, endOfToday } from 'date-fns';
 
 let balanceEntries: BalanceEntry[] = [
@@ -27,6 +27,11 @@ let debts: Debt[] = [
     { id: 'd2', name: 'House Mortgage', balance: 185000.00, type: 'Mortgage', lastUpdated: subDays(new Date(), 1) },
 ];
 
+let assets: Asset[] = [
+    { id: 'a1', name: 'Primary Residence', value: 350000.00, type: 'House', lastUpdated: subDays(new Date(), 30) },
+    { id: 'a2', name: 'Toyota Corolla', value: 22000.00, type: 'Car', lastUpdated: subDays(new Date(), 90) },
+];
+
 
 export const getDashboardData = (): DashboardData => {
   // 1. Get latest balance for each bank
@@ -37,8 +42,10 @@ export const getDashboardData = (): DashboardData => {
     }
   }
   
-  // 2. Get total assets
-  const totalAssets = Array.from(latestBalances.values()).reduce((sum, entry) => sum + entry.balance, 0);
+  // 2. Get total assets (financial + physical)
+  const financialAssets = Array.from(latestBalances.values()).reduce((sum, entry) => sum + entry.balance, 0);
+  const physicalAssets = assets.reduce((sum, asset) => sum + asset.value, 0);
+  const totalAssets = financialAssets + physicalAssets;
 
   // 3. Get total debts
   const totalDebts = debts.reduce((sum, debt) => sum + debt.balance, 0);
@@ -58,6 +65,9 @@ export const getDashboardData = (): DashboardData => {
   // 6. Create Debt Breakdown
   const debtBreakdown: Debt[] = debts.sort((a,b) => b.balance - a.balance);
 
+  // 6.5. Create Asset Breakdown
+  const assetBreakdown: Asset[] = assets.sort((a,b) => b.value - a.value);
+
   // 7. Calculate historical net worth for the chart
   const today = startOfToday();
   const thirtyDaysAgo = subDays(today, 30);
@@ -69,7 +79,7 @@ export const getDashboardData = (): DashboardData => {
         .filter(e => e.bank === bank && e.timestamp <= date)
         .sort((a, b) => b.timestamp.getTime() - a.timestamp.getTime())[0];
       return sum + (latestEntryForBankAtDate?.balance || 0);
-    }, 0);
+    }, 0) + physicalAssets; // Assuming physical assets value is constant for simplicity
     
     // For simplicity, assuming debts are constant over the last 30 days
     const debtsAtDate = debts.reduce((sum, debt) => sum + debt.balance, 0);
@@ -86,7 +96,7 @@ export const getDashboardData = (): DashboardData => {
   const netWorthChange = todayNetWorth > 0 && yesterdayNetWorth > 0 && yesterdayNetWorth !== todayNetWorth ? ((todayNetWorth - yesterdayNetWorth) / Math.abs(yesterdayNetWorth)) * 100 : 0;
 
 
-  return { totalNetWorth, netWorthChange, historicalData, bankBreakdown, debtBreakdown };
+  return { totalNetWorth, netWorthChange, historicalData, bankBreakdown, debtBreakdown, assetBreakdown };
 };
 
 export const addBalanceEntry = (bank: string, balance: number) => {
