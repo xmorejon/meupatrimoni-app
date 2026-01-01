@@ -35,6 +35,7 @@ export interface ChartDataPoint {
 export interface DashboardData {
   totalNetWorth: number;
   netWorthChange: number;
+  currentCashFlow: number;
   historicalData: ChartDataPoint[];
   bankBreakdown: BankStatus[];
   debtBreakdown: Debt[];

@@ -47,11 +47,15 @@ export const getDashboardData = (): DashboardData => {
   const physicalAssets = assets.reduce((sum, asset) => sum + asset.value, 0);
   const totalAssets = financialAssets + physicalAssets;
 
-  // 3. Get total debts
+  // 3. Get total debts and credit card debt
   const totalDebts = debts.reduce((sum, debt) => sum + debt.balance, 0);
+  const creditCardDebt = debts.filter(d => d.type === 'Credit Card').reduce((sum, debt) => sum + debt.balance, 0);
 
   // 4. Calculate Total Net Worth
   const totalNetWorth = totalAssets - totalDebts;
+
+  // 4.5 Calculate Current Cash Flow
+  const currentCashFlow = financialAssets - creditCardDebt;
 
   // 5. Create Bank Breakdown
   const bankBreakdown: BankStatus[] = Array.from(latestBalances.values())
@@ -96,7 +100,7 @@ export const getDashboardData = (): DashboardData => {
   const netWorthChange = todayNetWorth > 0 && yesterdayNetWorth > 0 && yesterdayNetWorth !== todayNetWorth ? ((todayNetWorth - yesterdayNetWorth) / Math.abs(yesterdayNetWorth)) * 100 : 0;
 
 
-  return { totalNetWorth, netWorthChange, historicalData, bankBreakdown, debtBreakdown, assetBreakdown };
+  return { totalNetWorth, netWorthChange, currentCashFlow, historicalData, bankBreakdown, debtBreakdown, assetBreakdown };
 };
 
 export const addBalanceEntry = (bank: string, balance: number) => {
