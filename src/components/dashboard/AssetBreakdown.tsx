@@ -1,9 +1,9 @@
 import type { FC } from 'react';
-import { Card, CardContent, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import type { Asset } from '@/lib/types';
 import { formatDistanceToNow } from 'date-fns';
-import { de } from 'date-fns/locale';
+import { ca, es, enUS } from 'date-fns/locale';
 import { Home, Car, Edit } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { EntryDialog } from './EntryDialog';
@@ -13,7 +13,16 @@ import type { entrySchema } from './EntryDialog';
 interface AssetBreakdownProps {
   assets: Asset[];
   onEntry: (values: z.infer<typeof entrySchema>, type: 'Asset') => void;
+  translations: any;
+  locale: string;
+  currency: string;
 }
+
+const localeMap: { [key: string]: Locale } = {
+  'ca-ES': ca,
+  'es-ES': es,
+  'en-US': enUS,
+};
 
 const AssetIcon = ({ type }: { type: Asset['type'] }) => {
     switch (type) {
@@ -26,24 +35,29 @@ const AssetIcon = ({ type }: { type: Asset['type'] }) => {
     }
 }
 
-export const AssetBreakdown: FC<AssetBreakdownProps> = ({ assets, onEntry }) => {
+export const AssetBreakdown: FC<AssetBreakdownProps> = ({ assets, onEntry, translations, locale, currency }) => {
+  const t = translations.assetBreakdown;
+  const tEntry = translations.entryDialog;
+  const currentLocale = localeMap[locale] || enUS;
+
   return (
     <Card className="shadow-lg h-full flex flex-col">
       <CardHeader className="flex flex-row items-center justify-between">
-        <CardTitle>Asset Breakdown</CardTitle>
+        <CardTitle>{t.title}</CardTitle>
         <EntryDialog 
             type="Asset" 
             onEntry={(values) => onEntry(values, 'Asset')}
-            trigger={<Button variant="outline" size="sm">Add Asset</Button>}
+            trigger={<Button variant="outline" size="sm">{t.addAsset}</Button>}
+            translations={tEntry}
         />
       </CardHeader>
       <CardContent className="flex-grow">
         <Table>
           <TableHeader>
             <TableRow>
-              <TableHead>Asset</TableHead>
-              <TableHead className="text-right">Value</TableHead>
-              <TableHead className="w-[80px] text-center">Actions</TableHead>
+              <TableHead>{t.assetHeader}</TableHead>
+              <TableHead className="text-right">{t.valueHeader}</TableHead>
+              <TableHead className="w-[80px] text-center">{tEntry.actionsHeader}</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
@@ -57,13 +71,13 @@ export const AssetBreakdown: FC<AssetBreakdownProps> = ({ assets, onEntry }) => 
                     <div>
                         <div className="font-medium text-foreground">{asset.name}</div>
                         <div className="text-xs text-muted-foreground">
-                        Updated {formatDistanceToNow(asset.lastUpdated, { addSuffix: true, locale: de })}
+                        {translations.updated.replace('{time}', formatDistanceToNow(asset.lastUpdated, { addSuffix: false, locale: currentLocale }))}
                         </div>
                     </div>
                   </div>
                 </TableCell>
                 <TableCell className="text-right font-mono text-foreground">
-                  {new Intl.NumberFormat('de-DE', { style: 'currency', currency: 'EUR' }).format(asset.value)}
+                  {new Intl.NumberFormat(locale, { style: 'currency', currency }).format(asset.value)}
                 </TableCell>
                 <TableCell className="text-center">
                     <EntryDialog 
@@ -75,6 +89,7 @@ export const AssetBreakdown: FC<AssetBreakdownProps> = ({ assets, onEntry }) => 
                                 <Edit className="h-4 w-4" />
                             </Button>
                         }
+                        translations={tEntry}
                     />
                 </TableCell>
               </TableRow>

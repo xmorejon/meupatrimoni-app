@@ -4,7 +4,6 @@ import type { FC, ReactNode } from 'react';
 import { z } from "zod";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
-import { PlusCircle } from 'lucide-react';
 
 import { Button } from "@/components/ui/button";
 import {
@@ -44,11 +43,12 @@ interface EntryDialogProps {
   onEntry: (values: z.infer<typeof baseSchema> & { balance?: number; value?: number; }) => void;
   trigger: ReactNode;
   item?: Entry;
+  translations: any;
 }
 
 const typeOptions = {
-    'Bank': ['Current Account'],
-    'Debt': ['Credit Card', 'Mortgage'],
+    'Bank': ['Current Account','Investment Account'],
+    'Debt': ['Credit Card', 'Mortgage', 'Personnel Credit'],
     'Asset': ['House', 'Car']
 }
 
@@ -58,7 +58,7 @@ const valueFieldLabel = {
     'Asset': 'Value'
 }
 
-export const EntryDialog: FC<EntryDialogProps> = ({ type, onEntry, trigger, item }) => {
+export const EntryDialog: FC<EntryDialogProps> = ({ type, onEntry, trigger, item, translations }) => {
   const [open, setOpen] = useState(false);
   const { toast } = useToast();
   const isEditing = !!item;
@@ -86,8 +86,19 @@ export const EntryDialog: FC<EntryDialogProps> = ({ type, onEntry, trigger, item
     setOpen(false);
     toast({
       title: "Success!",
-      description: `${type} entry for ${values.name} has been ${isEditing ? 'updated' : 'added'}.`,
+      description: translations.successMessage
+        .replace('{type}', type)
+        .replace('{name}', values.name)
+        .replace('{action}', isEditing ? translations.actionUpdated : translations.actionAdded),
     })
+  }
+  
+  const getPlaceholder = (type: 'Bank' | 'Debt' | 'Asset') => {
+      switch(type) {
+          case 'Bank': return translations.bankNamePlaceholder;
+          case 'Debt': return translations.debtNamePlaceholder;
+          case 'Asset': return translations.assetNamePlaceholder;
+      }
   }
 
   return (
@@ -97,9 +108,9 @@ export const EntryDialog: FC<EntryDialogProps> = ({ type, onEntry, trigger, item
       </DialogTrigger>
       <DialogContent className="sm:max-w-[425px]">
         <DialogHeader>
-          <DialogTitle>{isEditing ? 'Edit' : 'Add'} {type} Entry</DialogTitle>
+          <DialogTitle>{(isEditing ? translations.editTitle : translations.addTitle).replace('{type}', type)}</DialogTitle>
           <DialogDescription>
-            {isEditing ? 'Update the details for this entry.' : `Add a new ${type.toLowerCase()} entry to your records.`}
+            {(isEditing ? translations.editDescription : translations.addDescription).replace('{type}', type.toLowerCase())}
           </DialogDescription>
         </DialogHeader>
         <Form {...form}>
@@ -109,9 +120,9 @@ export const EntryDialog: FC<EntryDialogProps> = ({ type, onEntry, trigger, item
               name="name"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>{type} Name</FormLabel>
+                  <FormLabel>{translations.nameLabel.replace('{type}', type)}</FormLabel>
                   <FormControl>
-                    <Input placeholder={type === 'Bank' ? 'e.g., NuBank' : (type === 'Debt' ? 'e.g., Visa Credit Card' : 'e.g., Primary Residence')} {...field} />
+                    <Input placeholder={getPlaceholder(type)} {...field} />
                   </FormControl>
                   <FormMessage />
                 </FormItem>
@@ -122,9 +133,9 @@ export const EntryDialog: FC<EntryDialogProps> = ({ type, onEntry, trigger, item
               name={valueFieldName}
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Current {valueFieldLabel[type]}</FormLabel>
+                  <FormLabel>{translations.valueLabel.replace('{valueFieldLabel}', valueFieldLabel[type])}</FormLabel>
                   <FormControl>
-                    <Input type="number" placeholder="e.g., 5300.50" {...field} />
+                    <Input type="number" placeholder={translations.valuePlaceholder} {...field} />
                   </FormControl>
                   <FormMessage />
                 </FormItem>
@@ -135,11 +146,11 @@ export const EntryDialog: FC<EntryDialogProps> = ({ type, onEntry, trigger, item
               name="type"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Type</FormLabel>
+                  <FormLabel>{translations.typeLabel}</FormLabel>
                   <Select onValueChange={field.onChange} defaultValue={field.value} disabled={isEditing}>
                     <FormControl>
                       <SelectTrigger>
-                        <SelectValue placeholder={`Select a ${type.toLowerCase()} type`} />
+                        <SelectValue placeholder={translations.selectTypePlaceholder.replace('{type}', type.toLowerCase())} />
                       </SelectTrigger>
                     </FormControl>
                     <SelectContent>
@@ -153,7 +164,7 @@ export const EntryDialog: FC<EntryDialogProps> = ({ type, onEntry, trigger, item
               )}
             />
             <DialogFooter>
-              <Button type="submit">Save Entry</Button>
+              <Button type="submit">{translations.saveButton}</Button>
             </DialogFooter>
           </form>
         </Form>

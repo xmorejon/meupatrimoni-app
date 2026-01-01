@@ -8,25 +8,28 @@ import type { ChartDataPoint } from '@/lib/types';
 
 interface NetWorthChartProps {
   data: ChartDataPoint[];
+  translations: any;
+  locale: string;
+  currency: string;
 }
 
-const chartConfig = {
-  netWorth: {
-    label: 'Net Worth',
-    color: 'hsl(var(--primary))',
-  },
-  cashFlow: {
-    label: 'Cash Flow',
-    color: 'hsl(var(--chart-2))',
-  }
-} satisfies ChartConfig;
-
-export const NetWorthChart: FC<NetWorthChartProps> = ({ data }) => {
+export const NetWorthChart: FC<NetWorthChartProps> = ({ data, translations, locale, currency }) => {
+  const chartConfig = {
+    netWorth: {
+      label: translations.netWorthLabel,
+      color: 'hsl(var(--primary))',
+    },
+    cashFlow: {
+      label: translations.cashFlowLabel,
+      color: 'hsl(var(--chart-2))',
+    }
+  } satisfies ChartConfig;
+  
   return (
     <Card className="shadow-lg">
       <CardHeader>
-        <CardTitle>Net Worth & Cash Flow History</CardTitle>
-        <CardDescription>Evolution of your total net worth and cash flow over the last 30 days.</CardDescription>
+        <CardTitle>{translations.title}</CardTitle>
+        <CardDescription>{translations.description}</CardDescription>
       </CardHeader>
       <CardContent>
         <ChartContainer config={chartConfig} className="h-[250px] w-full">
@@ -55,14 +58,23 @@ export const NetWorthChart: FC<NetWorthChartProps> = ({ data }) => {
                 tickLine={false}
                 axisLine={false}
                 tickMargin={8}
-                tickFormatter={(value) => `€${Number(value) / 1000}k`}
+                tickFormatter={(value) => {
+                    const number = Number(value);
+                    if (number >= 1000000 || number <= -1000000) {
+                        return `${new Intl.NumberFormat(locale, { style: 'currency', currency, notation: 'compact', compactDisplay: 'short' }).format(number/1000000)}M`;
+                    }
+                    if (number >= 1000 || number <= -1000) {
+                        return `${new Intl.NumberFormat(locale, { style: 'currency', currency, notation: 'compact', compactDisplay: 'short' }).format(number/1000)}k`;
+                    }
+                    return new Intl.NumberFormat(locale, { style: 'currency', currency }).format(number);
+                }}
                 style={{ fontSize: '12px', fill: 'hsl(var(--muted-foreground))' }}
               />
               <Tooltip
                 cursor={{ fill: 'hsl(var(--accent) / 0.1)' }}
                 content={<ChartTooltipContent
-                    formatter={(value, name) => 
-                        `${new Intl.NumberFormat('de-DE', { style: 'currency', currency: 'EUR' }).format(Number(value))}`
+                    formatter={(value) => 
+                        `${new Intl.NumberFormat(locale, { style: 'currency', currency }).format(Number(value))}`
                     }
                     indicator="dot"
                 />}

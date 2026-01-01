@@ -1,20 +1,28 @@
 import type { FC } from 'react';
-import { Card, CardContent, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import type { Debt } from '@/lib/types';
 import { formatDistanceToNow } from 'date-fns';
-import { de } from 'date-fns/locale';
+import { ca, es, enUS } from 'date-fns/locale';
 import { CreditCard, Home, Edit } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { EntryDialog } from './EntryDialog';
 import type { z } from 'zod';
 import type { entrySchema } from './EntryDialog';
 
-
 interface DebtBreakdownProps {
   debts: Debt[];
   onEntry: (values: z.infer<typeof entrySchema>, type: 'Debt') => void;
+  translations: any;
+  locale: string;
+  currency: string;
 }
+
+const localeMap: { [key: string]: Locale } = {
+  'ca-ES': ca,
+  'es-ES': es,
+  'en-US': enUS,
+};
 
 const DebtIcon = ({ type }: { type: Debt['type'] }) => {
     switch (type) {
@@ -27,24 +35,29 @@ const DebtIcon = ({ type }: { type: Debt['type'] }) => {
     }
 }
 
-export const DebtBreakdown: FC<DebtBreakdownProps> = ({ debts, onEntry }) => {
+export const DebtBreakdown: FC<DebtBreakdownProps> = ({ debts, onEntry, translations, locale, currency }) => {
+  const t = translations.debtBreakdown;
+  const tEntry = translations.entryDialog;
+  const currentLocale = localeMap[locale] || enUS;
+
   return (
     <Card className="shadow-lg h-full flex flex-col">
       <CardHeader className="flex flex-row items-center justify-between">
-        <CardTitle>Debt Breakdown</CardTitle>
+        <CardTitle>{t.title}</CardTitle>
         <EntryDialog
             type="Debt"
             onEntry={(values) => onEntry(values, 'Debt')}
-            trigger={<Button variant="outline" size="sm">Add Debt</Button>}
+            trigger={<Button variant="outline" size="sm">{t.addDebt}</Button>}
+            translations={tEntry}
         />
       </CardHeader>
       <CardContent className="flex-grow">
         <Table>
           <TableHeader>
             <TableRow>
-              <TableHead>Debt</TableHead>
-              <TableHead className="text-right">Balance</TableHead>
-              <TableHead className="w-[80px] text-center">Actions</TableHead>
+              <TableHead>{t.debtHeader}</TableHead>
+              <TableHead className="text-right">{t.balanceHeader}</TableHead>
+              <TableHead className="w-[80px] text-center">{tEntry.actionsHeader}</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
@@ -58,13 +71,13 @@ export const DebtBreakdown: FC<DebtBreakdownProps> = ({ debts, onEntry }) => {
                     <div>
                         <div className="font-medium text-foreground">{debt.name}</div>
                         <div className="text-xs text-muted-foreground">
-                        Updated {formatDistanceToNow(debt.lastUpdated, { addSuffix: true, locale: de })}
+                         {translations.updated.replace('{time}', formatDistanceToNow(debt.lastUpdated, { addSuffix: false, locale: currentLocale }))}
                         </div>
                     </div>
                   </div>
                 </TableCell>
                 <TableCell className="text-right font-mono text-foreground">
-                  {new Intl.NumberFormat('de-DE', { style: 'currency', currency: 'EUR' }).format(debt.balance)}
+                  {new Intl.NumberFormat(locale, { style: 'currency', currency }).format(debt.balance)}
                 </TableCell>
                 <TableCell className="text-center">
                     <EntryDialog
@@ -76,6 +89,7 @@ export const DebtBreakdown: FC<DebtBreakdownProps> = ({ debts, onEntry }) => {
                                 <Edit className="h-4 w-4" />
                             </Button>
                         }
+                        translations={tEntry}
                     />
                 </TableCell>
               </TableRow>

@@ -16,7 +16,7 @@ export interface Debt {
   id: string;
   name: string;
   balance: number;
-  type: 'Credit Card' | 'Mortgage';
+  type: 'Credit Card' | 'Mortgage' | 'Personnel Credit';
   lastUpdated: Date;
 }
 

@@ -1,0 +1,69 @@
+
+{
+  "Dashboard": {
+    "title": "MeuPatrimoni",
+    "description": "Fes el seguiment del teu patrimoni net en temps real.",
+    "netWorthCard": {
+      "totalNetWorth": "Patrimoni Net Total",
+      "vsYesterday": "vs. ahir",
+      "currentCashFlow": "Flux de Caixa Actual",
+      "cashFlowDescription": "Saldo Bancari - Deute de Targeta de Crèdit"
+    },
+    "netWorthChart": {
+      "title": "Historial de Patrimoni Net i Flux de Caixa",
+      "description": "Evolució del teu patrimoni net total i flux de caixa en els darrers 30 dies.",
+      "netWorthLabel": "Patrimoni Net",
+      "cashFlowLabel": "Flux de Caixa"
+    },
+    "bankBreakdown": {
+      "title": "Desglossament Bancari",
+      "addBank": "Afegeix Banc",
+      "bankHeader": "Banc",
+      "balanceHeader": "Saldo"
+    },
+    "debtBreakdown": {
+      "title": "Desglossament de Deutes",
+      "addDebt": "Afegeix Deute",
+      "debtHeader": "Deute",
+      "balanceHeader": "Saldo"
+    },
+    "assetBreakdown": {
+      "title": "Desglossament d'Actius",
+      "addAsset": "Afegeix Actiu",
+      "assetHeader": "Actiu",
+      "valueHeader": "Valor"
+    },
+    "entryDialog": {
+      "addTitle": "Afegeix Entrada de {type}",
+      "editTitle": "Edita Entrada de {type}",
+      "addDescription": "Afegeix una nova entrada de {type} als teus registres.",
+      "editDescription": "Actualitza els detalls d'aquesta entrada.",
+      "nameLabel": "Nom de {type}",
+      "bankNamePlaceholder": "ex., NuBank",
+      "debtNamePlaceholder": "ex., Targeta de Crèdit Visa",
+      "assetNamePlaceholder": "ex., Residència Principal",
+      "valueLabel": "{valueFieldLabel} Actual",
+      "valuePlaceholder": "ex., 5300.50",
+      "typeLabel": "Tipus",
+      "selectTypePlaceholder": "Selecciona un tipus de {type}",
+      "saveButton": "Desa l'Entrada",
+      "successMessage": "L'entrada de {type} per a {name} ha estat {action}.",
+      "actionAdded": "afegida",
+      "actionUpdated": "actualitzada",
+      "actionsHeader": "Accions"
+    },
+    "updated": "Actualitzat fa {time}"
+  },
+  "Locale": {
+    "de": "ca-ES",
+    "ca": "ca-ES",
+    "es": "es-ES",
+    "en": "en-US"
+  },
+  "Currency": {
+    "de": "EUR",
+    "ca": "EUR",
+    "es": "EUR",
+    "en": "USD"
+  }
+}
