@@ -1,30 +1,11 @@
-import type {Metadata} from 'next';
-import './globals.css';
-import { Toaster } from "@/components/ui/toaster";
-
-export const metadata: Metadata = {
-  title: 'MeuPatrimoni',
-  description: 'Track your net worth in real-time.',
-};
-
+//This is the root layout.
+//Since we are using next-intl, we can have a root layout that applies to all locales.
+//However, we are creating a `[locale]` folder with its own layout.
+//This root layout will just pass the children through.
 export default function RootLayout({
   children,
-  params: {locale}
-}: Readonly<{
+}: {
   children: React.ReactNode;
-  params: {locale: string};
-}>) {
-  return (
-    <html lang={locale} className="dark">
-      <head>
-        <link rel="preconnect" href="https://fonts.googleapis.com" />
-        <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="" />
-        <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
-      </head>
-      <body className="font-body antialiased">
-        {children}
-        <Toaster />
-      </body>
-    </html>
-  );
+}) {
+  return children;
 }

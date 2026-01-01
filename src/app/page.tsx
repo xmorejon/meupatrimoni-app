@@ -1,22 +1,9 @@
-import { getDashboardData } from "@/lib/mock-data";
-import { DashboardClient } from "@/components/dashboard/DashboardClient";
-import { getTranslations } from 'next-intl/server';
-import { getLocale } from 'next-intl/server';
+// This is the root page.
+// We are redirecting to the default locale.
+// The default locale is defined in middleware.ts
 
-export default async function Home() {
-  const data = getDashboardData();
-  const t = await getTranslations();
-  const locale = await getLocale();
+import { redirect } from 'next/navigation';
 
-  return (
-    <DashboardClient 
-      initialData={data} 
-      translations={{
-        dashboard: t.raw('Dashboard'),
-        locale: t.raw('Locale'),
-        currency: t.raw('Currency'),
-      }}
-      locale={locale}
-    />
-  );
+export default function RootPage() {
+  redirect('/en');
 }
