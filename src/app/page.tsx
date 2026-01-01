@@ -11,7 +11,7 @@ import { addBalanceEntry, getDashboardData, simulateRealtimeUpdate, addOrUpdateD
 import type { DashboardData, BankStatus, Debt, Asset } from "@/lib/types";
 import { Skeleton } from "@/components/ui/skeleton";
 import type { z } from 'zod';
-import type { entrySchema } from '@/components/dashboard/EntryDialog';
+import type { baseSchema } from '@/components/dashboard/EntryDialog';
 
 const DashboardSkeleton = () => (
   <div className="p-4 md:p-8 space-y-8">
@@ -49,10 +49,10 @@ export default function Home() {
     return () => clearInterval(interval);
   }, []);
 
-  const handleEntry = (values: z.infer<typeof entrySchema>, type: 'Bank' | 'Debt' | 'Asset') => {
+  const handleEntry = (values: z.infer<typeof baseSchema> & { balance?: number, value?: number }, type: 'Bank' | 'Debt' | 'Asset') => {
     switch (type) {
         case 'Bank':
-            addOrUpdateBank(values as BankStatus);
+            addOrUpdateBank({name: values.name, balance: values.balance});
             break;
         case 'Debt':
             addOrUpdateDebt(values as Debt);

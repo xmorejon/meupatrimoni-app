@@ -24,17 +24,24 @@ import { useToast } from '@/hooks/use-toast';
 import type { Entry } from '@/lib/types';
 
 
-export const entrySchema = z.object({
+export const baseSchema = z.object({
   id: z.string().optional(),
   name: z.string().min(2, { message: "Name must be at least 2 characters." }),
-  balance: z.coerce.number().positive({ message: "Value must be a positive number." }),
-  value: z.coerce.number().positive({ message: "Value must be a positive number." }),
   type: z.string().min(1, { message: "Please select a type." }),
 });
 
+export const entrySchema = baseSchema.extend({
+  balance: z.coerce.number().positive({ message: "Value must be a positive number." }).optional(),
+  value: z.coerce.number().positive({ message: "Value must be a positive number." }).optional(),
+}).refine(data => (data.balance !== undefined && data.balance > 0) || (data.value !== undefined && data.value > 0), {
+    message: "A positive balance or value is required.",
+    path: ['balance'] // show error on balance field
+});
+
+
 interface EntryDialogProps {
   type: 'Bank' | 'Debt' | 'Asset';
-  onEntry: (values: z.infer<typeof entrySchema>) => void;
+  onEntry: (values: z.infer<typeof baseSchema> & { balance?: number; value?: number; }) => void;
   trigger: ReactNode;
   item?: Entry;
 }
@@ -55,12 +62,11 @@ export const EntryDialog: FC<EntryDialogProps> = ({ type, onEntry, trigger, item
   const [open, setOpen] = useState(false);
   const { toast } = useToast();
   const isEditing = !!item;
+  
+  const valueFieldName = type === 'Asset' ? 'value' : 'balance';
 
-  const formSchema = z.object({
-    id: z.string().optional(),
-    name: z.string().min(2, { message: "Name must be at least 2 characters." }),
-    [type === 'Asset' ? 'value' : 'balance']: z.coerce.number().positive({ message: "Value must be a positive number." }),
-    type: z.string().min(1, { message: "Please select a type." }),
+  const formSchema = baseSchema.extend({
+    [valueFieldName]: z.coerce.number().positive({ message: "Value must be a positive number." }),
   });
 
 
@@ -69,7 +75,7 @@ export const EntryDialog: FC<EntryDialogProps> = ({ type, onEntry, trigger, item
     defaultValues: {
       id: (item as any)?.id ?? (item as any)?.name ?? undefined,
       name: item?.name ?? "",
-      [type === 'Asset' ? 'value' : 'balance']: (item as any)?.balance ?? (item as any)?.value ?? 0,
+      [valueFieldName]: (item as any)?.balance ?? (item as any)?.value ?? 0,
       type: (item as any)?.type ?? "",
     },
   });
@@ -113,7 +119,7 @@ export const EntryDialog: FC<EntryDialogProps> = ({ type, onEntry, trigger, item
             />
             <FormField
               control={form.control}
-              name={type === 'Asset' ? 'value' : 'balance'}
+              name={valueFieldName}
               render={({ field }) => (
                 <FormItem>
                   <FormLabel>Current {valueFieldLabel[type]}</FormLabel>
