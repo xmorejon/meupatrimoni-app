@@ -1,14 +1,15 @@
+
 import type { FC } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import type { Asset } from '@/lib/types';
-import { formatDistanceToNow } from 'date-fns';
 import { ca, es, enUS } from 'date-fns/locale';
 import { Home, Car, Edit } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { EntryDialog } from './EntryDialog';
 import type { z } from 'zod';
 import type { entrySchema } from './EntryDialog';
+import { TimeAgo } from './TimeAgo';
 
 interface AssetBreakdownProps {
   assets: Asset[];
@@ -70,9 +71,7 @@ export const AssetBreakdown: FC<AssetBreakdownProps> = ({ assets, onEntry, trans
                     </div>
                     <div>
                         <div className="font-medium text-foreground">{asset.name}</div>
-                        <div className="text-xs text-muted-foreground">
-                        {translations.updated.replace('{time}', formatDistanceToNow(asset.lastUpdated, { addSuffix: false, locale: currentLocale }))}
-                        </div>
+                        <TimeAgo date={asset.lastUpdated as Date} locale={currentLocale} translations={{ updated: translations.updated }}/>
                     </div>
                   </div>
                 </TableCell>

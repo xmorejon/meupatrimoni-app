@@ -1,14 +1,15 @@
+
 import type { FC } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import type { Debt } from '@/lib/types';
-import { formatDistanceToNow } from 'date-fns';
 import { ca, es, enUS } from 'date-fns/locale';
 import { CreditCard, Home, Edit } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { EntryDialog } from './EntryDialog';
 import type { z } from 'zod';
 import type { entrySchema } from './EntryDialog';
+import { TimeAgo } from './TimeAgo';
 
 interface DebtBreakdownProps {
   debts: Debt[];
@@ -70,9 +71,7 @@ export const DebtBreakdown: FC<DebtBreakdownProps> = ({ debts, onEntry, translat
                     </div>
                     <div>
                         <div className="font-medium text-foreground">{debt.name}</div>
-                        <div className="text-xs text-muted-foreground">
-                         {translations.updated.replace('{time}', formatDistanceToNow(debt.lastUpdated, { addSuffix: false, locale: currentLocale }))}
-                        </div>
+                        <TimeAgo date={debt.lastUpdated as Date} locale={currentLocale} translations={{ updated: translations.updated }}/>
                     </div>
                   </div>
                 </TableCell>
