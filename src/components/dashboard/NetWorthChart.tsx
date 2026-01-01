@@ -17,7 +17,7 @@ const chartConfig = {
   },
   cashFlow: {
     label: 'Cash Flow',
-    color: 'hsl(var(--chart-4))',
+    color: 'hsl(var(--chart-2))',
   }
 } satisfies ChartConfig;
 
