@@ -1,0 +1,24 @@
+export interface BalanceEntry {
+  id: string;
+  bank: string;
+  balance: number;
+  timestamp: Date;
+}
+
+export interface BankStatus {
+  name: string;
+  balance: number;
+  lastUpdated: Date;
+}
+
+export interface ChartDataPoint {
+  date: string;
+  netWorth: number;
+}
+
+export interface DashboardData {
+  totalNetWorth: number;
+  netWorthChange: number;
+  historicalData: ChartDataPoint[];
+  bankBreakdown: BankStatus[];
+}
