@@ -78,19 +78,24 @@ export const getDashboardData = (): DashboardData => {
   const dateInterval = eachDayOfInterval({ start: thirtyDaysAgo, end: endOfToday() });
 
   const historicalData = dateInterval.map(date => {
-    const assetsAtDate = Array.from(new Set(balanceEntries.map(e => e.bank))).reduce((sum, bank) => {
+    const financialAssetsAtDate = Array.from(new Set(balanceEntries.map(e => e.bank))).reduce((sum, bank) => {
       const latestEntryForBankAtDate = balanceEntries
         .filter(e => e.bank === bank && e.timestamp <= date)
         .sort((a, b) => b.timestamp.getTime() - a.timestamp.getTime())[0];
       return sum + (latestEntryForBankAtDate?.balance || 0);
-    }, 0) + physicalAssets; // Assuming physical assets value is constant for simplicity
+    }, 0);
+
+    const assetsAtDate = financialAssetsAtDate + physicalAssets; // Assuming physical assets value is constant for simplicity
     
     // For simplicity, assuming debts are constant over the last 30 days
     const debtsAtDate = debts.reduce((sum, debt) => sum + debt.balance, 0);
+    const creditCardDebtAtDate = debts.filter(d => d.type === 'Credit Card').reduce((sum, debt) => sum + debt.balance, 0);
+
 
     return {
       date: format(date, 'MMM d'),
       netWorth: assetsAtDate - debtsAtDate,
+      cashFlow: financialAssetsAtDate - creditCardDebtAtDate,
     };
   });
   

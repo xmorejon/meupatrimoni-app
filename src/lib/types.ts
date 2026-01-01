@@ -30,6 +30,7 @@ export interface Asset {
 export interface ChartDataPoint {
   date: string;
   netWorth: number;
+  cashFlow: number;
 }
 
 export interface DashboardData {
