@@ -3,7 +3,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import type { BankStatus } from '@/lib/types';
 import { formatDistanceToNow } from 'date-fns';
-import { ptBR } from 'date-fns/locale';
+import { de } from 'date-fns/locale';
 import { Landmark } from 'lucide-react';
 
 interface BankBreakdownProps {
@@ -35,13 +35,13 @@ export const BankBreakdown: FC<BankBreakdownProps> = ({ banks }) => {
                     <div>
                         <div className="font-medium text-foreground">{bank.name}</div>
                         <div className="text-xs text-muted-foreground">
-                        Updated {formatDistanceToNow(bank.lastUpdated, { addSuffix: true, locale: ptBR })}
+                        Updated {formatDistanceToNow(bank.lastUpdated, { addSuffix: true, locale: de })}
                         </div>
                     </div>
                   </div>
                 </TableCell>
                 <TableCell className="text-right font-mono text-foreground">
-                  {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(bank.balance)}
+                  {new Intl.NumberFormat('de-DE', { style: 'currency', currency: 'EUR' }).format(bank.balance)}
                 </TableCell>
               </TableRow>
             ))}

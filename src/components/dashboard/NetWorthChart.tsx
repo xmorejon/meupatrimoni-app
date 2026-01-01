@@ -47,13 +47,13 @@ export const NetWorthChart: FC<NetWorthChartProps> = ({ data }) => {
                 tickLine={false}
                 axisLine={false}
                 tickMargin={8}
-                tickFormatter={(value) => `R$${Number(value) / 1000}k`}
+                tickFormatter={(value) => `€${Number(value) / 1000}k`}
                 style={{ fontSize: '12px', fill: 'hsl(var(--muted-foreground))' }}
               />
               <Tooltip
                 cursor={{ fill: 'hsl(var(--accent) / 0.1)' }}
                 content={<ChartTooltipContent
-                    formatter={(value) => new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(Number(value))}
+                    formatter={(value) => new Intl.NumberFormat('de-DE', { style: 'currency', currency: 'EUR' }).format(Number(value))}
                     indicator="dot"
                 />}
               />

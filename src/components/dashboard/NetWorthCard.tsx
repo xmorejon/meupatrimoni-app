@@ -8,9 +8,9 @@ interface NetWorthCardProps {
 }
 
 export const NetWorthCard: FC<NetWorthCardProps> = ({ totalNetWorth, change }) => {
-  const formattedNetWorth = new Intl.NumberFormat('pt-BR', {
+  const formattedNetWorth = new Intl.NumberFormat('de-DE', {
     style: 'currency',
-    currency: 'BRL',
+    currency: 'EUR',
   }).format(totalNetWorth);
 
   const ChangeIcon = change > 0.01 ? ArrowUpRight : change < -0.01 ? ArrowDownRight : Minus;
