@@ -29,10 +29,16 @@ const DashboardSkeleton = () => (
   </div>
 );
 
-export function DashboardClient({ initialData, translations, locale }: { initialData: DashboardData, translations: any, locale: string }) {
+export function DashboardClient({ initialData, locale }: { initialData: DashboardData, locale: string }) {
   const [data, setData] = useState<DashboardData | null>(initialData);
   const [loading, setLoading] = useState(false);
-  const t = useTranslations('Dashboard');
+  const t = useTranslations();
+
+  const translations = {
+    dashboard: t.raw('Dashboard'),
+    locale: t.raw('Locale'),
+    currency: t.raw('Currency'),
+  };
 
   const refreshData = () => {
     const dashboardData = getDashboardData();
@@ -64,8 +70,8 @@ export function DashboardClient({ initialData, translations, locale }: { initial
     refreshData();
   };
 
-  const currentLocale = translations.locale[locale] || translations.locale['en'];
-  const currency = translations.currency[locale] || translations.currency['en'];
+  const currentLocale = translations.locale[locale as keyof typeof translations.locale] || translations.locale['en'];
+  const currency = translations.currency[locale as keyof typeof translations.currency] || translations.currency['en'];
 
   return (
     <div className="flex flex-col min-h-screen bg-background text-foreground">
