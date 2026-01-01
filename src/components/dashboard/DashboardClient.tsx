@@ -7,7 +7,7 @@ import { NetWorthChart } from "@/components/dashboard/NetWorthChart";
 import { BankBreakdown } from "@/components/dashboard/BankBreakdown";
 import { DebtBreakdown } from "@/components/dashboard/DebtBreakdown";
 import { AssetBreakdown } from "@/components/dashboard/AssetBreakdown";
-import { getDashboardData, simulateRealtimeUpdate, addOrUpdateDebt, addOrUpdateAsset, addOrUpdateBank } from "@/lib/mock-data";
+import { getDashboardData, addOrUpdateDebt, addOrUpdateAsset, addOrUpdateBank } from "@/lib/firebase-service";
 import type { DashboardData, BankStatus, Debt, Asset } from "@/lib/types";
 import { Skeleton } from "@/components/ui/skeleton";
 import type { z } from 'zod';
@@ -40,34 +40,26 @@ export function DashboardClient({ initialData, locale }: { initialData: Dashboar
     currency: t.raw('Currency'),
   };
 
-  const refreshData = () => {
-    const dashboardData = getDashboardData();
+  const refreshData = async () => {
+    setLoading(true);
+    const dashboardData = await getDashboardData();
     setData(dashboardData);
+    setLoading(false);
   };
-
-  useEffect(() => {
-    // Simulate real-time updates from a Cloud Function
-    const interval = setInterval(() => {
-      simulateRealtimeUpdate();
-      refreshData();
-    }, 15000); // every 15 seconds
-
-    return () => clearInterval(interval);
-  }, []);
-
-  const handleEntry = (values: z.infer<typeof baseSchema> & { balance?: number, value?: number }, type: 'Bank' | 'Debt' | 'Asset') => {
+  
+  const handleEntry = async (values: z.infer<typeof baseSchema> & { balance?: number, value?: number }, type: 'Bank' | 'Debt' | 'Asset') => {
     switch (type) {
         case 'Bank':
-            addOrUpdateBank(values as BankStatus);
+            await addOrUpdateBank(values as BankStatus);
             break;
         case 'Debt':
-            addOrUpdateDebt(values as Debt);
+            await addOrUpdateDebt(values as Debt);
             break;
         case 'Asset':
-            addOrUpdateAsset(values as Asset);
+            await addOrUpdateAsset(values as Asset);
             break;
     }
-    refreshData();
+    await refreshData();
   };
 
   const currentLocale = translations.locale[locale as keyof typeof translations.locale] || translations.locale['en'];

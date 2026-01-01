@@ -1,9 +1,9 @@
-import { getDashboardData } from "@/lib/mock-data";
+import { getDashboardData } from "@/lib/firebase-service";
 import { DashboardClient } from "@/components/dashboard/DashboardClient";
 import { getLocale } from 'next-intl/server';
 
 export default async function Home() {
-  const data = getDashboardData();
+  const data = await getDashboardData();
   const locale = await getLocale();
 
   return (

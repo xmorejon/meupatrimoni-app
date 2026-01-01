@@ -1,23 +1,25 @@
+import type { Timestamp } from 'firebase/firestore';
+
 export interface BalanceEntry {
   id: string;
   bank: string;
   balance: number;
-  timestamp: Date;
+  timestamp: Date | Timestamp;
 }
 
 export interface BankStatus {
   id: string;
   name: string;
   balance: number;
-  lastUpdated: Date;
+  lastUpdated: Date | Timestamp;
 }
 
 export interface Debt {
-  id: string;
+  id:string;
   name: string;
   balance: number;
   type: 'Credit Card' | 'Mortgage' | 'Personnel Credit';
-  lastUpdated: Date;
+  lastUpdated: Date | Timestamp;
 }
 
 export interface Asset {
@@ -25,7 +27,7 @@ export interface Asset {
   name: string;
   value: number;
   type: 'House' | 'Car';
-  lastUpdated: Date;
+  lastUpdated: Date | Timestamp;
 }
 
 export interface ChartDataPoint {
