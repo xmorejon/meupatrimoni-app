@@ -64,32 +64,56 @@ async function getAssetEntries(): Promise<Array<Asset & { timestamp: Date, asset
 }
 
 export async function batchImportEntries(
-  selectedBank: BankStatus,
-  entries: { timestamp: Date; balance: number }[]
+  entryType: 'Bank' | 'Debt' | 'Asset',
+  selectedItem: Entry,
+  entries: { timestamp: Date; balance?: number, value?: number }[]
 ): Promise<void> {
+  if (entries.length === 0) return;
+
   const batch = writeBatch(db);
-  const bankRef = doc(db, 'banks', selectedBank.id);
+  const isAsset = entryType === 'Asset';
+  const collectionName = isAsset ? 'assetEntries' : (entryType === 'Debt' ? 'debtEntries' : 'balanceEntries');
+  const mainCollectionName = isAsset ? 'assets' : (entryType === 'Debt' ? 'debts' : 'banks');
+  const mainDocRef = doc(db, mainCollectionName, selectedItem.id);
 
   entries.forEach(entry => {
-    const entryRef = doc(collection(db, 'balanceEntries'));
-    batch.set(entryRef, {
-      bankId: selectedBank.id,
-      bank: selectedBank.name,
-      balance: entry.balance,
+    const entryRef = doc(collection(db, collectionName));
+    const payload: any = {
       timestamp: Timestamp.fromDate(entry.timestamp),
-    });
+    };
+    if(entryType === 'Bank') {
+        payload.bankId = selectedItem.id;
+        payload.bank = selectedItem.name;
+        payload.balance = entry.balance;
+    } else if (entryType === 'Debt') {
+        payload.debtId = selectedItem.id;
+        payload.name = selectedItem.name;
+        payload.balance = entry.balance;
+        payload.type = (selectedItem as Debt).type;
+    } else if (entryType === 'Asset') {
+        payload.assetId = selectedItem.id;
+        payload.name = selectedItem.name;
+        payload.value = entry.value;
+        payload.type = (selectedItem as Asset).type;
+    }
+
+    batch.set(entryRef, payload);
   });
 
-  // Find the entry with the latest date to update the main bank document
-  if (entries.length > 0) {
-    const latestEntry = entries.reduce((latest, current) =>
-      current.timestamp > latest.timestamp ? current : latest
-    );
-    batch.update(bankRef, {
-      balance: latestEntry.balance,
-      lastUpdated: Timestamp.fromDate(latestEntry.timestamp),
-    });
+  const latestEntry = entries.reduce((latest, current) =>
+    current.timestamp > latest.timestamp ? current : latest
+  );
+  
+  const updatePayload: any = {
+    lastUpdated: Timestamp.fromDate(latestEntry.timestamp),
+  };
+  if (isAsset) {
+    updatePayload.value = latestEntry.value;
+  } else {
+    updatePayload.balance = latestEntry.balance;
   }
+
+  batch.update(mainDocRef, updatePayload);
 
   await batch.commit();
 }
@@ -180,15 +204,10 @@ export async function getDashboardData(): Promise<DashboardData> {
   
   // --- HISTORICAL CALCULATIONS ---
   const today = startOfToday();
-  const allCreationDates = [
-    ...bankBreakdown.map(b => (b.lastUpdated as Date).getTime()),
-    ...debtBreakdown.map(d => (d.lastUpdated as Date).getTime()),
-    ...assetBreakdown.map(a => (a.lastUpdated as Date).getTime()),
-    ...allEntries.map(e => e.timestamp.getTime())
-  ].filter(t => !isNaN(t));
+  const allTimestamps = allEntries.map(e => (e.timestamp as Date).getTime()).filter(t => !isNaN(t));
   
-  const startDate = allCreationDates.length > 0 
-    ? startOfDay(new Date(Math.min(...allCreationDates))) 
+  const startDate = allTimestamps.length > 0 
+    ? startOfDay(new Date(Math.min(...allTimestamps))) 
     : subDays(today, 90);
 
   const dateInterval = eachDayOfInterval({ start: startDate, end: today });
@@ -198,55 +217,42 @@ export async function getDashboardData(): Promise<DashboardData> {
 
     const bankIds = new Set(bankBreakdown.map(b => b.id));
     const financialAssetsAtDate = Array.from(bankIds).reduce((sum, bankId) => {
-        const relevantEntries = balanceEntries.filter(e => e.bankId === bankId && e.timestamp <= endOfDate);
+        const relevantEntries = balanceEntries.filter(e => e.bankId === bankId && (e.timestamp as Date) <= endOfDate);
         if (relevantEntries.length > 0) {
-            const latestEntry = relevantEntries.sort((a, b) => b.timestamp.getTime() - a.timestamp.getTime())[0];
+            const latestEntry = relevantEntries.sort((a, b) => (b.timestamp as Date).getTime() - (a.timestamp as Date).getTime())[0];
             return sum + latestEntry.balance;
-        }
-        const bank = bankBreakdown.find(b => b.id === bankId);
-        if (bank && (bank.lastUpdated as Date) <= endOfDate) {
-            return sum + bank.balance;
         }
         return sum;
     }, 0);
 
     const assetIds = new Set(assetBreakdown.map(a => a.id));
     const physicalAssetsAtDate = Array.from(assetIds).reduce((sum, assetId) => {
-        const relevantEntries = assetEntries.filter(e => e.assetId === assetId && e.timestamp <= endOfDate);
+        const relevantEntries = assetEntries.filter(e => e.assetId === assetId && (e.timestamp as Date) <= endOfDate);
         if (relevantEntries.length > 0) {
-            const latestEntry = relevantEntries.sort((a, b) => b.timestamp.getTime() - a.timestamp.getTime())[0];
+            const latestEntry = relevantEntries.sort((a, b) => (b.timestamp as Date).getTime() - (a.timestamp as Date).getTime())[0];
             return sum + latestEntry.value;
-        }
-        const asset = assetBreakdown.find(a => a.id === assetId);
-        if (asset && (asset.lastUpdated as Date) <= endOfDate) {
-            return sum + asset.value;
         }
         return sum;
     }, 0);
     
     const debtIds = new Set(debtBreakdown.map(d => d.id));
     const debtsAtDate = Array.from(debtIds).reduce((sum, debtId) => {
-        const relevantEntries = debtEntries.filter(e => e.debtId === debtId && e.timestamp <= endOfDate);
+        const relevantEntries = debtEntries.filter(e => e.debtId === debtId && (e.timestamp as Date) <= endOfDate);
         if (relevantEntries.length > 0) {
-            const latestEntry = relevantEntries.sort((a, b) => b.timestamp.getTime() - a.timestamp.getTime())[0];
+            const latestEntry = relevantEntries.sort((a, b) => (b.timestamp as Date).getTime() - (a.timestamp as Date).getTime())[0];
             return sum + latestEntry.balance;
-        }
-        const debt = debtBreakdown.find(d => d.id === debtId);
-        if (debt && (debt.lastUpdated as Date) <= endOfDate) {
-            return sum + debt.balance;
         }
         return sum;
     }, 0);
 
     const creditCardDebtAtDate = Array.from(debtIds).reduce((sum, debtId) => {
-        const relevantEntries = debtEntries.filter(e => e.debtId === debtId && e.type === 'Credit Card' && e.timestamp <= endOfDate);
+        const debtDef = debtBreakdown.find(d => d.id === debtId);
+        if (debtDef?.type !== 'Credit Card') return sum;
+        
+        const relevantEntries = debtEntries.filter(e => e.debtId === debtId && (e.timestamp as Date) <= endOfDate);
         if (relevantEntries.length > 0) {
-            const latestEntry = relevantEntries.sort((a, b) => b.timestamp.getTime() - a.timestamp.getTime())[0];
+            const latestEntry = relevantEntries.sort((a, b) => (b.timestamp as Date).getTime() - (a.timestamp as Date).getTime())[0];
             return sum + Math.abs(latestEntry.balance);
-        }
-        const debt = debtBreakdown.find(d => d.id === debtId);
-        if (debt && debt.type === 'Credit Card' && (debt.lastUpdated as Date) <= endOfDate) {
-            return sum + Math.abs(debt.balance);
         }
         return sum;
     }, 0);
@@ -271,3 +277,4 @@ export async function getDashboardData(): Promise<DashboardData> {
 
   return { totalNetWorth, netWorthChange, currentCashFlow, historicalData, bankBreakdown, debtBreakdown, assetBreakdown };
 };
+
