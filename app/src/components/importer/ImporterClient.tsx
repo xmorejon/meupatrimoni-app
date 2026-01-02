@@ -1,3 +1,4 @@
+
 "use client";
 
 import { useState } from "react";
@@ -202,7 +203,8 @@ export function ImporterClient({ banks, debts, assets }: ImporterClientProps) {
                       name="itemId"
                       render={({ field }) => (
                         <FormItem>
-                          <FormLabel>{entryType}</FormLabel>                          <Select onValueChange={field.onChange} defaultValue={field.value} value={field.value}>
+                          <FormLabel>{entryType}</FormLabel>
+                          <Select onValueChange={field.onChange} defaultValue={field.value} value={field.value}>
                             <FormControl>
                               <SelectTrigger>
                                 <SelectValue placeholder={`Select a ${entryType.toLowerCase()}`} />
