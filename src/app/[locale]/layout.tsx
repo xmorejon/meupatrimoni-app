@@ -11,15 +11,14 @@ export const metadata: Metadata = {
 
 export default async function RootLayout(props: {
   children: React.ReactNode;
-  params: Promise<{locale: string}>;
+  params: {locale: string};
 }) {
   const { children, params } = props;
-  const { locale } = await params;
-  unstable_setRequestLocale(locale);
+  unstable_setRequestLocale(params.locale);
   const messages = await getMessages();
 
   return (
-    <html lang={locale} className="dark">
+    <html lang={params.locale} className="dark">
       <head>
         <link rel="preconnect" href="https://fonts.googleapis.com" />
         <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="" />

@@ -7,14 +7,13 @@ export default async function Home({
 }: {
   params: {locale: string};
 }) {
-  const { locale } = params;
-  unstable_setRequestLocale(locale);
+  unstable_setRequestLocale(params.locale);
   const data = await getDashboardData();
 
   return (
     <DashboardClient 
       initialData={data}
-      locale={locale}
+      locale={params.locale}
     />
   );
 }
