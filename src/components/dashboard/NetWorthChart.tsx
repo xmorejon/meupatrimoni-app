@@ -166,8 +166,8 @@ export const NetWorthChart: FC<NetWorthChartProps> = ({ data, translations, loca
                             />}
                         />
                             {/* Legend is rendered outside the scrollable chart so it stays visible */}
-                        <Area yAxisId="left" dataKey="netWorth" type="natural" fill="url(#fillNetWorth)" stroke="var(--color-netWorth)" stackId="a" />
-                        <Area yAxisId="right" dataKey="cashFlow" type="natural" fill="url(#fillCashFlow)" stroke="var(--color-cashFlow)" stackId="b" />
+                        <Area yAxisId="left" dataKey="netWorth" type="natural" fill="url(#fillNetWorth)" stroke="var(--color-netWorth)" />
+                        <Area yAxisId="right" dataKey="cashFlow" type="natural" fill="url(#fillCashFlow)" stroke="var(--color-cashFlow)" />
                     </AreaChart>
                 </ChartContainer>
                 </div>
