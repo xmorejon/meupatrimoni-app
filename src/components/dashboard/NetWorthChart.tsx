@@ -52,9 +52,16 @@ export const NetWorthChart: FC<NetWorthChartProps> = ({ data, translations, loca
     if (scrollAreaRef.current) {
         const scrollableViewport = scrollAreaRef.current.querySelector('div[data-radix-scroll-area-viewport]');
         if (scrollableViewport) {
-            // keep chart scrolled to the start so older data is visible by default;
-            // user can still scroll horizontally to see newer points
-            scrollableViewport.scrollLeft = 0;
+            // scroll to the end so the latest data is visible on load
+            // use a short timeout to ensure layout is ready
+            setTimeout(() => {
+              try {
+                const el = scrollableViewport as HTMLElement;
+                el.scrollLeft = Math.max(0, el.scrollWidth - el.clientWidth);
+              } catch (e) {
+                // ignore
+              }
+            }, 0);
         }
     }
   }, [data]);
@@ -138,9 +145,9 @@ export const NetWorthChart: FC<NetWorthChartProps> = ({ data, translations, loca
                             dataKey="date"
                             tickLine={false}
                             axisLine={false}
-                            tickMargin={8}
-                            tickFormatter={(value) => value.substring(0,5)}
-                            style={{ fontSize: '12px', fill: 'hsl(var(--muted-foreground))' }}
+                          tickMargin={6}
+                          tickFormatter={(value) => String(value)}
+                          style={{ fontSize: '10px', fill: 'hsl(var(--muted-foreground))' }}
                             interval="preserveStartEnd"
                         />
                         {/* keep YAxes hidden to provide scales while we render visible labels outside the scroll area */}
@@ -158,19 +165,36 @@ export const NetWorthChart: FC<NetWorthChartProps> = ({ data, translations, loca
                                 indicator="dot"
                             />}
                         />
-                        <Legend content={<ChartLegendContent />} />
+                            {/* Legend is rendered outside the scrollable chart so it stays visible */}
                         <Area yAxisId="left" dataKey="netWorth" type="natural" fill="url(#fillNetWorth)" stroke="var(--color-netWorth)" stackId="a" />
                         <Area yAxisId="right" dataKey="cashFlow" type="natural" fill="url(#fillCashFlow)" stroke="var(--color-cashFlow)" stackId="b" />
                     </AreaChart>
                 </ChartContainer>
-            </div>
+                </div>
             </ScrollArea>
-            <div className="flex-shrink-0 w-20 pl-2 flex flex-col justify-between text-left">
-            {cashTicks.map((t, i) => (
-              <span key={`r-${i}`} className="text-xs text-muted-foreground">{yAxisFormatter(t, locale, currency)}</span>
-            ))}
-          </div>
+                <div className="flex-shrink-0 w-20 pl-2 flex flex-col justify-between text-left">
+                {cashTicks.map((t, i) => (
+                  <span key={`r-${i}`} className="text-xs text-muted-foreground">{yAxisFormatter(t, locale, currency)}</span>
+                ))}
+              </div>
         </div>
+            {/* Fixed legend (curve labels) shown outside the scroll area so they don't scroll */}
+            <div className="w-full flex items-center justify-center gap-6 mt-2">
+              <div className="flex items-center gap-2">
+                <span
+                  className="inline-block w-4 h-2 rounded-sm border"
+                  style={{ backgroundColor: chartConfig.netWorth.color || 'var(--color-netWorth)', borderColor: chartConfig.netWorth.color || 'var(--color-netWorth)' }}
+                />
+                <span className="text-xs text-muted-foreground">{chartConfig.netWorth.label}</span>
+              </div>
+              <div className="flex items-center gap-2">
+                <span
+                  className="inline-block w-4 h-2 rounded-sm border"
+                  style={{ backgroundColor: chartConfig.cashFlow.color || 'var(--color-cashFlow)', borderColor: chartConfig.cashFlow.color || 'var(--color-cashFlow)' }}
+                />
+                <span className="text-xs text-muted-foreground">{chartConfig.cashFlow.label}</span>
+              </div>
+            </div>
       </CardContent>
     </Card>
   );
