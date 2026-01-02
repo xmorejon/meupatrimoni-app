@@ -12,6 +12,8 @@ import type { DashboardData, BankStatus, Debt, Asset } from "@/lib/types";
 import { Skeleton } from "@/components/ui/skeleton";
 import type { z } from 'zod';
 import type { baseSchema } from '@/components/dashboard/EntryDialog';
+import messages from '@/messages/ca.json';
+
 
 const DashboardSkeleton = () => (
   <div className="p-4 md:p-8 space-y-8">
@@ -70,12 +72,12 @@ export function DashboardClient({ initialData, translations }: { initialData: Da
     await refreshData();
   };
 
-  const currentLocale = translations.locale['ca'] || 'ca-ES';
-  const currency = translations.Currency['ca'] || 'EUR';
+  const currentLocale = messages.Locale.ca;
+  const currency = messages.Currency.ca;
 
   return (
     <div className="flex flex-col min-h-screen bg-background text-foreground">
-      <Header title={translations.dashboard.title}/>
+      <Header title={translations.title}/>
       <main className="flex-1">
         {loading || !data ? (
           <DashboardSkeleton />
@@ -85,13 +87,13 @@ export function DashboardClient({ initialData, translations }: { initialData: Da
               totalNetWorth={data.totalNetWorth} 
               change={data.netWorthChange} 
               cashFlow={data.currentCashFlow} 
-              translations={translations.dashboard.netWorthCard}
+              translations={translations.netWorthCard}
               locale={currentLocale}
               currency={currency}
             />
             <NetWorthChart 
                 data={data.historicalData} 
-                translations={translations.dashboard.netWorthChart}
+                translations={translations.netWorthChart}
                 locale={currentLocale}
                 currency={currency}
             />
@@ -99,21 +101,21 @@ export function DashboardClient({ initialData, translations }: { initialData: Da
                 <BankBreakdown 
                     banks={data.bankBreakdown} 
                     onEntry={handleEntry}
-                    translations={translations.dashboard}
+                    translations={translations}
                     locale={currentLocale}
                     currency={currency}
                 />
                 <DebtBreakdown 
                     debts={data.debtBreakdown} 
                     onEntry={handleEntry} 
-                    translations={translations.dashboard}
+                    translations={translations}
                     locale={currentLocale}
                     currency={currency}
                 />
                 <AssetBreakdown 
                     assets={data.assetBreakdown} 
                     onEntry={handleEntry}
-                    translations={translations.dashboard}
+                    translations={translations}
                     locale={currentLocale}
                     currency={currency}
                 />

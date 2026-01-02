@@ -37,10 +37,11 @@ interface ImporterClientProps {
     banks: BankStatus[];
     debts: Debt[];
     assets: Asset[];
+    translations: any;
 }
 
-export function ImporterClient({ banks, debts, assets }: ImporterClientProps) {
-  const { toast } = useToast();
+export function ImporterClient({ banks, debts, assets, translations }: ImporterClientProps) {
+  const { toast } } from useToast();
   const router = useRouter();
   const [loading, setLoading] = useState(false);
   
@@ -156,7 +157,7 @@ export function ImporterClient({ banks, debts, assets }: ImporterClientProps) {
 
   return (
     <div className="flex flex-col min-h-screen bg-background text-foreground">
-      <Header title="Import Historical Data" />
+      <Header title={translations.title} />
       <main className="flex-1 p-4 md:p-8">
         <div className="max-w-2xl mx-auto">
           <Card>
@@ -168,7 +169,7 @@ export function ImporterClient({ banks, debts, assets }: ImporterClientProps) {
               </CardDescription>
             </CardHeader>
             <CardContent>
-              <Form {...form}>
+              <Form { ...form }>
                 <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
                   <FormField
                     control={form.control}
@@ -228,7 +229,7 @@ export function ImporterClient({ banks, debts, assets }: ImporterClientProps) {
                       <FormItem>
                         <FormLabel>CSV File</FormLabel>
                         <FormControl>
-                          <Input type="file" accept=".csv" {...form.register("file")} />
+                          <Input type="file" accept=".csv" { ...form.register("file") } />
                         </FormControl>
                         <FormMessage />
                       </FormItem>

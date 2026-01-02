@@ -1,4 +1,3 @@
-
 import { getDashboardData } from "@/lib/firebase-service";
 import { DashboardClient } from "@/components/dashboard/DashboardClient";
 import messages from '@/messages/ca.json';

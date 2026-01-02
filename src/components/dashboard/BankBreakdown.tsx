@@ -3,7 +3,7 @@ import type { FC } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import type { BankStatus } from '@/lib/types';
-import { ca, es, enUS } from 'date-fns/locale';
+import { ca } from 'date-fns/locale';
 import type { Locale } from 'date-fns';
 import { Landmark, Edit } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -22,8 +22,6 @@ interface BankBreakdownProps {
 
 const localeMap: { [key: string]: Locale } = {
   'ca-ES': ca,
-  'es-ES': es,
-  'en-US': enUS,
 };
 
 export const BankBreakdown: FC<BankBreakdownProps> = ({ banks, onEntry, translations, locale, currency }) => {
