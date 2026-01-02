@@ -44,6 +44,13 @@ export interface DashboardData {
   bankBreakdown: BankStatus[];
   debtBreakdown: Debt[];
   assetBreakdown: Asset[];
+  debug?: Array<{
+    date: string;
+    banks: Record<string, number>;
+    debts: Record<string, number>;
+    financialAssetsAtDate: number;
+    creditCardDebtAtDate: number;
+  }>;
 }
 
 export type Entry = BankStatus | Debt | Asset;
