@@ -66,16 +66,20 @@ export function ImporterClient({ banks }: { banks: BankStatus[] }) {
           }
 
           const entries = results.data.map(row => {
-            const dateParts = row.Date.split('/'); // Assuming DD/MM/YYYY
-            if (dateParts.length !== 3) return null; // Skip invalid date formats
+            if (!row.Date || !row.Balance) return null;
+            
+            const dateParts = row.Date.split('/');
+            if (dateParts.length !== 3) return null;
             
             const day = parseInt(dateParts[0], 10);
-            const month = parseInt(dateParts[1], 10) - 1; // Month is 0-indexed in JS Date
+            const month = parseInt(dateParts[1], 10) - 1;
             const year = parseInt(dateParts[2], 10);
+
+            const balanceAsNumber = parseFloat(row.Balance.replace(',', '.'));
 
             return {
               timestamp: new Date(year, month, day),
-              balance: parseFloat(row.Balance),
+              balance: balanceAsNumber,
             }
           }).filter((entry): entry is { timestamp: Date; balance: number; } => 
               entry !== null && !isNaN(entry.timestamp.getTime()) && !isNaN(entry.balance)
