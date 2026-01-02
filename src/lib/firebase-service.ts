@@ -124,8 +124,8 @@ export async function getDashboardData(): Promise<DashboardData> {
   const currentCashFlow = financialAssets - creditCardDebt;
   
   const today = startOfToday();
-  const thirtyDaysAgo = subDays(today, 30);
-  const dateInterval = eachDayOfInterval({ start: thirtyDaysAgo, end: endOfToday() });
+  const ninetyDaysAgo = subDays(today, 90);
+  const dateInterval = eachDayOfInterval({ start: ninetyDaysAgo, end: endOfToday() });
 
   const historicalData = dateInterval.map(date => {
     const financialAssetsAtDate = Array.from(new Set(balanceEntries.map(e => e.bank))).reduce((sum, bank) => {
@@ -140,13 +140,13 @@ export async function getDashboardData(): Promise<DashboardData> {
     const creditCardDebtAtDate = creditCardDebt;
 
     return {
-      date: format(date, 'MMM d'),
+      date: format(date, 'dd/MM/yy'),
       netWorth: assetsAtDate - debtsAtDate,
       cashFlow: financialAssetsAtDate - creditCardDebtAtDate,
     };
   });
   
-  const yesterdayNetWorth = historicalData.find(d => d.date === format(subDays(today, 1), 'MMM d'))?.netWorth || 0;
+  const yesterdayNetWorth = historicalData.find(d => d.date === format(subDays(today, 1), 'dd/MM/yy'))?.netWorth || 0;
   const todayNetWorth = historicalData[historicalData.length - 1]?.netWorth || 0;
   const netWorthChange = todayNetWorth > 0 && yesterdayNetWorth > 0 && yesterdayNetWorth !== todayNetWorth ? ((todayNetWorth - yesterdayNetWorth) / Math.abs(yesterdayNetWorth)) * 100 : 0;
 
