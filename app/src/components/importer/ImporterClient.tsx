@@ -1,4 +1,3 @@
-
 "use client";
 
 import { useState } from "react";
@@ -17,7 +16,6 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
-import messages from '@/messages/ca.json';
 
 interface CsvData {
     Date: string;
@@ -36,7 +34,7 @@ export function ImporterClient({ banks, debts, assets }: ImporterClientProps) {
   const { toast } = useToast();
   const router = useRouter();
   const [loading, setLoading] = useState(false);
-  const translations = messages.Dashboard;
+  const translations = { title: "Meu Patrimoni" };
 
   // Define the schema inside the component to avoid server-side evaluation of FileList
   const formSchema = z.object({
@@ -204,8 +202,7 @@ export function ImporterClient({ banks, debts, assets }: ImporterClientProps) {
                       name="itemId"
                       render={({ field }) => (
                         <FormItem>
-                          <FormLabel>{entryType}</FormLabel>
-                          <Select onValueChange={field.onChange} defaultValue={field.value} value={field.value}>
+                          <FormLabel>{entryType}</FormLabel>                          <Select onValueChange={field.onChange} defaultValue={field.value} value={field.value}>
                             <FormControl>
                               <SelectTrigger>
                                 <SelectValue placeholder={`Select a ${entryType.toLowerCase()}`} />

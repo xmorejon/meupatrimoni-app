@@ -7,7 +7,6 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/com
 import { ChartConfig, ChartContainer, ChartTooltipContent, ChartLegendContent } from '@/components/ui/chart';
 import type { ChartDataPoint } from '@/lib/types';
 import { ScrollArea, ScrollBar } from '@/components/ui/scroll-area';
-import messages from '@/messages/ca.json';
 
 interface NetWorthChartProps {
   data: ChartDataPoint[];
@@ -26,7 +25,12 @@ const yAxisFormatter = (value: number, locale: string, currency: string) => {
 
 export const NetWorthChart: FC<NetWorthChartProps> = ({ data }) => {
   const [isMounted, setIsMounted] = useState(false);
-  const translations = messages.Dashboard.netWorthChart;
+  const translations = {
+    title: "Històric del Patrimoni",
+    description: "Evolució del teu patrimoni net i flux de caixa durant els últims 30 dies.",
+    netWorthLabel: "Patrimoni Net",
+    cashFlowLabel: "Flux de Caixa",
+  };
   const locale = 'ca-ES';
   const currency = 'EUR';
 

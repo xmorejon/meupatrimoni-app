@@ -11,7 +11,6 @@ import { EntryDialog } from './EntryDialog';
 import type { z } from 'zod';
 import type { entrySchema } from './EntryDialog';
 import { TimeAgo } from './TimeAgo';
-import messages from '@/messages/ca.json';
 
 interface AssetBreakdownProps {
   assets: Asset[];
@@ -34,12 +33,35 @@ const AssetIcon = ({ type }: { type: Asset['type'] }) => {
 }
 
 export const AssetBreakdown: FC<AssetBreakdownProps> = ({ assets, onEntry }) => {
-  const translations = messages.Dashboard;
-  const t = translations.assetBreakdown;
-  const tEntry = translations.entryDialog;
+  const t = {
+    title: "Actius",
+    addAsset: "Afegir Actiu",
+    assetHeader: "Actiu",
+    valueHeader: "Valor",
+  };
+  const tEntry = {
+    editTitle: "Editar {type}",
+    addTitle: "Afegir {type}",
+    editDescription: "Actualitza els detalls del teu {type}.",
+    addDescription: "Afegeix un nou {type} per fer el seguiment.",
+    nameLabel: "Nom del {type}",
+    valueLabel: "{valueFieldLabel}",
+    typeLabel: "Tipus",
+    saveButton: "Desar Canvis",
+    successMessage: "{type} '{name}' {action} correctament.",
+    actionUpdated: "actualitzat",
+    actionAdded: "afegit",
+    bankNamePlaceholder: "Ex: Compte Corrent",
+    debtNamePlaceholder: "Ex: Targeta de Crèdit",
+    assetNamePlaceholder: "Ex: Casa Principal",
+    valuePlaceholder: "€1,234.56",
+    selectTypePlaceholder: "Selecciona un tipus de {type}",
+    actionsHeader: "Accions"
+  };
   const locale = 'ca-ES';
   const currency = 'EUR';
   const currentLocale = localeMap[locale as keyof typeof localeMap] || ca;
+  const updatedTranslations = { updated: "Actualitzat fa {time}" };
 
   return (
     <Card className="shadow-lg h-full flex flex-col">
@@ -71,7 +93,7 @@ export const AssetBreakdown: FC<AssetBreakdownProps> = ({ assets, onEntry }) => 
                     </div>
                     <div>
                         <div className="font-medium text-foreground">{asset.name}</div>
-                        <TimeAgo date={asset.lastUpdated as Date} locale={currentLocale} translations={{ updated: translations.updated }}/>
+                        <TimeAgo date={asset.lastUpdated as Date} locale={currentLocale} translations={updatedTranslations}/>
                     </div>
                   </div>
                 </TableCell>

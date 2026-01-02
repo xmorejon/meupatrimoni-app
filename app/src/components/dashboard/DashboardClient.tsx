@@ -1,3 +1,4 @@
+
 "use client";
 
 import { useState } from "react";
@@ -12,7 +13,6 @@ import type { DashboardData, BankStatus, Debt, Asset } from "@/lib/types";
 import { Skeleton } from "@/components/ui/skeleton";
 import type { z } from 'zod';
 import type { baseSchema } from '@/components/dashboard/EntryDialog';
-import messages from '@/messages/ca.json';
 
 const DashboardSkeleton = () => (
   <div className="p-4 md:p-8 space-y-8">
@@ -29,7 +29,7 @@ const DashboardSkeleton = () => (
 export function DashboardClient({ initialData }: { initialData: DashboardData }) {
   const [data, setData] = useState<DashboardData | null>(initialData);
   const [loading, setLoading] = useState(false);
-  const translations = messages.Dashboard;
+  const translations = { title: "Meu Patrimoni" };
 
   const refreshData = async () => {
     setLoading(true);
@@ -71,9 +71,6 @@ export function DashboardClient({ initialData }: { initialData: DashboardData })
     }
     await refreshData();
   };
-
-  const currentLocale = 'ca-ES';
-  const currency = 'EUR';
 
   return (
     <div className="flex flex-col min-h-screen bg-background text-foreground">
