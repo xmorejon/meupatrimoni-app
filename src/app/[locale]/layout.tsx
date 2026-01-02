@@ -3,7 +3,7 @@ import '../globals.css';
 import { Toaster } from "@/components/ui/toaster";
 import {NextIntlClientProvider} from 'next-intl';
 import {getMessages, unstable_setRequestLocale} from 'next-intl/server';
-import { locales } from '../../../middleware';
+import { locales } from '../../../i18n.config';
 
 export function generateStaticParams() {
   return locales.map((locale) => ({locale}));
@@ -14,11 +14,13 @@ export const metadata: Metadata = {
   description: 'Track your net worth in real-time.',
 };
 
-export default async function RootLayout(props: {
+export default async function RootLayout({
+  children,
+  params: { locale }
+}: {
   children: React.ReactNode;
   params: {locale: string};
 }) {
-  const { children, params: { locale } } = props;
   unstable_setRequestLocale(locale);
   const messages = await getMessages();
 
