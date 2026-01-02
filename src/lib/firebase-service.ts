@@ -238,6 +238,11 @@ export async function getDashboardData(): Promise<DashboardData> {
             const latestEntry = relevantEntries.sort((a, b) => b.timestamp.getTime() - a.timestamp.getTime())[0];
             return sum + latestEntry.balance;
         }
+        // Fallback for items created before historical entries existed
+        const bank = bankBreakdown.find(b => b.id === bankId);
+        if (bank && (bank.lastUpdated as Date) <= endOfDate) {
+            return sum + bank.balance;
+        }
         return sum;
     }, 0);
 
@@ -248,29 +253,39 @@ export async function getDashboardData(): Promise<DashboardData> {
             const latestEntry = relevantEntries.sort((a, b) => b.timestamp.getTime() - a.timestamp.getTime())[0];
             return sum + latestEntry.value;
         }
+        // Fallback for items created before historical entries existed
+        const asset = assetBreakdown.find(a => a.id === assetId);
+        if (asset && (asset.lastUpdated as Date) <= endOfDate) {
+            return sum + asset.value;
+        }
         return sum;
     }, 0);
     
-    const allDebtItems = [...debtBreakdown];
-    const debtIds = new Set(allDebtItems.map(d => d.id));
-
+    const debtIds = new Set(debtBreakdown.map(d => d.id));
     const debtsAtDate = Array.from(debtIds).reduce((sum, debtId) => {
         const relevantEntries = debtEntries.filter(e => e.debtId === debtId && e.timestamp <= endOfDate);
         if (relevantEntries.length > 0) {
             const latestEntry = relevantEntries.sort((a, b) => b.timestamp.getTime() - a.timestamp.getTime())[0];
             return sum + latestEntry.balance;
         }
+        // Fallback for items created before historical entries existed
+        const debt = debtBreakdown.find(d => d.id === debtId);
+        if (debt && (debt.lastUpdated as Date) <= endOfDate) {
+            return sum + debt.balance;
+        }
         return sum;
     }, 0);
 
     const creditCardDebtAtDate = Array.from(debtIds).reduce((sum, debtId) => {
-        const debtDef = allDebtItems.find(d => d.id === debtId);
-        if (debtDef?.type !== 'Credit Card') return sum;
-        
         const relevantEntries = debtEntries.filter(e => e.debtId === debtId && e.type === 'Credit Card' && e.timestamp <= endOfDate);
         if (relevantEntries.length > 0) {
             const latestEntry = relevantEntries.sort((a, b) => b.timestamp.getTime() - a.timestamp.getTime())[0];
             return sum + Math.abs(latestEntry.balance);
+        }
+        // Fallback
+        const debt = debtBreakdown.find(d => d.id === debtId);
+        if (debt && debt.type === 'Credit Card' && (debt.lastUpdated as Date) <= endOfDate) {
+            return sum + Math.abs(debt.balance);
         }
         return sum;
     }, 0);
