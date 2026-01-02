@@ -157,9 +157,14 @@ export function ImporterClient({ banks }: { banks: BankStatus[] }) {
                       </FormItem>
                     )}
                   />
-                  <Button type="submit" disabled={loading}>
-                    {loading ? "Importing..." : "Import Movements"}
-                  </Button>
+                  <div className="flex gap-2">
+                    <Button type="submit" disabled={loading}>
+                      {loading ? "Importing..." : "Import Movements"}
+                    </Button>
+                    <Button type="button" variant="outline" onClick={() => router.push('/')} disabled={loading}>
+                      Cancel
+                    </Button>
+                  </div>
                 </form>
               </Form>
             </CardContent>
