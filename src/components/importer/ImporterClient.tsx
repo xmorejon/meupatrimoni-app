@@ -1,3 +1,4 @@
+
 "use client";
 
 import { useState } from "react";
@@ -64,13 +65,24 @@ export function ImporterClient({ banks }: { banks: BankStatus[] }) {
              throw new Error(`CSV must have the following columns: ${requiredColumns.join(', ')}`);
           }
 
-          const entries = results.data.map(row => ({
-            timestamp: new Date(row.Date),
-            balance: parseFloat(row.Balance),
-          })).filter(entry => !isNaN(entry.timestamp.getTime()) && !isNaN(entry.balance));
+          const entries = results.data.map(row => {
+            const dateParts = row.Date.split('/'); // Assuming DD/MM/YYYY
+            if (dateParts.length !== 3) return null; // Skip invalid date formats
+            
+            const day = parseInt(dateParts[0], 10);
+            const month = parseInt(dateParts[1], 10) - 1; // Month is 0-indexed in JS Date
+            const year = parseInt(dateParts[2], 10);
+
+            return {
+              timestamp: new Date(year, month, day),
+              balance: parseFloat(row.Balance),
+            }
+          }).filter((entry): entry is { timestamp: Date; balance: number; } => 
+              entry !== null && !isNaN(entry.timestamp.getTime()) && !isNaN(entry.balance)
+          );
 
           if (entries.length === 0) {
-            throw new Error("No valid records found in the file. Check 'Date' and 'Balance' columns.");
+            throw new Error("No valid records found in the file. Check 'Date' (DD/MM/YYYY) and 'Balance' columns.");
           }
 
           await batchImportBalanceEntries(selectedBank, entries);
@@ -114,7 +126,7 @@ export function ImporterClient({ banks }: { banks: BankStatus[] }) {
               <CardTitle>Upload Statement</CardTitle>
               <CardDescription>
                 Select a bank and upload the corresponding CSV file of movements. 
-                Ensure your CSV has columns for 'Date' and 'Balance'.
+                Ensure your CSV has columns for 'Date' (in DD/MM/YYYY format) and 'Balance'.
               </CardDescription>
             </CardHeader>
             <CardContent>
