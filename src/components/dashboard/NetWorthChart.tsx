@@ -23,6 +23,7 @@ interface NetWorthChartProps {
 
 const yAxisFormatter = (value: number, locale: string, currency: string) => {
     const number = Number(value);
+    if (isNaN(number)) return '';
     if (number >= 1000000 || number <= -1000000) {
         return `${new Intl.NumberFormat(locale, { style: 'currency', currency, notation: 'compact', compactDisplay: 'short' }).format(number/1000000)}M`;
     }
@@ -56,77 +57,103 @@ export const NetWorthChart: FC<NetWorthChartProps> = ({ data, translations, loca
     }
   }, [data]);
   
+  const yAxisMargin = 5;
+  const chartHeight = 250;
+
   return (
     <Card className="shadow-lg">
       <CardHeader>
         <CardTitle>{translations.title}</CardTitle>
         <CardDescription>{translations.description}</CardDescription>
       </CardHeader>
-      <CardContent>
-        <ScrollArea ref={scrollAreaRef} className="w-full whitespace-nowrap">
-            <ChartContainer config={chartConfig} className="h-[250px] w-full" style={{ minWidth: `${minWidth}px`}}>
-                <ResponsiveContainer width="100%" height="100%">
-                    <AreaChart data={data} margin={{ top: 5, right: 30, left: 30, bottom: 5 }}>
-                        <defs>
-                            <linearGradient id="fillNetWorth" x1="0" y1="0" x2="0" y2="1">
-                                <stop offset="5%" stopColor="var(--color-netWorth)" stopOpacity={0.8} />
-                                <stop offset="95%" stopColor="var(--color-netWorth)" stopOpacity={0.1} />
-                            </linearGradient>
-                            <linearGradient id="fillCashFlow" x1="0" y1="0" x2="0" y2="1">
-                                <stop offset="5%" stopColor="var(--color-cashFlow)" stopOpacity={0.8} />
-                                <stop offset="95%" stopColor="var(--color-cashFlow)" stopOpacity={0.1} />
-                            </linearGradient>
-                        </defs>
-                        <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="hsl(var(--border))" />
-                        <XAxis
-                            dataKey="date"
-                            tickLine={false}
-                            axisLine={false}
-                            tickMargin={8}
-                            tickFormatter={(value) => value.substring(0,5)}
-                            style={{ fontSize: '12px', fill: 'hsl(var(--muted-foreground))' }}
-                            interval="preserveStartEnd"
-                        />
-                        <YAxis 
-                            yAxisId="left" 
-                            orientation="left" 
-                            stroke="hsl(var(--primary))"
-                            tickLine={false}
-                            axisLine={false}
-                            tickMargin={8}
-                            tickFormatter={(value) => yAxisFormatter(value, locale, currency)}
-                            style={{ fontSize: '12px', fill: 'hsl(var(--muted-foreground))' }}
-                        />
-                        <YAxis 
-                            yAxisId="right" 
-                            orientation="right" 
-                            stroke="hsl(var(--chart-2))"
-                            tickLine={false}
-                            axisLine={false}
-                            tickMargin={8}
-                            tickFormatter={(value) => yAxisFormatter(value, locale, currency)}
-                            style={{ fontSize: '12px', fill: 'hsl(var(--muted-foreground))' }}
-                        />
-                        <Tooltip
-                            cursor={{ fill: 'hsl(var(--accent) / 0.1)' }}
-                            content={<ChartTooltipContent
-                                formatter={(value, name) => (
-                                    <div className="flex flex-col">
-                                        <span className="capitalize">{name.replace(/([A-Z])/g, ' $1')}</span>
-                                        <span className="font-bold">{new Intl.NumberFormat(locale, { style: 'currency', currency }).format(Number(value))}</span>
-                                    </div>
-                                )}
-                                indicator="dot"
-                            />}
-                        />
-                        <Legend content={<ChartLegendContent />} />
-                        <Area yAxisId="left" dataKey="netWorth" type="natural" fill="url(#fillNetWorth)" stroke="var(--color-netWorth)" stackId="a" />
-                        <Area yAxisId="right" dataKey="cashFlow" type="natural" fill="url(#fillCashFlow)" stroke="var(--color-cashFlow)" stackId="b" />
-                    </AreaChart>
-                </ResponsiveContainer>
-            </ChartContainer>
-            <ScrollBar orientation="horizontal" />
-        </ScrollArea>
+      <CardContent className="pr-0">
+        <ChartContainer config={chartConfig} className="h-[250px] w-full pl-0">
+            <div className="flex items-start w-full">
+                {/* Left Y-Axis */}
+                <div className="flex-shrink-0" style={{ height: chartHeight }}>
+                    <ResponsiveContainer width={80} height="100%">
+                        <AreaChart data={data} margin={{ top: 5, right: yAxisMargin, left: 10, bottom: 25 }}>
+                             <YAxis 
+                                yAxisId="left" 
+                                orientation="left" 
+                                stroke="hsl(var(--primary))"
+                                tickLine={false}
+                                axisLine={false}
+                                tickMargin={yAxisMargin}
+                                tickFormatter={(value) => yAxisFormatter(value, locale, currency)}
+                                style={{ fontSize: '12px', fill: 'hsl(var(--muted-foreground))' }}
+                            />
+                        </AreaChart>
+                    </ResponsiveContainer>
+                </div>
+
+                {/* Scrollable Chart Content */}
+                <ScrollArea ref={scrollAreaRef} className="w-full whitespace-nowrap" >
+                    <div style={{ width: `${minWidth}px`, height: chartHeight }}>
+                        <ResponsiveContainer width="100%" height="100%">
+                            <AreaChart data={data} margin={{ top: 5, right: 10, left: 0, bottom: 5 }}>
+                                <defs>
+                                    <linearGradient id="fillNetWorth" x1="0" y1="0" x2="0" y2="1">
+                                        <stop offset="5%" stopColor="var(--color-netWorth)" stopOpacity={0.8} />
+                                        <stop offset="95%" stopColor="var(--color-netWorth)" stopOpacity={0.1} />
+                                    </linearGradient>
+                                    <linearGradient id="fillCashFlow" x1="0" y1="0" x2="0" y2="1">
+                                        <stop offset="5%" stopColor="var(--color-cashFlow)" stopOpacity={0.8} />
+                                        <stop offset="95%" stopColor="var(--color-cashFlow)" stopOpacity={0.1} />
+                                    </linearGradient>
+                                </defs>
+                                <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="hsl(var(--border))" />
+                                <XAxis
+                                    dataKey="date"
+                                    tickLine={false}
+                                    axisLine={false}
+                                    tickMargin={8}
+                                    tickFormatter={(value) => value.substring(0,5)}
+                                    style={{ fontSize: '12px', fill: 'hsl(var(--muted-foreground))' }}
+                                    interval="preserveStartEnd"
+                                />
+                                <YAxis yAxisId="left" hide={true} />
+                                <YAxis yAxisId="right" hide={true} />
+                                <Tooltip
+                                    cursor={{ fill: 'hsl(var(--accent) / 0.1)' }}
+                                    content={<ChartTooltipContent
+                                        formatter={(value, name) => (
+                                            <div className="flex flex-col">
+                                                <span className="capitalize">{name === 'netWorth' ? chartConfig.netWorth.label : chartConfig.cashFlow.label}</span>
+                                                <span className="font-bold">{new Intl.NumberFormat(locale, { style: 'currency', currency }).format(Number(value))}</span>
+                                            </div>
+                                        )}
+                                        indicator="dot"
+                                    />}
+                                />
+                                <Legend content={<ChartLegendContent />} />
+                                <Area yAxisId="left" dataKey="netWorth" type="natural" fill="url(#fillNetWorth)" stroke="var(--color-netWorth)" stackId="a" />
+                                <Area yAxisId="right" dataKey="cashFlow" type="natural" fill="url(#fillCashFlow)" stroke="var(--color-cashFlow)" stackId="b" />
+                            </AreaChart>
+                        </ResponsiveContainer>
+                    </div>
+                    <ScrollBar orientation="horizontal" />
+                </ScrollArea>
+                
+                 {/* Right Y-Axis */}
+                 <div className="flex-shrink-0" style={{ height: chartHeight }}>
+                    <ResponsiveContainer width={80} height="100%">
+                         <AreaChart data={data} margin={{ top: 5, right: 10, left: yAxisMargin, bottom: 25 }}>
+                            <YAxis 
+                                yAxisId="right" 
+                                orientation="right" 
+                                stroke="hsl(var(--chart-2))"
+                                tickLine={false}
+                                axisLine={false}
+                                tickMargin={yAxisMargin}
+                                tickFormatter={(value) => yAxisFormatter(value, locale, currency)}
+                                style={{ fontSize: '12px', fill: 'hsl(var(--muted-foreground))' }}
+                            />
+                        </AreaChart>
+                    </ResponsiveContainer>
+                </div>
+            </div>
+        </ChartContainer>
       </CardContent>
     </Card>
   );
