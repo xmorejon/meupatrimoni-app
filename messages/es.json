@@ -11,7 +11,7 @@
     },
     "netWorthChart": {
       "title": "Historial de Patrimonio Neto y Flujo de Caja",
-      "description": "Evolución de tu patrimonio neto total y flujo de caja en los últimos 30 días.",
+      "description": "Evolución de tu patrimonio neto total y flujo de caja en los últimos 90 días.",
       "netWorthLabel": "Patrimonio Neto",
       "cashFlowLabel": "Flujo de Caja"
     },

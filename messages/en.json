@@ -11,7 +11,7 @@
     },
     "netWorthChart": {
       "title": "Net Worth & Cash Flow History",
-      "description": "Evolution of your total net worth and cash flow over the last 30 days.",
+      "description": "Evolution of your total net worth and cash flow over the last 90 days.",
       "netWorthLabel": "Net Worth",
       "cashFlowLabel": "Cash Flow"
     },

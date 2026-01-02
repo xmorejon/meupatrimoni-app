@@ -11,7 +11,7 @@
     },
     "netWorthChart": {
       "title": "Historial de Patrimoni Net i Flux de Caixa",
-      "description": "Evolució del teu patrimoni net total i flux de caixa en els darrers 30 dies.",
+      "description": "Evolució del teu patrimoni net total i flux de caixa en els darrers 90 dies.",
       "netWorthLabel": "Patrimoni Net",
       "cashFlowLabel": "Flux de Caixa"
     },

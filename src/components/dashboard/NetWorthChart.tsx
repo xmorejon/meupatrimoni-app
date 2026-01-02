@@ -9,21 +9,22 @@ import { ScrollArea, ScrollBar } from '@/components/ui/scroll-area';
 
 interface NetWorthChartProps {
   data: ChartDataPoint[];
-  translations: any;
+  translations: {
+    title: string;
+    description: string;
+    label: string;
+  };
   locale: string;
   currency: string;
+  chartKey: 'netWorth' | 'cashFlow';
 }
 
-export const NetWorthChart: FC<NetWorthChartProps> = ({ data, translations, locale, currency }) => {
+export const NetWorthChart: FC<NetWorthChartProps> = ({ data, translations, locale, currency, chartKey }) => {
   const chartConfig = {
-    netWorth: {
-      label: translations.netWorthLabel,
-      color: 'hsl(var(--primary))',
+    [chartKey]: {
+      label: translations.label,
+      color: chartKey === 'netWorth' ? 'hsl(var(--primary))' : 'hsl(var(--chart-2))',
     },
-    cashFlow: {
-      label: translations.cashFlowLabel,
-      color: 'hsl(var(--chart-2))',
-    }
   } satisfies ChartConfig;
 
   const minWidth = data.length * 50;
@@ -40,13 +41,9 @@ export const NetWorthChart: FC<NetWorthChartProps> = ({ data, translations, loca
             <ResponsiveContainer width="100%" height="100%">
               <AreaChart data={data} margin={{ top: 5, right: 10, left: -20, bottom: 0 }}>
                 <defs>
-                  <linearGradient id="fillNetWorth" x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="5%" stopColor="var(--color-netWorth)" stopOpacity={0.8} />
-                    <stop offset="95%" stopColor="var(--color-netWorth)" stopOpacity={0.1} />
-                  </linearGradient>
-                  <linearGradient id="fillCashFlow" x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="5%" stopColor="var(--color-cashFlow)" stopOpacity={0.8} />
-                    <stop offset="95%" stopColor="var(--color-cashFlow)" stopOpacity={0.1} />
+                  <linearGradient id={`fill${chartKey}`} x1="0" y1="0" x2="0" y2="1">
+                    <stop offset="5%" stopColor={`var(--color-${chartKey})`} stopOpacity={0.8} />
+                    <stop offset="95%" stopColor={`var(--color-${chartKey})`} stopOpacity={0.1} />
                   </linearGradient>
                 </defs>
                 <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="hsl(var(--border))" />
@@ -85,17 +82,10 @@ export const NetWorthChart: FC<NetWorthChartProps> = ({ data, translations, loca
                 />
                 <Legend content={<ChartLegendContent />} />
                 <Area
-                  dataKey="cashFlow"
+                  dataKey={chartKey}
                   type="natural"
-                  fill="url(#fillCashFlow)"
-                  stroke="var(--color-cashFlow)"
-                  stackId="b"
-                />
-                <Area
-                  dataKey="netWorth"
-                  type="natural"
-                  fill="url(#fillNetWorth)"
-                  stroke="var(--color-netWorth)"
+                  fill={`url(#fill${chartKey})`}
+                  stroke={`var(--color-${chartKey})`}
                   stackId="a"
                 />
               </AreaChart>

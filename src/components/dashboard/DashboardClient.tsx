@@ -17,9 +17,9 @@ import { useTranslations } from 'next-intl';
 const DashboardSkeleton = () => (
   <div className="p-4 md:p-8 space-y-8">
     <Skeleton className="h-40 w-full rounded-lg" />
-    <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-      <Skeleton className="lg:col-span-2 h-96 rounded-lg" />
-      <Skeleton className="lg:col-span-1 h-96 rounded-lg" />
+    <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+      <Skeleton className="h-96 rounded-lg" />
+      <Skeleton className="h-96 rounded-lg" />
     </div>
     <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
       <Skeleton className="h-96 rounded-lg" />
@@ -63,7 +63,20 @@ export function DashboardClient({ initialData, locale }: { initialData: Dashboar
   };
 
   const currentLocale = translations.locale[locale as keyof typeof translations.locale] || translations.locale['en'];
-  const currency = 'EUR';
+  const currency = "EUR";
+
+  const netWorthChartTranslations = {
+    title: "Net Worth History",
+    description: "Evolution of your total net worth over the last 90 days.",
+    label: translations.dashboard.netWorthChart.netWorthLabel
+  }
+
+  const cashFlowChartTranslations = {
+    title: "Cash Flow History",
+    description: "Evolution of your cash flow over the last 90 days.",
+    label: translations.dashboard.netWorthChart.cashFlowLabel
+  }
+
 
   return (
     <div className="flex flex-col min-h-screen bg-background text-foreground">
@@ -81,15 +94,21 @@ export function DashboardClient({ initialData, locale }: { initialData: Dashboar
               locale={currentLocale}
               currency={currency}
             />
-            <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-              <div className="lg:col-span-3">
-                <NetWorthChart 
-                    data={data.historicalData} 
-                    translations={translations.dashboard.netWorthChart}
-                    locale={currentLocale}
-                    currency={currency}
-                />
-              </div>
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+              <NetWorthChart 
+                  data={data.historicalData} 
+                  translations={netWorthChartTranslations}
+                  locale={currentLocale}
+                  currency={currency}
+                  chartKey="netWorth"
+              />
+              <NetWorthChart 
+                  data={data.historicalData} 
+                  translations={cashFlowChartTranslations}
+                  locale={currentLocale}
+                  currency={currency}
+                  chartKey="cashFlow"
+              />
             </div>
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
                 <BankBreakdown 
