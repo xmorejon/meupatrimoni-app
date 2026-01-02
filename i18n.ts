@@ -1,6 +1,8 @@
+
 import {getRequestConfig} from 'next-intl/server';
 import {notFound} from 'next/navigation';
-import {locales} from './middleware';
+
+export const locales = ['en', 'es', 'ca'];
  
 export default getRequestConfig(async ({locale}) => {
   // Validate that the incoming `locale` parameter is valid
