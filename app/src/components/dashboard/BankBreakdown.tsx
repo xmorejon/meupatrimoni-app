@@ -11,22 +11,23 @@ import { EntryDialog } from './EntryDialog';
 import type { z } from 'zod';
 import type { entrySchema } from './EntryDialog';
 import { TimeAgo } from './TimeAgo';
+import messages from '@/messages/ca.json';
 
 interface BankBreakdownProps {
   banks: BankStatus[];
   onEntry: (values: z.infer<typeof entrySchema>, type: 'Bank') => void;
-  translations: any;
-  locale: string;
-  currency: string;
 }
 
 const localeMap: { [key: string]: Locale } = {
   'ca-ES': ca,
 };
 
-export const BankBreakdown: FC<BankBreakdownProps> = ({ banks, onEntry, translations, locale, currency }) => {
+export const BankBreakdown: FC<BankBreakdownProps> = ({ banks, onEntry }) => {
+  const translations = messages.Dashboard;
   const t = translations.bankBreakdown;
   const tEntry = translations.entryDialog;
+  const locale = 'ca-ES';
+  const currency = 'EUR';
   const currentLocale = localeMap[locale as keyof typeof localeMap] || ca;
   
   return (

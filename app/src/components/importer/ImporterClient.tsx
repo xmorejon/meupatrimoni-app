@@ -17,6 +17,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
+import messages from '@/messages/ca.json';
 
 const formSchema = z.object({
   entryType: z.enum(["Bank", "Debt", "Asset"]),
@@ -37,13 +38,13 @@ interface ImporterClientProps {
     banks: BankStatus[];
     debts: Debt[];
     assets: Asset[];
-    translations: any;
 }
 
-export function ImporterClient({ banks, debts, assets, translations }: ImporterClientProps) {
+export function ImporterClient({ banks, debts, assets }: ImporterClientProps) {
   const { toast } = useToast();
   const router = useRouter();
   const [loading, setLoading] = useState(false);
+  const translations = messages.Dashboard;
   
   const form = useForm<FormValues>({
     resolver: zodResolver(formSchema),
@@ -169,7 +170,7 @@ export function ImporterClient({ banks, debts, assets, translations }: ImporterC
               </CardDescription>
             </CardHeader>
             <CardContent>
-              <Form { ...form }>
+              <Form {...form}>
                 <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
                   <FormField
                     control={form.control}
@@ -202,7 +203,8 @@ export function ImporterClient({ banks, debts, assets, translations }: ImporterC
                       name="itemId"
                       render={({ field }) => (
                         <FormItem>
-                          <FormLabel>{entryType}</FormLabel>                          <Select onValueChange={field.onChange} defaultValue={field.value} value={field.value}>
+                          <FormLabel>{entryType}</FormLabel>
+                          <Select onValueChange={field.onChange} defaultValue={field.value} value={field.value}>
                             <FormControl>
                               <SelectTrigger>
                                 <SelectValue placeholder={`Select a ${entryType.toLowerCase()}`} />
@@ -228,7 +230,7 @@ export function ImporterClient({ banks, debts, assets, translations }: ImporterC
                       <FormItem>
                         <FormLabel>CSV File</FormLabel>
                         <FormControl>
-                          <Input type="file" accept=".csv" { ...form.register("file") } />
+                          <Input type="file" accept=".csv" {...form.register("file")} />
                         </FormControl>
                         <FormMessage />
                       </FormItem>

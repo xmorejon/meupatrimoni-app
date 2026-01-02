@@ -1,6 +1,5 @@
 import { ImporterClient } from "@/components/importer/ImporterClient";
 import { getBankBreakdown, getDebtBreakdown, getAssetBreakdown } from "@/lib/firebase-service";
-import messages from '@/messages/ca.json';
 
 
 export default async function ImportPage() {
@@ -10,5 +9,5 @@ export default async function ImportPage() {
     getAssetBreakdown(),
   ]);
   
-  return <ImporterClient banks={banks} debts={debts} assets={assets} translations={messages.Dashboard} />;
+  return <ImporterClient banks={banks} debts={debts} assets={assets} />;
 }

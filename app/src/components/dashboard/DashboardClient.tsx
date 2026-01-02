@@ -12,6 +12,7 @@ import type { DashboardData, BankStatus, Debt, Asset } from "@/lib/types";
 import { Skeleton } from "@/components/ui/skeleton";
 import type { z } from 'zod';
 import type { baseSchema } from '@/components/dashboard/EntryDialog';
+import messages from '@/messages/ca.json';
 
 const DashboardSkeleton = () => (
   <div className="p-4 md:p-8 space-y-8">
@@ -25,9 +26,10 @@ const DashboardSkeleton = () => (
   </div>
 );
 
-export function DashboardClient({ initialData, translations }: { initialData: DashboardData, translations: any }) {
+export function DashboardClient({ initialData }: { initialData: DashboardData }) {
   const [data, setData] = useState<DashboardData | null>(initialData);
   const [loading, setLoading] = useState(false);
+  const translations = messages.Dashboard;
 
   const refreshData = async () => {
     setLoading(true);
@@ -85,37 +87,22 @@ export function DashboardClient({ initialData, translations }: { initialData: Da
               totalNetWorth={data.totalNetWorth} 
               change={data.netWorthChange} 
               cashFlow={data.currentCashFlow} 
-              translations={translations.netWorthCard}
-              locale={currentLocale}
-              currency={currency}
             />
             <NetWorthChart 
                 data={data.historicalData} 
-                translations={translations.netWorthChart}
-                locale={currentLocale}
-                currency={currency}
             />
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
                 <BankBreakdown 
                     banks={data.bankBreakdown} 
                     onEntry={handleEntry}
-                    translations={translations}
-                    locale={currentLocale}
-                    currency={currency}
                 />
                 <DebtBreakdown 
                     debts={data.debtBreakdown} 
                     onEntry={handleEntry} 
-                    translations={translations}
-                    locale={currentLocale}
-                    currency={currency}
                 />
                 <AssetBreakdown 
                     assets={data.assetBreakdown} 
                     onEntry={handleEntry}
-                    translations={translations}
-                    locale={currentLocale}
-                    currency={currency}
                 />
             </div>
           </div>

@@ -11,13 +11,11 @@ import { EntryDialog } from './EntryDialog';
 import type { z } from 'zod';
 import type { entrySchema } from './EntryDialog';
 import { TimeAgo } from './TimeAgo';
+import messages from '@/messages/ca.json';
 
 interface AssetBreakdownProps {
   assets: Asset[];
   onEntry: (values: z.infer<typeof entrySchema>, type: 'Asset') => void;
-  translations: any;
-  locale: string;
-  currency: string;
 }
 
 const localeMap: { [key: string]: Locale } = {
@@ -35,9 +33,12 @@ const AssetIcon = ({ type }: { type: Asset['type'] }) => {
     }
 }
 
-export const AssetBreakdown: FC<AssetBreakdownProps> = ({ assets, onEntry, translations, locale, currency }) => {
+export const AssetBreakdown: FC<AssetBreakdownProps> = ({ assets, onEntry }) => {
+  const translations = messages.Dashboard;
   const t = translations.assetBreakdown;
   const tEntry = translations.entryDialog;
+  const locale = 'ca-ES';
+  const currency = 'EUR';
   const currentLocale = localeMap[locale as keyof typeof localeMap] || ca;
 
   return (
