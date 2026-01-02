@@ -10,14 +10,6 @@ import { ScrollArea, ScrollBar } from '@/components/ui/scroll-area';
 
 interface NetWorthChartProps {
   data: ChartDataPoint[];
-  translations: {
-    title: string;
-    description: string;
-    netWorthLabel: string;
-    cashFlowLabel: string;
-  };
-  locale: string;
-  currency: string;
 }
 
 const yAxisFormatter = (value: number, locale: string, currency: string) => {
@@ -31,8 +23,16 @@ const yAxisFormatter = (value: number, locale: string, currency: string) => {
 };
 
 
-export const NetWorthChart: FC<NetWorthChartProps> = ({ data, translations, locale, currency }) => {
+export const NetWorthChart: FC<NetWorthChartProps> = ({ data }) => {
   const [isMounted, setIsMounted] = useState(false);
+  const translations = {
+    title: "Històric del Patrimoni",
+    description: "Evolució del teu patrimoni net i flux de caixa durant els últims 30 dies.",
+    netWorthLabel: "Patrimoni Net",
+    cashFlowLabel: "Flux de Caixa",
+  };
+  const locale = 'ca-ES';
+  const currency = 'EUR';
 
   useEffect(() => {
     setIsMounted(true);

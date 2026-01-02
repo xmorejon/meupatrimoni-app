@@ -1,4 +1,3 @@
-
 "use client";
 
 import { useState } from "react";
@@ -35,7 +34,7 @@ export function ImporterClient({ banks, debts, assets }: ImporterClientProps) {
   const { toast } = useToast();
   const router = useRouter();
   const [loading, setLoading] = useState(false);
-  const translations = messages.Dashboard;
+  const translations = { title: "Importar Dades" };
 
   // Define the schema inside the component to avoid server-side evaluation of FileList
   const formSchema = z.object({
@@ -208,7 +207,7 @@ export function ImporterClient({ banks, debts, assets }: ImporterClientProps) {
                             <FormControl>
                               <SelectTrigger>
                                 <SelectValue placeholder={`Select a ${entryType.toLowerCase()}`} />
-                              </SelectTrigger>
+                              </Trigger>
                             </FormControl>
                             <SelectContent>
                               {currentItems.map((item: any) => (

@@ -15,19 +15,42 @@ import { TimeAgo } from './TimeAgo';
 interface BankBreakdownProps {
   banks: BankStatus[];
   onEntry: (values: z.infer<typeof entrySchema>, type: 'Bank') => void;
-  translations: any;
-  locale: string;
-  currency: string;
 }
 
 const localeMap: { [key: string]: Locale } = {
   'ca-ES': ca,
 };
 
-export const BankBreakdown: FC<BankBreakdownProps> = ({ banks, onEntry, translations, locale, currency }) => {
-  const t = translations.bankBreakdown;
-  const tEntry = translations.entryDialog;
+export const BankBreakdown: FC<BankBreakdownProps> = ({ banks, onEntry }) => {
+  const t = {
+    title: "Comptes Bancaris",
+    addBank: "Afegir Compte",
+    bankHeader: "Compte",
+    balanceHeader: "Saldo",
+  };
+  const tEntry = {
+    editTitle: "Editar {type}",
+    addTitle: "Afegir {type}",
+    editDescription: "Actualitza els detalls del teu {type}.",
+    addDescription: "Afegeix un nou {type} per fer el seguiment.",
+    nameLabel: "Nom del {type}",
+    valueLabel: "{valueFieldLabel}",
+    typeLabel: "Tipus",
+    saveButton: "Desar Canvis",
+    successMessage: "{type} '{name}' {action} correctament.",
+    actionUpdated: "actualitzat",
+    actionAdded: "afegit",
+    bankNamePlaceholder: "Ex: Compte Corrent",
+    debtNamePlaceholder: "Ex: Targeta de Crèdit",
+    assetNamePlaceholder: "Ex: Casa Principal",
+    valuePlaceholder: "€1,234.56",
+    selectTypePlaceholder: "Selecciona un tipus de {type}",
+    actionsHeader: "Accions"
+  };
+  const locale = 'ca-ES';
+  const currency = 'EUR';
   const currentLocale = localeMap[locale as keyof typeof localeMap] || ca;
+  const updatedTranslations = { updated: "Actualitzat fa {time}" };
   
   return (
     <Card className="shadow-lg h-full flex flex-col">
@@ -59,7 +82,7 @@ export const BankBreakdown: FC<BankBreakdownProps> = ({ banks, onEntry, translat
                     </div>
                     <div>
                         <div className="font-medium text-foreground">{bank.name}</div>
-                        <TimeAgo date={bank.lastUpdated as Date} locale={currentLocale} translations={{ updated: translations.updated }}/>
+                        <TimeAgo date={bank.lastUpdated as Date} locale={currentLocale} translations={updatedTranslations}/>
                     </div>
                   </div>
                 </TableCell>

@@ -25,9 +25,10 @@ const DashboardSkeleton = () => (
   </div>
 );
 
-export function DashboardClient({ initialData, translations }: { initialData: DashboardData, translations: any }) {
+export function DashboardClient({ initialData }: { initialData: DashboardData }) {
   const [data, setData] = useState<DashboardData | null>(initialData);
   const [loading, setLoading] = useState(false);
+  const translations = { title: "Meu Patrimoni" };
 
   const refreshData = async () => {
     setLoading(true);
@@ -70,12 +71,9 @@ export function DashboardClient({ initialData, translations }: { initialData: Da
     await refreshData();
   };
 
-  const currentLocale = translations.locale['ca'] || 'ca-ES';
-  const currency = translations.Currency['ca'] || 'EUR';
-
   return (
     <div className="flex flex-col min-h-screen bg-background text-foreground">
-      <Header title={translations.dashboard.title}/>
+      <Header title={translations.title}/>
       <main className="flex-1">
         {loading || !data ? (
           <DashboardSkeleton />
@@ -85,37 +83,22 @@ export function DashboardClient({ initialData, translations }: { initialData: Da
               totalNetWorth={data.totalNetWorth} 
               change={data.netWorthChange} 
               cashFlow={data.currentCashFlow} 
-              translations={translations.dashboard.netWorthCard}
-              locale={currentLocale}
-              currency={currency}
             />
             <NetWorthChart 
                 data={data.historicalData} 
-                translations={translations.dashboard.netWorthChart}
-                locale={currentLocale}
-                currency={currency}
             />
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
                 <BankBreakdown 
                     banks={data.bankBreakdown} 
                     onEntry={handleEntry}
-                    translations={translations.dashboard}
-                    locale={currentLocale}
-                    currency={currency}
                 />
                 <DebtBreakdown 
                     debts={data.debtBreakdown} 
                     onEntry={handleEntry} 
-                    translations={translations.dashboard}
-                    locale={currentLocale}
-                    currency={currency}
                 />
                 <AssetBreakdown 
                     assets={data.assetBreakdown} 
                     onEntry={handleEntry}
-                    translations={translations.dashboard}
-                    locale={currentLocale}
-                    currency={currency}
                 />
             </div>
           </div>

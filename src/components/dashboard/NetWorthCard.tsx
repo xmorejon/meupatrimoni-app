@@ -1,18 +1,24 @@
+
 import type { FC } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { ArrowUpRight, ArrowDownRight, Minus, Wallet } from 'lucide-react';
-import { Separator } from '@/components/ui/separator';
 
 interface NetWorthCardProps {
   totalNetWorth: number;
   change: number;
   cashFlow: number;
-  translations: any;
-  locale: string;
-  currency: string;
 }
 
-export const NetWorthCard: FC<NetWorthCardProps> = ({ totalNetWorth, change, cashFlow, translations, locale, currency }) => {
+export const NetWorthCard: FC<NetWorthCardProps> = ({ totalNetWorth, change, cashFlow }) => {
+  const translations = {
+    totalNetWorth: "Patrimoni Net Total",
+    vsYesterday: "respecte ahir",
+    currentCashFlow: "Flux de Caixa Actual",
+    cashFlowDescription: "Actius líquids menys deutes de targeta de crèdit.",
+  };
+  const locale = 'ca-ES';
+  const currency = 'EUR';
+
   const formattedNetWorth = new Intl.NumberFormat(locale, {
     style: 'currency',
     currency,
