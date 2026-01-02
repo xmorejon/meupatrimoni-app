@@ -60,9 +60,9 @@ export const NetWorthChart: FC<NetWorthChartProps> = ({ data }) => {
         <CardDescription>{translations.description}</CardDescription>
       </CardHeader>
       <CardContent>
-        <div className="w-full h-[270px]">
+        <div className="h-[270px] w-full">
           {isMounted ? (
-             <ScrollArea className="w-full whitespace-nowrap overflow-y-hidden">
+             <ScrollArea className="w-full whitespace-nowrap">
                 <div style={{ width: `${minWidth}px`, height: '100%' }}>
                     <ChartContainer config={chartConfig} className="h-full w-full">
                         <AreaChart 
@@ -109,8 +109,8 @@ export const NetWorthChart: FC<NetWorthChartProps> = ({ data }) => {
                             />}
                         />
                         <Legend content={<ChartLegendContent />} />
-                        <Area yAxisId="left" dataKey="netWorth" name={translations.netWorthLabel} type="natural" fill="url(#fillNetWorth)" stroke="var(--color-netWorth)" />
-                        <Area yAxisId="right" dataKey="cashFlow" name={translations.cashFlowLabel} type="natural" fill="url(#fillCashFlow)" stroke="var(--color-cashFlow)" />
+                        <Area yAxisId="left" dataKey="netWorth" name={translations.netWorthLabel} type="natural" fill="url(#fillNetWorth)" stroke="var(--color-netWorth)" fillOpacity={1} />
+                        <Area yAxisId="right" dataKey="cashFlow" name={translations.cashFlowLabel} type="natural" fill="url(#fillCashFlow)" stroke="var(--color-cashFlow)" fillOpacity={1} />
                         </AreaChart>
                     </ChartContainer>
                 </div>
