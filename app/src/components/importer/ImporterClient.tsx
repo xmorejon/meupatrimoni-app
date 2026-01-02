@@ -41,7 +41,7 @@ interface ImporterClientProps {
 }
 
 export function ImporterClient({ banks, debts, assets, translations }: ImporterClientProps) {
-  const { toast } } from useToast();
+  const { toast } = useToast();
   const router = useRouter();
   const [loading, setLoading] = useState(false);
   
@@ -202,8 +202,7 @@ export function ImporterClient({ banks, debts, assets, translations }: ImporterC
                       name="itemId"
                       render={({ field }) => (
                         <FormItem>
-                          <FormLabel>{entryType}</FormLabel>
-                          <Select onValueChange={field.onChange} defaultValue={field.value} value={field.value}>
+                          <FormLabel>{entryType}</FormLabel>                          <Select onValueChange={field.onChange} defaultValue={field.value} value={field.value}>
                             <FormControl>
                               <SelectTrigger>
                                 <SelectValue placeholder={`Select a ${entryType.toLowerCase()}`} />

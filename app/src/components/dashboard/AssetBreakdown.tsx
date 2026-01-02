@@ -38,7 +38,7 @@ const AssetIcon = ({ type }: { type: Asset['type'] }) => {
 export const AssetBreakdown: FC<AssetBreakdownProps> = ({ assets, onEntry, translations, locale, currency }) => {
   const t = translations.assetBreakdown;
   const tEntry = translations.entryDialog;
-  const currentLocale = localeMap[locale] || ca;
+  const currentLocale = localeMap[locale as keyof typeof localeMap] || ca;
 
   return (
     <Card className="shadow-lg h-full flex flex-col">

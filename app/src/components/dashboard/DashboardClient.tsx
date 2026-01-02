@@ -12,8 +12,6 @@ import type { DashboardData, BankStatus, Debt, Asset } from "@/lib/types";
 import { Skeleton } from "@/components/ui/skeleton";
 import type { z } from 'zod';
 import type { baseSchema } from '@/components/dashboard/EntryDialog';
-import messages from '@/messages/ca.json';
-
 
 const DashboardSkeleton = () => (
   <div className="p-4 md:p-8 space-y-8">
@@ -72,8 +70,8 @@ export function DashboardClient({ initialData, translations }: { initialData: Da
     await refreshData();
   };
 
-  const currentLocale = messages.Locale.ca;
-  const currency = messages.Currency.ca;
+  const currentLocale = 'ca-ES';
+  const currency = 'EUR';
 
   return (
     <div className="flex flex-col min-h-screen bg-background text-foreground">
