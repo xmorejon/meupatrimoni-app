@@ -19,14 +19,6 @@ import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
 import messages from '@/messages/ca.json';
 
-const formSchema = z.object({
-  entryType: z.enum(["Bank", "Debt", "Asset"]),
-  itemId: z.string().min(1, "Please select an item."),
-  file: z.instanceof(FileList).refine((files) => files?.length === 1, "A CSV file is required."),
-});
-
-type FormValues = z.infer<typeof formSchema>;
-
 interface CsvData {
     Date: string;
     Balance?: string;
@@ -45,6 +37,15 @@ export function ImporterClient({ banks, debts, assets }: ImporterClientProps) {
   const router = useRouter();
   const [loading, setLoading] = useState(false);
   const translations = messages.Dashboard;
+
+  // Define the schema inside the component to avoid server-side evaluation of FileList
+  const formSchema = z.object({
+    entryType: z.enum(["Bank", "Debt", "Asset"]),
+    itemId: z.string().min(1, "Please select an item."),
+    file: z.instanceof(FileList).refine((files) => files?.length === 1, "A CSV file is required."),
+  });
+
+  type FormValues = z.infer<typeof formSchema>;
   
   const form = useForm<FormValues>({
     resolver: zodResolver(formSchema),
