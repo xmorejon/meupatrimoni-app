@@ -3,10 +3,11 @@ import { DashboardClient } from "@/components/dashboard/DashboardClient";
 import { unstable_setRequestLocale } from 'next-intl/server';
 
 export default async function Home({
-  params: {locale}
+  params
 }: {
   params: {locale: string};
 }) {
+  const { locale } = params;
   unstable_setRequestLocale(locale);
   const data = await getDashboardData();
 
