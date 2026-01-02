@@ -17,14 +17,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
-
-const formSchema = z.object({
-  entryType: z.enum(["Bank", "Debt", "Asset"]),
-  itemId: z.string().min(1, "Please select an item."),
-  file: z.instanceof(FileList).refine((files) => files?.length === 1, "A CSV file is required."),
-});
-
-type FormValues = z.infer<typeof formSchema>;
+import messages from "@/messages/ca.json";
 
 interface CsvData {
     Date: string;
@@ -43,6 +36,16 @@ export function ImporterClient({ banks, debts, assets }: ImporterClientProps) {
   const { toast } = useToast();
   const router = useRouter();
   const [loading, setLoading] = useState(false);
+  const translations = messages.Dashboard;
+
+  // Define the schema inside the component to avoid server-side evaluation of FileList
+  const formSchema = z.object({
+    entryType: z.enum(["Bank", "Debt", "Asset"]),
+    itemId: z.string().min(1, "Please select an item."),
+    file: z.instanceof(FileList).refine((files) => files?.length === 1, "A CSV file is required."),
+  });
+
+  type FormValues = z.infer<typeof formSchema>;
   
   const form = useForm<FormValues>({
     resolver: zodResolver(formSchema),
@@ -156,7 +159,7 @@ export function ImporterClient({ banks, debts, assets }: ImporterClientProps) {
 
   return (
     <div className="flex flex-col min-h-screen bg-background text-foreground">
-      <Header title="Import Historical Data" />
+      <Header title={translations.title} />
       <main className="flex-1 p-4 md:p-8">
         <div className="max-w-2xl mx-auto">
           <Card>
