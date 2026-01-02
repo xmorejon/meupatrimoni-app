@@ -136,7 +136,7 @@ export async function addOrUpdateDebt(debtData: Partial<Debt> & { name: string; 
   await batch.commit();
 }
 
-export async function addOrUpdateAsset(assetData: Partial<Asset> & { name: string; value: number; type: Asset['type'] }): Promise<void> {
+export async function addOrUpdateAsset(assetData: Partial<Asset> & { name:string; value: number; type: Asset['type'] }): Promise<void> {
   const { id, ...payload } = assetData;
   const now = Timestamp.now();
 
@@ -180,8 +180,15 @@ export async function getDashboardData(): Promise<DashboardData> {
   
   // --- HISTORICAL CALCULATIONS ---
   const today = startOfToday();
-  const startDate = allEntries.length > 0
-    ? startOfDay(new Date(Math.min(...allEntries.map(e => e.timestamp.getTime()))))
+  const allCreationDates = [
+    ...bankBreakdown.map(b => (b.lastUpdated as Date).getTime()),
+    ...debtBreakdown.map(d => (d.lastUpdated as Date).getTime()),
+    ...assetBreakdown.map(a => (a.lastUpdated as Date).getTime()),
+    ...allEntries.map(e => e.timestamp.getTime())
+  ];
+  
+  const startDate = allCreationDates.length > 0 
+    ? startOfDay(new Date(Math.min(...allCreationDates))) 
     : subDays(today, 90);
 
   const dateInterval = eachDayOfInterval({ start: startDate, end: endOfToday() });
@@ -195,7 +202,15 @@ export async function getDashboardData(): Promise<DashboardData> {
         const latestEntry = balanceEntries
             .filter(e => e.bankId === bankId && e.timestamp <= endOfDate)
             .sort((a, b) => b.timestamp.getTime() - a.timestamp.getTime())[0];
-        return sum + (latestEntry ? latestEntry.balance : 0);
+        
+        if (latestEntry) return sum + latestEntry.balance;
+
+        const currentBank = bankBreakdown.find(b => b.id === bankId);
+        if (currentBank && (currentBank.lastUpdated as Date) <= endOfDate) {
+            return sum + currentBank.balance;
+        }
+
+        return sum;
     }, 0);
 
     // --- Asset Values ---
@@ -204,7 +219,15 @@ export async function getDashboardData(): Promise<DashboardData> {
         const latestEntry = assetEntries
             .filter(e => e.assetId === assetId && e.timestamp <= endOfDate)
             .sort((a, b) => b.timestamp.getTime() - a.timestamp.getTime())[0];
-        return sum + (latestEntry ? latestEntry.value : 0);
+
+        if (latestEntry) return sum + latestEntry.value;
+
+        const currentAsset = assetBreakdown.find(a => a.id === assetId);
+        if (currentAsset && (currentAsset.lastUpdated as Date) <= endOfDate) {
+            return sum + currentAsset.value;
+        }
+
+        return sum;
     }, 0);
 
     // --- Debt Balances ---
@@ -213,14 +236,33 @@ export async function getDashboardData(): Promise<DashboardData> {
         const latestEntry = debtEntries
             .filter(e => e.debtId === debtId && e.timestamp <= endOfDate)
             .sort((a, b) => b.timestamp.getTime() - a.timestamp.getTime())[0];
-        return sum + (latestEntry ? latestEntry.balance : 0);
+
+        if (latestEntry) return sum + latestEntry.balance;
+
+        const currentDebt = debtBreakdown.find(d => d.id === debtId);
+        if (currentDebt && (currentDebt.lastUpdated as Date) <= endOfDate) {
+            return sum + currentDebt.balance;
+        }
+
+        return sum;
     }, 0);
 
     const creditCardDebtAtDate = Array.from(debtIds).reduce((sum, debtId) => {
+        const debtDef = debtBreakdown.find(d => d.id === debtId);
+        if (debtDef?.type !== 'Credit Card') return sum;
+
         const latestEntry = debtEntries
             .filter(e => e.debtId === debtId && e.type === 'Credit Card' && e.timestamp <= endOfDate)
             .sort((a, b) => b.timestamp.getTime() - a.timestamp.getTime())[0];
-        return sum + (latestEntry ? Math.abs(latestEntry.balance) : 0);
+
+        if (latestEntry) return sum + Math.abs(latestEntry.balance);
+
+        const currentDebt = debtBreakdown.find(d => d.id === debtId);
+         if (currentDebt && (currentDebt.lastUpdated as Date) <= endOfDate) {
+            return sum + Math.abs(currentDebt.balance);
+        }
+
+        return sum;
     }, 0);
 
     const totalAssetsAtDate = financialAssetsAtDate + physicalAssetsAtDate;
