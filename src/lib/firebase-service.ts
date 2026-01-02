@@ -43,43 +43,50 @@ async function getBalanceEntries(): Promise<BalanceEntry[]> {
     return snapshot.docs.map(d => convertTimestamps<BalanceEntry>({ id: d.id, ...d.data() }));
 }
 
-export async function addOrUpdateBank(bankData: Partial<BankStatus> & { name: string; balance: number }): Promise<void> {
-    const bankRef = bankData.id ? doc(db, 'banks', bankData.id) : doc(collection(db, 'banks'));
+export async function batchImportBalanceEntries(
+  bank: BankStatus,
+  entries: { timestamp: Date; balance: number }[]
+): Promise<void> {
+  const batch = writeBatch(db);
 
-    const batch = writeBatch(db);
-
-    // If it's a new bank, we just need to set the initial data and one balance entry.
-    if (!bankData.id) {
-         batch.set(bankRef, {
-            name: bankData.name,
-            balance: bankData.balance,
-            lastUpdated: Timestamp.now(),
-        });
-    } else {
-         // If it's an existing bank, we update its main document.
-         batch.update(bankRef, {
-            name: bankData.name,
-            balance: bankData.balance,
-            lastUpdated: Timestamp.now(),
-        });
-    }
-    
-    // Add a new entry to the balance history for both new and updated banks.
+  entries.forEach(entry => {
     const entryRef = doc(collection(db, 'balanceEntries'));
     batch.set(entryRef, {
-        bank: bankData.name,
-        balance: bankData.balance,
-        timestamp: Timestamp.now()
+      bank: bank.name,
+      balance: entry.balance,
+      timestamp: Timestamp.fromDate(entry.timestamp)
     });
+  });
 
-    await batch.commit();
+  // After import, find the most recent entry and update the main bank document
+  if (entries.length > 0) {
+    const latestEntry = entries.reduce((latest, current) => 
+      current.timestamp > latest.timestamp ? current : latest
+    );
+    const bankRef = doc(db, 'banks', bank.id);
+    batch.update(bankRef, {
+        balance: latestEntry.balance,
+        lastUpdated: Timestamp.fromDate(latestEntry.timestamp)
+    });
+  }
+
+  await batch.commit();
+}
+
+
+export async function addOrUpdateBank(bankData: Partial<BankStatus> & { name: string; balance: number }): Promise<void> {
+    const bankRef = bankData.id ? doc(db, 'banks', bankData.id) : doc(collection(db, 'banks'));
+    const { id, ...newBankData } = bankData;
+
+    await setDoc(bankRef, { ...newBankData, lastUpdated: Timestamp.now() }, { merge: true });
 }
 
 
 export async function addOrUpdateDebt(debtData: Partial<Debt> & { name: string; balance: number; type: Debt['type'] }): Promise<void> {
     if (debtData.id) {
         const debtRef = doc(db, 'debts', debtData.id);
-        await updateDoc(debtRef, { ...debtData, lastUpdated: Timestamp.now() });
+        const { id, ...updatedDebtData } = debtData;
+        await updateDoc(debtRef, { ...updatedDebtData, lastUpdated: Timestamp.now() });
     } else {
         const { id, ...newDebtData } = debtData;
         const debtsCol = collection(db, 'debts');
@@ -90,7 +97,8 @@ export async function addOrUpdateDebt(debtData: Partial<Debt> & { name: string; 
 export async function addOrUpdateAsset(assetData: Partial<Asset> & { name: string; value: number; type: Asset['type'] }): Promise<void> {
     if (assetData.id) {
         const assetRef = doc(db, 'assets', assetData.id);
-        await updateDoc(assetRef, { ...assetData, lastUpdated: Timestamp.now() });
+        const { id, ...updatedAssetData } = assetData;
+        await updateDoc(assetRef, { ...updatedAssetData, lastUpdated: Timestamp.now() });
     } else {
         const { id, ...newAssetData } = assetData;
         const assetsCol = collection(db, 'assets');

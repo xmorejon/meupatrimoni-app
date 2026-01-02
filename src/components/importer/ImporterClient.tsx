@@ -5,8 +5,10 @@ import { useForm } from "react-hook-form";
 import { z } from "zod";
 import { zodResolver } from "@hookform/resolvers/zod";
 import Papa from "papaparse";
+import { useRouter } from "next/navigation";
 
 import type { BankStatus } from "@/lib/types";
+import { batchImportBalanceEntries } from "@/lib/firebase-service";
 import { Header } from "@/components/Header";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
@@ -22,8 +24,15 @@ const formSchema = z.object({
 
 type FormValues = z.infer<typeof formSchema>;
 
+interface CsvData {
+    Date: string;
+    Balance: string;
+    [key: string]: string;
+}
+
 export function ImporterClient({ banks }: { banks: BankStatus[] }) {
   const { toast } = useToast();
+  const router = useRouter();
   const [loading, setLoading] = useState(false);
   
   const form = useForm<FormValues>({
@@ -33,22 +42,55 @@ export function ImporterClient({ banks }: { banks: BankStatus[] }) {
   const onSubmit = (data: FormValues) => {
     setLoading(true);
     const file = data.file[0];
+    const selectedBank = banks.find(b => b.id === data.bankId);
+
+    if (!selectedBank) {
+      toast({
+        variant: "destructive",
+        title: "Import Failed",
+        description: "Selected bank not found.",
+      });
+      setLoading(false);
+      return;
+    }
     
-    Papa.parse(file, {
+    Papa.parse<CsvData>(file, {
       header: true,
       skipEmptyLines: true,
-      complete: (results) => {
-        // Here we will process the results and save to Firebase
-        console.log("Parsed CSV data:", results.data);
+      complete: async (results) => {
+        try {
+          const requiredColumns = ['Date', 'Balance'];
+          if (!results.meta.fields || !requiredColumns.every(col => results.meta.fields?.includes(col))) {
+             throw new Error(`CSV must have the following columns: ${requiredColumns.join(', ')}`);
+          }
 
-        // TODO: Implement batch save to Firestore
-        
-        setLoading(false);
-        toast({
-          title: "Import Complete",
-          description: `Processed ${results.data.length} records.`,
-        });
-        form.reset();
+          const entries = results.data.map(row => ({
+            timestamp: new Date(row.Date),
+            balance: parseFloat(row.Balance),
+          })).filter(entry => !isNaN(entry.timestamp.getTime()) && !isNaN(entry.balance));
+
+          if (entries.length === 0) {
+            throw new Error("No valid records found in the file. Check 'Date' and 'Balance' columns.");
+          }
+
+          await batchImportBalanceEntries(selectedBank, entries);
+
+          toast({
+            title: "Import Complete",
+            description: `Successfully imported ${entries.length} records for ${selectedBank.name}.`,
+          });
+          router.push('/');
+
+        } catch (error: any) {
+           toast({
+            variant: "destructive",
+            title: "Import Failed",
+            description: error.message || "An unexpected error occurred.",
+          });
+        } finally {
+          setLoading(false);
+          form.reset();
+        }
       },
       error: (error) => {
         console.error("Error parsing CSV:", error);
