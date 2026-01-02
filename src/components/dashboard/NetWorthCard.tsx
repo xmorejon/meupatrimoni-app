@@ -1,4 +1,3 @@
-
 import type { FC } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { ArrowUpRight, ArrowDownRight, Minus, Wallet } from 'lucide-react';
