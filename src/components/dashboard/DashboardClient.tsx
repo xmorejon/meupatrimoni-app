@@ -63,7 +63,7 @@ export function DashboardClient({ initialData, locale }: { initialData: Dashboar
   };
 
   const currentLocale = translations.locale[locale as keyof typeof translations.locale] || translations.locale['en'];
-  const currency = translations.currency[locale as keyof typeof translations.currency] || translations.currency['en'];
+  const currency = 'EUR';
 
   return (
     <div className="flex flex-col min-h-screen bg-background text-foreground">
