@@ -21,13 +21,13 @@ interface NetWorthChartProps {
 }
 
 const yAxisFormatter = (value: number, locale: string, currency: string) => {
-    if (value >= 1000000 || value <= -1000000) {
+    if (Math.abs(value) >= 1000000) {
         return `${new Intl.NumberFormat(locale, { style: 'currency', currency, notation: 'compact', compactDisplay: 'short' }).format(value/1000000)}M`;
     }
-    if (value >= 1000 || value <= -1000) {
+    if (Math.abs(value) >= 1000) {
         return `${new Intl.NumberFormat(locale, { style: 'currency', currency, notation: 'compact', compactDisplay: 'short' }).format(value/1000)}k`;
     }
-    return new Intl.NumberFormat(locale, { style: 'currency', currency }).format(value);
+    return new Intl.NumberFormat(locale, { style: 'currency', currency, maximumFractionDigits: 0 }).format(value);
 };
 
 
@@ -44,6 +44,17 @@ export const NetWorthChart: FC<NetWorthChartProps> = ({ data, translations, loca
   } satisfies ChartConfig;
 
   const minWidth = data.length * 50;
+  const chartHeight = 250;
+  
+  // Calculate domains for each axis to ensure they are synchronized
+  const netWorthDomain = [
+    Math.min(...data.map(d => d.netWorth)),
+    Math.max(...data.map(d => d.netWorth)),
+  ];
+  const cashFlowDomain = [
+    Math.min(...data.map(d => d.cashFlow)),
+    Math.max(...data.map(d => d.cashFlow)),
+  ];
 
   return (
     <Card className="shadow-lg">
@@ -51,11 +62,28 @@ export const NetWorthChart: FC<NetWorthChartProps> = ({ data, translations, loca
         <CardTitle>{translations.title}</CardTitle>
         <CardDescription>{translations.description}</CardDescription>
       </CardHeader>
-      <CardContent>
-        <ScrollArea>
-          <div style={{ width: `${minWidth}px`, height: '250px' }}>
+      <CardContent className="flex w-full">
+        {/* Left Y-Axis (Net Worth) */}
+        <div style={{ height: `${chartHeight}px` }} className="flex-shrink-0">
+          <ChartContainer config={chartConfig} className="h-full w-20">
+            <AreaChart accessibilityLayer data={data} margin={{ top: 5, right: 10, left: 0, bottom: 20 }}>
+              <YAxis 
+                yAxisId="left" 
+                orientation="left" 
+                stroke="hsl(var(--primary))" 
+                tickFormatter={(value) => yAxisFormatter(Number(value), locale, currency)}
+                domain={netWorthDomain}
+                width={80}
+              />
+            </AreaChart>
+          </ChartContainer>
+        </div>
+        
+        {/* Scrollable Chart Area */}
+        <ScrollArea className="w-full whitespace-nowrap">
+          <div style={{ width: `${minWidth}px`, height: `${chartHeight}px` }}>
             <ChartContainer config={chartConfig} className="h-full w-full">
-                <AreaChart accessibilityLayer data={data} margin={{ left: 12, right: 12 }}>
+                <AreaChart accessibilityLayer data={data} margin={{ top: 5, right: 10, left: 10, bottom: 20 }}>
                     <defs>
                         <linearGradient id="fillNetWorth" x1="0" y1="0" x2="0" y2="1">
                             <stop offset="5%" stopColor="var(--color-netWorth)" stopOpacity={0.8} />
@@ -73,18 +101,8 @@ export const NetWorthChart: FC<NetWorthChartProps> = ({ data, translations, loca
                         axisLine={false}
                         tickMargin={8}
                     />
-                    <YAxis 
-                        yAxisId="left" 
-                        orientation="left" 
-                        stroke="hsl(var(--primary))" 
-                        tickFormatter={(value) => yAxisFormatter(Number(value), locale, currency)}
-                    />
-                    <YAxis 
-                        yAxisId="right" 
-                        orientation="right" 
-                        stroke="hsl(var(--chart-2))" 
-                        tickFormatter={(value) => yAxisFormatter(Number(value), locale, currency)}
-                    />
+                    <YAxis yAxisId="left" hide={true} domain={netWorthDomain} />
+                    <YAxis yAxisId="right" hide={true} domain={cashFlowDomain} />
                     <Tooltip
                         cursor={{ fill: 'hsl(var(--accent) / 0.1)' }}
                         content={<ChartTooltipContent 
@@ -98,13 +116,29 @@ export const NetWorthChart: FC<NetWorthChartProps> = ({ data, translations, loca
                         />}
                     />
                     <Legend content={<ChartLegendContent />} />
-                    <Area yAxisId="left" dataKey="netWorth" type="natural" fill="url(#fillNetWorth)" stroke="var(--color-netWorth)" stackId="a" />
-                    <Area yAxisId="right" dataKey="cashFlow" type="natural" fill="url(#fillCashFlow)" stroke="var(--color-cashFlow)" stackId="b" />
+                    <Area yAxisId="left" dataKey="netWorth" type="natural" fill="url(#fillNetWorth)" stroke="var(--color-netWorth)" />
+                    <Area yAxisId="right" dataKey="cashFlow" type="natural" fill="url(#fillCashFlow)" stroke="var(--color-cashFlow)" />
                 </AreaChart>
             </ChartContainer>
           </div>
-          <ScrollBar orientation="horizontal" />
+          <ScrollBar orientation="horizontal" className="mt-2" />
         </ScrollArea>
+        
+        {/* Right Y-Axis (Cash Flow) */}
+        <div style={{ height: `${chartHeight}px` }} className="flex-shrink-0">
+          <ChartContainer config={chartConfig} className="h-full w-20">
+            <AreaChart accessibilityLayer data={data} margin={{ top: 5, right: 0, left: 10, bottom: 20 }}>
+              <YAxis 
+                yAxisId="right" 
+                orientation="right" 
+                stroke="hsl(var(--chart-2))" 
+                tickFormatter={(value) => yAxisFormatter(Number(value), locale, currency)}
+                domain={cashFlowDomain}
+                width={80}
+              />
+            </AreaChart>
+          </ChartContainer>
+        </div>
       </CardContent>
     </Card>
   );
