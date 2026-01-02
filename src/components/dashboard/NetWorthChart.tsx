@@ -70,8 +70,8 @@ export const NetWorthChart: FC<NetWorthChartProps> = ({ data, translations, loca
         <ChartContainer config={chartConfig} className="h-[250px] w-full pl-0">
             <div className="flex items-start w-full">
                 {/* Left Y-Axis */}
-                <div className="flex-shrink-0" style={{ height: chartHeight }}>
-                    <ResponsiveContainer width={80} height="100%">
+                <div className="flex-shrink-0" style={{ height: chartHeight, width: '80px' }}>
+                    <ResponsiveContainer width="100%" height="100%">
                         <AreaChart data={data} margin={{ top: 5, right: yAxisMargin, left: 10, bottom: 25 }}>
                              <YAxis 
                                 yAxisId="left" 
@@ -136,8 +136,8 @@ export const NetWorthChart: FC<NetWorthChartProps> = ({ data, translations, loca
                 </ScrollArea>
                 
                  {/* Right Y-Axis */}
-                 <div className="flex-shrink-0" style={{ height: chartHeight }}>
-                    <ResponsiveContainer width={80} height="100%">
+                 <div className="flex-shrink-0" style={{ height: chartHeight, width: '80px' }}>
+                    <ResponsiveContainer width="100%" height="100%">
                          <AreaChart data={data} margin={{ top: 5, right: 10, left: yAxisMargin, bottom: 25 }}>
                             <YAxis 
                                 yAxisId="right" 
