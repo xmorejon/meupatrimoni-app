@@ -6,15 +6,21 @@ import { subDays, format, startOfToday, eachDayOfInterval, endOfToday, startOfDa
 
 // Helper function to convert Firestore Timestamps to Dates in nested objects
 const convertTimestamps = <T>(data: any): T => {
-    if (data?.timestamp instanceof Timestamp) {
-        return { ...data, timestamp: data.timestamp.toDate() };
-    }
-    if (data?.lastUpdated instanceof Timestamp) {
-        return { ...data, lastUpdated: data.lastUpdated.toDate() };
-    }
-    return data;
+    const convertValue = (value: any): any => {
+        if (value instanceof Timestamp) {
+            return value.toDate();
+        }
+        if (value && typeof value === 'object' && !Array.isArray(value)) {
+            const newObj: { [key: string]: any } = {};
+            for (const key in value) {
+                newObj[key] = convertValue(value[key]);
+            }
+            return newObj;
+        }
+        return value;
+    };
+    return convertValue(data);
 };
-
 
 export async function getBankBreakdown(): Promise<BankStatus[]> {
     const banksCol = collection(db, 'banks');
@@ -39,17 +45,23 @@ export async function getAssetBreakdown(): Promise<Asset[]> {
 
 async function getBalanceEntries(): Promise<BalanceEntry[]> {
     const entriesCol = collection(db, 'balanceEntries');
-    const q = query(entriesCol, orderBy('timestamp', 'asc')); // Order by asc to find the oldest easily
+    const q = query(entriesCol, orderBy('timestamp', 'asc'));
     const snapshot = await getDocs(q);
     return snapshot.docs.map(d => convertTimestamps<BalanceEntry>({ id: d.id, ...d.data() }));
 }
 
-// Optional debt history entries. If present, they should have fields: id, name, balance, type, timestamp
-async function getDebtEntries(): Promise<Array<{ id: string; name: string; balance: number; type: string; timestamp: Date }>> {
+async function getDebtEntries(): Promise<Array<Debt & { timestamp: Date }>> {
   const entriesCol = collection(db, 'debtEntries');
   const q = query(entriesCol, orderBy('timestamp', 'asc'));
   const snapshot = await getDocs(q);
-  return snapshot.docs.map(d => convertTimestamps<any>({ id: d.id, ...d.data() }));
+  return snapshot.docs.map(d => convertTimestamps<Debt & { timestamp: Date }>({ id: d.id, ...d.data() }));
+}
+
+async function getAssetEntries(): Promise<Array<Asset & { timestamp: Date }>> {
+  const entriesCol = collection(db, 'assetEntries');
+  const q = query(entriesCol, orderBy('timestamp', 'asc'));
+  const snapshot = await getDocs(q);
+  return snapshot.docs.map(d => convertTimestamps<Asset & { timestamp: Date }>({ id: d.id, ...d.data() }));
 }
 
 export async function batchImportBalanceEntries(
@@ -61,13 +73,13 @@ export async function batchImportBalanceEntries(
   entries.forEach(entry => {
     const entryRef = doc(collection(db, 'balanceEntries'));
     batch.set(entryRef, {
+      bankId: bank.id,
       bank: bank.name,
       balance: entry.balance,
       timestamp: Timestamp.fromDate(entry.timestamp)
     });
   });
 
-  // After import, find the most recent entry and update the main bank document
   if (entries.length > 0) {
     const latestEntry = entries.reduce((latest, current) => 
       current.timestamp > latest.timestamp ? current : latest
@@ -84,10 +96,23 @@ export async function batchImportBalanceEntries(
 
 
 export async function addOrUpdateBank(bankData: Partial<BankStatus> & { name: string; balance: number }): Promise<void> {
+    const now = Timestamp.now();
+    const batch = writeBatch(db);
+    
     const bankRef = bankData.id ? doc(db, 'banks', bankData.id) : doc(collection(db, 'banks'));
     const { id, ...newBankData } = bankData;
 
-    await setDoc(bankRef, { ...newBankData, lastUpdated: Timestamp.now() }, { merge: true });
+    batch.set(bankRef, { ...newBankData, lastUpdated: now }, { merge: true });
+    
+    const balanceEntryRef = doc(collection(db, 'balanceEntries'));
+    batch.set(balanceEntryRef, {
+        bankId: bankRef.id,
+        bank: newBankData.name,
+        balance: newBankData.balance,
+        timestamp: now
+    });
+
+    await batch.commit();
 }
 
 
@@ -97,57 +122,54 @@ export async function addOrUpdateDebt(debtData: Partial<Debt> & { name: string; 
   
   const debtRef = id ? doc(db, 'debts', id) : doc(collection(db, 'debts'));
   
-  // Start a batch write
   const batch = writeBatch(db);
 
-  // 1. Update the main 'debts' document
   batch.set(debtRef, { ...payload, lastUpdated: now }, { merge: true });
 
-  // 2. Create a historical entry in 'debtEntries'
   const debtEntryRef = doc(collection(db, 'debtEntries'));
   batch.set(debtEntryRef, {
-    name: payload.name,
-    balance: payload.balance,
-    type: payload.type,
-    timestamp: now,
-    debtId: debtRef.id // Link to the main debt document
+    ...payload,
+    debtId: debtRef.id,
+    timestamp: now
   });
 
-  // Commit the batch
   await batch.commit();
 }
 
 export async function addOrUpdateAsset(assetData: Partial<Asset> & { name: string; value: number; type: Asset['type'] }): Promise<void> {
   const { id, ...payload } = assetData;
-  if (id) {
-    const assetRef = doc(db, 'assets', id);
-    await setDoc(assetRef, { ...payload, lastUpdated: Timestamp.now() }, { merge: true });
-  } else {
-    const assetsCol = collection(db, 'assets');
-    await addDoc(assetsCol, { ...payload, lastUpdated: Timestamp.now() });
-  }
+  const now = Timestamp.now();
+
+  const assetRef = id ? doc(db, 'assets', id) : doc(collection(db, 'assets'));
+  
+  const batch = writeBatch(db);
+
+  batch.set(assetRef, { ...payload, lastUpdated: now }, { merge: true });
+
+  const assetEntryRef = doc(collection(db, 'assetEntries'));
+  batch.set(assetEntryRef, {
+    ...payload,
+    assetId: assetRef.id,
+    timestamp: now
+  });
+
+  await batch.commit();
 }
 
 
 export async function getDashboardData(): Promise<DashboardData> {
-  const [bankBreakdown, debtBreakdown, assetBreakdown, balanceEntries, debtEntries] = await Promise.all([
+  const [bankBreakdown, debtBreakdown, assetBreakdown, balanceEntries, debtEntries, assetEntries] = await Promise.all([
     getBankBreakdown(),
     getDebtBreakdown(),
     getAssetBreakdown(),
     getBalanceEntries(),
-    // try to load historical debt entries if the collection exists
     getDebtEntries(),
+    getAssetEntries(),
   ]);
 
-  // Diagnostic dump: show what debts and debtEntries we have (timestamps converted to ISO)
-  const serialize = (obj: any) => JSON.parse(JSON.stringify(obj, (k, v) => {
-    if (v instanceof Date) return v.toISOString();
-    return v;
-  }));
-  console.log('DBG bankBreakdown:', serialize(bankBreakdown));
-  console.log('DBG debtBreakdown:', serialize(debtBreakdown));
-  console.log('DBG debtEntries:', serialize(debtEntries));
+  const allEntries = [...balanceEntries, ...debtEntries, ...assetEntries];
 
+  // --- CURRENT TOTALS ---
   const financialAssets = bankBreakdown.reduce((sum, entry) => sum + entry.balance, 0);
   const physicalAssets = assetBreakdown.reduce((sum, asset) => sum + asset.value, 0);
   const totalAssets = financialAssets + physicalAssets;
@@ -156,103 +178,66 @@ export async function getDashboardData(): Promise<DashboardData> {
   const totalNetWorth = totalAssets - totalDebts;
   const currentCashFlow = financialAssets - creditCardDebt;
   
+  // --- HISTORICAL CALCULATIONS ---
   const today = startOfToday();
-  // Determine the start date from the absolute oldest balance entry, or default to 90 days ago if no entries exist
-  const startDate = balanceEntries.length > 0
-    ? startOfDay(new Date(Math.min(...balanceEntries.map(e => (e.timestamp as Date).getTime()))))
+  const startDate = allEntries.length > 0
+    ? startOfDay(new Date(Math.min(...allEntries.map(e => e.timestamp.getTime()))))
     : subDays(today, 90);
 
   const dateInterval = eachDayOfInterval({ start: startDate, end: endOfToday() });
 
-  const debug: Array<{
-    date: string;
-    banks: Record<string, number>;
-    debts: Record<string, number>;
-    financialAssetsAtDate: number;
-    creditCardDebtAtDate: number;
-  }> = [];
-
   const historicalData = dateInterval.map(date => {
-    const banks = Array.from(new Set([...balanceEntries.map(e => e.bank), ...bankBreakdown.map(b => b.name)]));
-    const bankValues: Record<string, number> = {};
-    const financialAssetsAtDate = banks.reduce((sum, bank) => {
-      const latestEntryForBankAtDate = balanceEntries
-        .filter(e => e.bank === bank && (e.timestamp as Date) <= date)
-        .sort((a, b) => (b.timestamp as Date).getTime() - (a.timestamp as Date).getTime())[0];
-      // prefer historical entry at-or-before the date
-      if (latestEntryForBankAtDate) {
-        const val = latestEntryForBankAtDate.balance || 0;
-        bankValues[bank] = val;
-        return sum + val;
-      }
-      // if no historical entry exists for that date, fallback to current bank snapshot (so banks without history still contribute)
-      const bankCurrent = bankBreakdown.find(b => b.name === bank);
-      const val = bankCurrent?.balance || 0;
-      bankValues[bank] = val;
-      return sum + val;
+    const endOfDate = endOfToday(date);
+    
+    // --- Bank Balances ---
+    const bankIds = new Set(bankBreakdown.map(b => b.id));
+    const financialAssetsAtDate = Array.from(bankIds).reduce((sum, bankId) => {
+        const latestEntry = balanceEntries
+            .filter(e => e.bankId === bankId && e.timestamp <= endOfDate)
+            .sort((a, b) => b.timestamp.getTime() - a.timestamp.getTime())[0];
+        return sum + (latestEntry ? latestEntry.balance : 0);
     }, 0);
 
-    const assetsAtDate = financialAssetsAtDate + physicalAssets;
-    const debtsAtDate = totalDebts; // total debts snapshot
-    
-    // --- START: Corrected Debt Calculation Logic ---
-    const debtValues: Record<string, number> = {};
-    
-    // Combine all unique credit card debt names from both current and historical data
-    const allCreditCardDebtNames = Array.from(new Set([
-        ...debtBreakdown.filter(d => d.type === 'Credit Card').map(d => d.name),
-        ...debtEntries.filter(d => d.type === 'Credit Card').map(d => d.name)
-    ]));
-
-    const creditCardDebtAtDate = allCreditCardDebtNames.reduce((sum, name) => {
-        // Find the latest historical entry for this debt on or before the current date
-        const latestHistoricalEntry = debtEntries
-            .filter(e => e.name === name && e.type === 'Credit Card' && (e.timestamp as Date) <= date)
-            .sort((a, b) => (b.timestamp as Date).getTime() - (a.timestamp as Date).getTime())[0];
-
-        let debtValue = 0;
-        if (latestHistoricalEntry) {
-            // If a historical entry is found, use its balance
-            debtValue = Math.abs(latestHistoricalEntry.balance);
-        } else {
-            // Otherwise, find the current debt record
-            const currentDebt = debtBreakdown.find(d => d.name === name && d.type === 'Credit Card');
-            if (currentDebt) {
-                const lastUpdated = currentDebt.lastUpdated as Date;
-                // Use the current balance only if the debt was created on or before the date
-                if (lastUpdated && startOfDay(lastUpdated) <= date) {
-                    debtValue = Math.abs(currentDebt.balance);
-                }
-            }
-        }
-        
-        debtValues[name] = debtValue;
-        return sum + debtValue;
+    // --- Asset Values ---
+    const assetIds = new Set(assetBreakdown.map(a => a.id));
+    const physicalAssetsAtDate = Array.from(assetIds).reduce((sum, assetId) => {
+        const latestEntry = assetEntries
+            .filter(e => e.assetId === assetId && e.timestamp <= endOfDate)
+            .sort((a, b) => b.timestamp.getTime() - a.timestamp.getTime())[0];
+        return sum + (latestEntry ? latestEntry.value : 0);
     }, 0);
-    // --- END: Corrected Debt Calculation Logic ---
 
-    debug.push({
-      date: format(date, 'dd/MM/yy'),
-      banks: bankValues,
-      debts: debtValues,
-      financialAssetsAtDate,
-      creditCardDebtAtDate,
-    });
+    // --- Debt Balances ---
+    const debtIds = new Set(debtBreakdown.map(d => d.id));
+    const debtsAtDate = Array.from(debtIds).reduce((sum, debtId) => {
+        const latestEntry = debtEntries
+            .filter(e => e.debtId === debtId && e.timestamp <= endOfDate)
+            .sort((a, b) => b.timestamp.getTime() - a.timestamp.getTime())[0];
+        return sum + (latestEntry ? latestEntry.balance : 0);
+    }, 0);
+
+    const creditCardDebtAtDate = Array.from(debtIds).reduce((sum, debtId) => {
+        const latestEntry = debtEntries
+            .filter(e => e.debtId === debtId && e.type === 'Credit Card' && e.timestamp <= endOfDate)
+            .sort((a, b) => b.timestamp.getTime() - a.timestamp.getTime())[0];
+        return sum + (latestEntry ? Math.abs(latestEntry.balance) : 0);
+    }, 0);
+
+    const totalAssetsAtDate = financialAssetsAtDate + physicalAssetsAtDate;
 
     return {
       date: format(date, 'dd/MM/yy'),
-      netWorth: assetsAtDate - debtsAtDate,
+      netWorth: totalAssetsAtDate - debtsAtDate,
       cashFlow: financialAssetsAtDate - creditCardDebtAtDate,
     };
   });
-
-  // Log the last 14 days debug info to help debugging
-  const recent = debug.slice(-14);
-  console.log('Dashboard debug (last 14 days):', JSON.stringify(recent, null, 2));
   
-  const yesterdayNetWorth = historicalData.find(d => d.date === format(subDays(today, 1), 'dd/MM/yy'))?.netWorth || 0;
-  const todayNetWorth = historicalData[historicalData.length - 1]?.netWorth || 0;
-  const netWorthChange = todayNetWorth > 0 && yesterdayNetWorth > 0 && yesterdayNetWorth !== todayNetWorth ? ((todayNetWorth - yesterdayNetWorth) / Math.abs(yesterdayNetWorth)) * 100 : 0;
+  const yesterdayNetWorth = historicalData.find(d => d.date === format(subDays(today, 1), 'dd/MM/yy'))?.netWorth || totalNetWorth;
+  const todayNetWorth = historicalData[historicalData.length - 1]?.netWorth || totalNetWorth;
+  
+  const netWorthChange = todayNetWorth > 0 && yesterdayNetWorth > 0 && yesterdayNetWorth !== todayNetWorth 
+    ? ((todayNetWorth - yesterdayNetWorth) / Math.abs(yesterdayNetWorth)) * 100 
+    : 0;
 
-  return { totalNetWorth, netWorthChange, currentCashFlow, historicalData, bankBreakdown, debtBreakdown, assetBreakdown, debug };
+  return { totalNetWorth, netWorthChange, currentCashFlow, historicalData, bankBreakdown, debtBreakdown, assetBreakdown };
 };

@@ -2,6 +2,7 @@ import type { Timestamp } from 'firebase/firestore';
 
 export interface BalanceEntry {
   id: string;
+  bankId: string;
   bank: string;
   balance: number;
   timestamp: Date | Timestamp;
@@ -16,6 +17,7 @@ export interface BankStatus {
 
 export interface Debt {
   id:string;
+  debtId?: string;
   name: string;
   balance: number;
   type: 'Credit Card' | 'Mortgage' | 'Personnel Credit';
@@ -24,6 +26,7 @@ export interface Debt {
 
 export interface Asset {
   id: string;
+  assetId?: string;
   name: string;
   value: number;
   type: 'House' | 'Car';
@@ -44,13 +47,7 @@ export interface DashboardData {
   bankBreakdown: BankStatus[];
   debtBreakdown: Debt[];
   assetBreakdown: Asset[];
-  debug?: Array<{
-    date: string;
-    banks: Record<string, number>;
-    debts: Record<string, number>;
-    financialAssetsAtDate: number;
-    creditCardDebtAtDate: number;
-  }>;
+  debug?: Array<any>;
 }
 
 export type Entry = BankStatus | Debt | Asset;
