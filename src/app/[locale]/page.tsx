@@ -1,8 +1,7 @@
-
 import { getDashboardData } from "@/lib/firebase-service";
 import { DashboardClient } from "@/components/dashboard/DashboardClient";
 import { unstable_setRequestLocale } from 'next-intl/server';
-import { locales } from '../../../i18n.config';
+import { locales } from '../../../middleware';
 
 export function generateStaticParams() {
   return locales.map((locale) => ({locale}));

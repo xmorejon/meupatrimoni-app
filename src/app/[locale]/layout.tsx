@@ -3,7 +3,7 @@ import '../globals.css';
 import { Toaster } from "@/components/ui/toaster";
 import {NextIntlClientProvider} from 'next-intl';
 import {getMessages, unstable_setRequestLocale} from 'next-intl/server';
-import { locales } from '../../../i18n.config';
+import { locales } from '../../../middleware';
 
 export function generateStaticParams() {
   return locales.map((locale) => ({locale}));
