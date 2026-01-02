@@ -1,7 +1,8 @@
+
 import { db } from '@/firebase/config';
 import { collection, getDocs, doc, writeBatch, query, orderBy, limit, getDoc, setDoc, addDoc, updateDoc, deleteDoc, Timestamp } from 'firebase/firestore';
 import type { BankStatus, Debt, Asset, DashboardData, ChartDataPoint, BalanceEntry } from './types';
-import { subDays, format, startOfToday, eachDayOfInterval, endOfToday } from 'date-fns';
+import { subDays, format, startOfToday, eachDayOfInterval, endOfToday, startOfDay } from 'date-fns';
 
 // Helper function to convert Firestore Timestamps to Dates in nested objects
 const convertTimestamps = <T>(data: any): T => {
@@ -38,7 +39,7 @@ export async function getAssetBreakdown(): Promise<Asset[]> {
 
 async function getBalanceEntries(): Promise<BalanceEntry[]> {
     const entriesCol = collection(db, 'balanceEntries');
-    const q = query(entriesCol, orderBy('timestamp', 'desc'));
+    const q = query(entriesCol, orderBy('timestamp', 'asc')); // Order by asc to find the oldest easily
     const snapshot = await getDocs(q);
     return snapshot.docs.map(d => convertTimestamps<BalanceEntry>({ id: d.id, ...d.data() }));
 }
@@ -124,14 +125,18 @@ export async function getDashboardData(): Promise<DashboardData> {
   const currentCashFlow = financialAssets - creditCardDebt;
   
   const today = startOfToday();
-  const ninetyDaysAgo = subDays(today, 90);
-  const dateInterval = eachDayOfInterval({ start: ninetyDaysAgo, end: endOfToday() });
+  // Determine the start date from the oldest balance entry, or default to 90 days ago if no entries exist
+  const startDate = balanceEntries.length > 0 
+    ? startOfDay(balanceEntries[0].timestamp as Date)
+    : subDays(today, 90);
+
+  const dateInterval = eachDayOfInterval({ start: startDate, end: endOfToday() });
 
   const historicalData = dateInterval.map(date => {
     const financialAssetsAtDate = Array.from(new Set(balanceEntries.map(e => e.bank))).reduce((sum, bank) => {
       const latestEntryForBankAtDate = balanceEntries
-        .filter(e => e.bank === bank && e.timestamp <= date)
-        .sort((a, b) => b.timestamp.getTime() - a.timestamp.getTime())[0];
+        .filter(e => e.bank === bank && (e.timestamp as Date) <= date)
+        .sort((a, b) => (b.timestamp as Date).getTime() - (a.timestamp as Date).getTime())[0];
       return sum + (latestEntryForBankAtDate?.balance || 0);
     }, 0);
 

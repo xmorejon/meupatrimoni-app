@@ -1,6 +1,8 @@
+
 "use client";
 
 import type { FC } from 'react';
+import { useRef, useEffect } from 'react';
 import { Area, AreaChart, CartesianGrid, ResponsiveContainer, Tooltip, XAxis, YAxis, Legend } from 'recharts';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { ChartConfig, ChartContainer, ChartTooltipContent, ChartLegendContent } from '@/components/ui/chart';
@@ -43,6 +45,16 @@ export const NetWorthChart: FC<NetWorthChartProps> = ({ data, translations, loca
   } satisfies ChartConfig;
 
   const minWidth = data.length * 40;
+  const scrollAreaRef = useRef<HTMLDivElement>(null);
+  
+  useEffect(() => {
+    if (scrollAreaRef.current) {
+        const scrollableViewport = scrollAreaRef.current.querySelector('div[data-radix-scroll-area-viewport]');
+        if (scrollableViewport) {
+            scrollableViewport.scrollLeft = scrollableViewport.scrollWidth;
+        }
+    }
+  }, [data]);
   
   return (
     <Card className="shadow-lg">
@@ -51,7 +63,7 @@ export const NetWorthChart: FC<NetWorthChartProps> = ({ data, translations, loca
         <CardDescription>{translations.description}</CardDescription>
       </CardHeader>
       <CardContent>
-         <ScrollArea className="w-full whitespace-nowrap">
+         <ScrollArea ref={scrollAreaRef} className="w-full whitespace-nowrap">
             <ChartContainer config={chartConfig} className="h-[250px] w-full" style={{ minWidth: `${minWidth}px`}}>
                 <ResponsiveContainer width="100%" height="100%">
                 <AreaChart data={data} margin={{ top: 5, right: 30, left: 20, bottom: 5 }}>
