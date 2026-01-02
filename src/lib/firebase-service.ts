@@ -93,14 +93,28 @@ export async function addOrUpdateBank(bankData: Partial<BankStatus> & { name: st
 
 export async function addOrUpdateDebt(debtData: Partial<Debt> & { name: string; balance: number; type: Debt['type'] }): Promise<void> {
   const { id, ...payload } = debtData;
-  if (id) {
-    const debtRef = doc(db, 'debts', id);
-    // use setDoc with merge to upsert in case the document doesn't exist
-    await setDoc(debtRef, { ...payload, lastUpdated: Timestamp.now() }, { merge: true });
-  } else {
-    const debtsCol = collection(db, 'debts');
-    await addDoc(debtsCol, { ...payload, lastUpdated: Timestamp.now() });
-  }
+  const now = Timestamp.now();
+  
+  const debtRef = id ? doc(db, 'debts', id) : doc(collection(db, 'debts'));
+  
+  // Start a batch write
+  const batch = writeBatch(db);
+
+  // 1. Update the main 'debts' document
+  batch.set(debtRef, { ...payload, lastUpdated: now }, { merge: true });
+
+  // 2. Create a historical entry in 'debtEntries'
+  const debtEntryRef = doc(collection(db, 'debtEntries'));
+  batch.set(debtEntryRef, {
+    name: payload.name,
+    balance: payload.balance,
+    type: payload.type,
+    timestamp: now,
+    debtId: debtRef.id // Link to the main debt document
+  });
+
+  // Commit the batch
+  await batch.commit();
 }
 
 export async function addOrUpdateAsset(assetData: Partial<Asset> & { name: string; value: number; type: Asset['type'] }): Promise<void> {
@@ -184,15 +198,15 @@ export async function getDashboardData(): Promise<DashboardData> {
     let creditCardDebtAtDate = creditCardDebt;
     const debtValues: Record<string, number> = {};
     if (debtEntries && debtEntries.length > 0) {
-      const ids = Array.from(new Set(debtEntries.map(d => d.id || d.name)));
-      creditCardDebtAtDate = ids.reduce((sum, idOrName) => {
+      const debtNames = Array.from(new Set(debtEntries.map(d => d.name)));
+      creditCardDebtAtDate = debtNames.reduce((sum, name) => {
         const entriesForDebtAtOrBefore = debtEntries.filter(
-          e => (e.id || e.name) === idOrName && e.type === 'Credit Card' && (e.timestamp as Date) <= date
+          e => e.name === name && e.type === 'Credit Card' && (e.timestamp as Date) <= date
         );
         const val = entriesForDebtAtOrBefore.length
           ? Math.abs(entriesForDebtAtOrBefore.sort((a, b) => (b.timestamp as Date).getTime() - (a.timestamp as Date).getTime())[0].balance || 0)
           : 0;
-        debtValues[idOrName] = val;
+        debtValues[name] = val;
         return sum + val;
       }, 0);
       // if there is at least one historical entry overall but this date yields zero for all, we don't fallback to current snapshot
