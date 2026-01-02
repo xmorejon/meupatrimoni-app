@@ -12,18 +12,33 @@ interface NetWorthChartProps {
   translations: {
     title: string;
     description: string;
-    label: string;
+    netWorthLabel: string;
+    cashFlowLabel: string;
   };
   locale: string;
   currency: string;
-  chartKey: 'netWorth' | 'cashFlow';
 }
 
-export const NetWorthChart: FC<NetWorthChartProps> = ({ data, translations, locale, currency, chartKey }) => {
+const yAxisFormatter = (value: number, locale: string, currency: string) => {
+    const number = Number(value);
+    if (number >= 1000000 || number <= -1000000) {
+        return `${new Intl.NumberFormat(locale, { style: 'currency', currency, notation: 'compact', compactDisplay: 'short' }).format(number/1000000)}M`;
+    }
+    if (number >= 1000 || number <= -1000) {
+        return `${new Intl.NumberFormat(locale, { style: 'currency', currency, notation: 'compact', compactDisplay: 'short' }).format(number/1000)}k`;
+    }
+    return new Intl.NumberFormat(locale, { style: 'currency', currency }).format(number);
+};
+
+export const NetWorthChart: FC<NetWorthChartProps> = ({ data, translations, locale, currency }) => {
   const chartConfig = {
-    [chartKey]: {
-      label: translations.label,
-      color: chartKey === 'netWorth' ? 'hsl(var(--primary))' : 'hsl(var(--chart-2))',
+    netWorth: {
+      label: translations.netWorthLabel,
+      color: 'hsl(var(--primary))',
+    },
+    cashFlow: {
+        label: translations.cashFlowLabel,
+        color: 'hsl(var(--chart-2))',
     },
   } satisfies ChartConfig;
 
@@ -39,11 +54,15 @@ export const NetWorthChart: FC<NetWorthChartProps> = ({ data, translations, loca
         <ScrollArea className="w-full whitespace-nowrap">
           <ChartContainer config={chartConfig} className="h-[250px] w-full" style={{ minWidth: `${minWidth}px`}}>
             <ResponsiveContainer width="100%" height="100%">
-              <AreaChart data={data} margin={{ top: 5, right: 10, left: -20, bottom: 0 }}>
+              <AreaChart data={data} margin={{ top: 5, right: 20, left: 20, bottom: 0 }}>
                 <defs>
-                  <linearGradient id={`fill${chartKey}`} x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="5%" stopColor={`var(--color-${chartKey})`} stopOpacity={0.8} />
-                    <stop offset="95%" stopColor={`var(--color-${chartKey})`} stopOpacity={0.1} />
+                  <linearGradient id="fillNetWorth" x1="0" y1="0" x2="0" y2="1">
+                    <stop offset="5%" stopColor="var(--color-netWorth)" stopOpacity={0.8} />
+                    <stop offset="95%" stopColor="var(--color-netWorth)" stopOpacity={0.1} />
+                  </linearGradient>
+                   <linearGradient id="fillCashFlow" x1="0" y1="0" x2="0" y2="1">
+                    <stop offset="5%" stopColor="var(--color-cashFlow)" stopOpacity={0.8} />
+                    <stop offset="95%" stopColor="var(--color-cashFlow)" stopOpacity={0.1} />
                   </linearGradient>
                 </defs>
                 <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="hsl(var(--border))" />
@@ -52,41 +71,54 @@ export const NetWorthChart: FC<NetWorthChartProps> = ({ data, translations, loca
                   tickLine={false}
                   axisLine={false}
                   tickMargin={8}
-                  tickFormatter={(value) => value}
+                  tickFormatter={(value) => value.substring(0,5)}
                   style={{ fontSize: '12px', fill: 'hsl(var(--muted-foreground))' }}
                 />
                 <YAxis
+                  yAxisId="left"
                   tickLine={false}
                   axisLine={false}
                   tickMargin={8}
-                  tickFormatter={(value) => {
-                      const number = Number(value);
-                      if (number >= 1000000 || number <= -1000000) {
-                          return `${new Intl.NumberFormat(locale, { style: 'currency', currency, notation: 'compact', compactDisplay: 'short' }).format(number/1000000)}M`;
-                      }
-                      if (number >= 1000 || number <= -1000) {
-                          return `${new Intl.NumberFormat(locale, { style: 'currency', currency, notation: 'compact', compactDisplay: 'short' }).format(number/1000)}k`;
-                      }
-                      return new Intl.NumberFormat(locale, { style: 'currency', currency }).format(number);
-                  }}
+                  tickFormatter={(value) => yAxisFormatter(value, locale, currency)}
+                  style={{ fontSize: '12px', fill: 'hsl(var(--muted-foreground))' }}
+                />
+                <YAxis
+                  yAxisId="right"
+                  orientation="right"
+                  tickLine={false}
+                  axisLine={false}
+                  tickMargin={8}
+                  tickFormatter={(value) => yAxisFormatter(value, locale, currency)}
                   style={{ fontSize: '12px', fill: 'hsl(var(--muted-foreground))' }}
                 />
                 <Tooltip
                   cursor={{ fill: 'hsl(var(--accent) / 0.1)' }}
                   content={<ChartTooltipContent
-                      formatter={(value) => 
-                          `${new Intl.NumberFormat(locale, { style: 'currency', currency }).format(Number(value))}`
-                      }
+                      formatter={(value, name) => (
+                        <div className="flex flex-col">
+                            <span>{name}</span>
+                            <span className="font-bold">{new Intl.NumberFormat(locale, { style: 'currency', currency }).format(Number(value))}</span>
+                        </div>
+                      )}
                       indicator="dot"
                   />}
                 />
                 <Legend content={<ChartLegendContent />} />
                 <Area
-                  dataKey={chartKey}
+                  yAxisId="left"
+                  dataKey="netWorth"
                   type="natural"
-                  fill={`url(#fill${chartKey})`}
-                  stroke={`var(--color-${chartKey})`}
+                  fill="url(#fillNetWorth)"
+                  stroke="var(--color-netWorth)"
                   stackId="a"
+                />
+                 <Area
+                  yAxisId="right"
+                  dataKey="cashFlow"
+                  type="natural"
+                  fill="url(#fillCashFlow)"
+                  stroke="var(--color-cashFlow)"
+                  stackId="b"
                 />
               </AreaChart>
             </ResponsiveContainer>
