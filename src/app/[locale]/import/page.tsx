@@ -1,6 +1,6 @@
 import { ImporterClient } from "@/components/importer/ImporterClient";
 import { getBankBreakdown, getDebtBreakdown, getAssetBreakdown } from "@/lib/firebase-service";
-import {locales} from '../../../middleware';
+import {locales} from '../../../../i18n.config';
 import { unstable_setRequestLocale } from 'next-intl/server';
 
 export function generateStaticParams() {
