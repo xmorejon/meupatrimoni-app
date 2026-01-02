@@ -2,7 +2,7 @@
 "use client";
 
 import type { FC } from 'react';
-import { useRef, useEffect } from 'react';
+import { useRef, useEffect, useMemo } from 'react';
 import { Area, AreaChart, CartesianGrid, ResponsiveContainer, Tooltip, XAxis, YAxis, Legend } from 'recharts';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { ChartConfig, ChartContainer, ChartTooltipContent, ChartLegendContent } from '@/components/ui/chart';
@@ -52,7 +52,9 @@ export const NetWorthChart: FC<NetWorthChartProps> = ({ data, translations, loca
     if (scrollAreaRef.current) {
         const scrollableViewport = scrollAreaRef.current.querySelector('div[data-radix-scroll-area-viewport]');
         if (scrollableViewport) {
-            scrollableViewport.scrollLeft = scrollableViewport.scrollWidth;
+            // keep chart scrolled to the start so older data is visible by default;
+            // user can still scroll horizontally to see newer points
+            scrollableViewport.scrollLeft = 0;
         }
     }
   }, [data]);
@@ -62,17 +64,65 @@ export const NetWorthChart: FC<NetWorthChartProps> = ({ data, translations, loca
     (dataMax: number) => (dataMax > 0 ? dataMax * 1.05 : dataMax * 0.95),
   ];
 
+  const [netMin, netMax, cashMin, cashMax] = useMemo(() => {
+    if (!data || data.length === 0) return [0, 0, 0, 0];
+    let nmin = Infinity, nmax = -Infinity, cmin = Infinity, cmax = -Infinity;
+    data.forEach(d => {
+      if (typeof d.netWorth === 'number') {
+        nmin = Math.min(nmin, d.netWorth);
+        nmax = Math.max(nmax, d.netWorth);
+      }
+      if (typeof d.cashFlow === 'number') {
+        cmin = Math.min(cmin, d.cashFlow);
+        cmax = Math.max(cmax, d.cashFlow);
+      }
+    });
+    if (!isFinite(nmin) || !isFinite(nmax)) { nmin = 0; nmax = 0; }
+    if (!isFinite(cmin) || !isFinite(cmax)) { cmin = 0; cmax = 0; }
+    const nYmin = nmin > 0 ? nmin * 0.95 : nmin * 1.05;
+    const nYmax = nmax > 0 ? nmax * 1.05 : nmax * 0.95;
+    const cYmin = cmin > 0 ? cmin * 0.95 : cmin * 1.05;
+    const cYmax = cmax > 0 ? cmax * 1.05 : cmax * 0.95;
+    return [nYmin, nYmax, cYmin, cYmax];
+  }, [data]);
+
+  const netTicks = useMemo(() => {
+    const min = netMin, max = netMax;
+    const count = 4;
+    if (min === max) return [min];
+    const step = (max - min) / count;
+    const t: number[] = [];
+    for (let i = 0; i <= count; i++) t.push(min + step * i);
+    return t.reverse();
+  }, [netMin, netMax]);
+
+  const cashTicks = useMemo(() => {
+    const min = cashMin, max = cashMax;
+    const count = 4;
+    if (min === max) return [min];
+    const step = (max - min) / count;
+    const t: number[] = [];
+    for (let i = 0; i <= count; i++) t.push(min + step * i);
+    return t.reverse();
+  }, [cashMin, cashMax]);
+
   return (
     <Card className="shadow-lg">
       <CardHeader>
         <CardTitle>{translations.title}</CardTitle>
         <CardDescription>{translations.description}</CardDescription>
       </CardHeader>
-      <CardContent>
-        <ScrollArea ref={scrollAreaRef} className="w-full whitespace-nowrap">
+        <CardContent>
+        <div className="w-full flex items-stretch">
+            <div className="flex-shrink-0 w-20 pr-2 flex flex-col justify-between text-right">
+            {netTicks.map((t, i) => (
+              <span key={`l-${i}`} className="text-xs text-muted-foreground">{yAxisFormatter(t, locale, currency)}</span>
+            ))}
+          </div>
+          <ScrollArea ref={scrollAreaRef} className="flex-1">
             <div style={{ width: `${minWidth}px`, height: '250px' }}>
-                <ChartContainer config={chartConfig} className="h-full w-full p-0 m-0">
-                    <AreaChart accessibilityLayer data={data} margin={{ top: 5, right: 20, left: 20, bottom: 5 }}>
+              <ChartContainer config={chartConfig} className="h-full w-full p-0 m-0">
+                <AreaChart accessibilityLayer data={data} margin={{ top: 5, right: 20, left: 20, bottom: 5 }}>
                         <defs>
                             <linearGradient id="fillNetWorth" x1="0" y1="0" x2="0" y2="1">
                                 <stop offset="5%" stopColor="var(--color-netWorth)" stopOpacity={0.8} />
@@ -93,28 +143,9 @@ export const NetWorthChart: FC<NetWorthChartProps> = ({ data, translations, loca
                             style={{ fontSize: '12px', fill: 'hsl(var(--muted-foreground))' }}
                             interval="preserveStartEnd"
                         />
-                        <YAxis 
-                            yAxisId="left" 
-                            orientation="left"
-                            domain={yDomain}
-                            stroke="hsl(var(--primary))"
-                            tickLine={false}
-                            axisLine={false}
-                            tickMargin={5}
-                            tickFormatter={(value) => yAxisFormatter(value, locale, currency)}
-                            style={{ fontSize: '12px', fill: 'hsl(var(--muted-foreground))' }}
-                        />
-                         <YAxis 
-                            yAxisId="right" 
-                            orientation="right"
-                            domain={yDomain}
-                            stroke="hsl(var(--chart-2))"
-                            tickLine={false}
-                            axisLine={false}
-                            tickMargin={5}
-                            tickFormatter={(value) => yAxisFormatter(value, locale, currency)}
-                            style={{ fontSize: '12px', fill: 'hsl(var(--muted-foreground))' }}
-                        />
+                        {/* keep YAxes hidden to provide scales while we render visible labels outside the scroll area */}
+                        <YAxis yAxisId="left" orientation="left" domain={[netMin, netMax]} hide />
+                        <YAxis yAxisId="right" orientation="right" domain={[cashMin, cashMax]} hide />
                         <Tooltip
                             cursor={{ fill: 'hsl(var(--accent) / 0.1)' }}
                             content={<ChartTooltipContent
@@ -133,8 +164,13 @@ export const NetWorthChart: FC<NetWorthChartProps> = ({ data, translations, loca
                     </AreaChart>
                 </ChartContainer>
             </div>
-            <ScrollBar orientation="horizontal" />
-        </ScrollArea>
+            </ScrollArea>
+            <div className="flex-shrink-0 w-20 pl-2 flex flex-col justify-between text-left">
+            {cashTicks.map((t, i) => (
+              <span key={`r-${i}`} className="text-xs text-muted-foreground">{yAxisFormatter(t, locale, currency)}</span>
+            ))}
+          </div>
+        </div>
       </CardContent>
     </Card>
   );

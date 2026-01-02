@@ -45,15 +45,34 @@ export function DashboardClient({ initialData, locale }: { initialData: Dashboar
   };
   
   const handleEntry = async (values: z.infer<typeof baseSchema> & { balance?: number, value?: number }, type: 'Bank' | 'Debt' | 'Asset') => {
+    const id = typeof values.id === 'string' ? values.id : (values.id ? String(values.id) : Date.now().toString());
+    const now = new Date();
     switch (type) {
         case 'Bank':
-            await addOrUpdateBank(values as BankStatus);
+            await addOrUpdateBank({
+              id,
+              name: values.name,
+              balance: values.balance ?? 0,
+              lastUpdated: now,
+            } as BankStatus);
             break;
         case 'Debt':
-            await addOrUpdateDebt(values as Debt);
+            await addOrUpdateDebt({
+              id,
+              name: values.name,
+              balance: values.balance ?? 0,
+              type: (values as any).type ?? 'Credit Card',
+              lastUpdated: now,
+            } as Debt);
             break;
         case 'Asset':
-            await addOrUpdateAsset(values as Asset);
+            await addOrUpdateAsset({
+              id,
+              name: values.name,
+              value: values.value ?? 0,
+              type: (values as any).type ?? 'House',
+              lastUpdated: now,
+            } as Asset);
             break;
     }
     await refreshData();

@@ -78,10 +78,11 @@ export const EntryDialog: FC<EntryDialogProps> = ({ type, onEntry, trigger, item
       [valueFieldName]: (item as any)?.balance ?? (item as any)?.value ?? 0,
       type: (item as any)?.type ?? (type === 'Bank' ? 'Current Account' : ''),
     },
-  });
+    // TS inference for dynamic key is tricky; cast defaultValues to any
+  } as any);
 
   function onSubmit(values: z.infer<typeof formSchema>) {
-    onEntry(values);
+    onEntry(values as any);
     form.reset();
     setOpen(false);
     toast({
@@ -147,7 +148,7 @@ export const EntryDialog: FC<EntryDialogProps> = ({ type, onEntry, trigger, item
               render={({ field }) => (
                 <FormItem>
                   <FormLabel>{translations.typeLabel}</FormLabel>
-                  <Select onValueChange={field.onChange} defaultValue={field.value} disabled={isEditing}>
+                    <Select onValueChange={(v) => field.onChange(v)} defaultValue={String(field.value ?? '')} disabled={isEditing}>
                     <FormControl>
                       <SelectTrigger>
                         <SelectValue placeholder={translations.selectTypePlaceholder.replace('{type}', type.toLowerCase())} />

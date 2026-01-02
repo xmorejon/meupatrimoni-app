@@ -9,13 +9,9 @@ export const metadata: Metadata = {
   description: 'Track your net worth in real-time.',
 };
 
-export default async function RootLayout({
-  children,
-  params: {locale}
-}: Readonly<{
-  children: React.ReactNode;
-  params: {locale: string};
-}>) {
+export default async function RootLayout(props: any) {
+  const { children, params } = props;
+  const { locale } = params || {};
   const messages = await getMessages();
 
   return (

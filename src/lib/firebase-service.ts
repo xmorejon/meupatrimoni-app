@@ -125,9 +125,9 @@ export async function getDashboardData(): Promise<DashboardData> {
   const currentCashFlow = financialAssets - creditCardDebt;
   
   const today = startOfToday();
-  // Determine the start date from the oldest balance entry, or default to 90 days ago if no entries exist
-  const startDate = balanceEntries.length > 0 
-    ? startOfDay(balanceEntries[0].timestamp as Date)
+  // Determine the start date from the absolute oldest balance entry, or default to 90 days ago if no entries exist
+  const startDate = balanceEntries.length > 0
+    ? startOfDay(new Date(Math.min(...balanceEntries.map(e => (e.timestamp as Date).getTime()))))
     : subDays(today, 90);
 
   const dateInterval = eachDayOfInterval({ start: startDate, end: endOfToday() });
