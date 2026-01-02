@@ -1,3 +1,4 @@
+
 import { getDashboardData } from "@/lib/firebase-service";
 import { DashboardClient } from "@/components/dashboard/DashboardClient";
 import { unstable_setRequestLocale } from 'next-intl/server';
