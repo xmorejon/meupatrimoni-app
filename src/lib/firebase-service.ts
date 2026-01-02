@@ -1,6 +1,6 @@
 
 import { db } from '@/firebase/config';
-import { collection, getDocs, doc, writeBatch, query, orderBy, limit, getDoc, setDoc, addDoc, updateDoc, deleteDoc, Timestamp } from 'firebase/firestore';
+import { collection, getDocs, doc, writeBatch, query, orderBy, limit, getDoc, setDoc, addDoc, updateDoc, Timestamp } from 'firebase/firestore';
 import type { BankStatus, Debt, Asset, DashboardData, ChartDataPoint, BalanceEntry } from './types';
 import { subDays, format, startOfToday, eachDayOfInterval, endOfToday, startOfDay } from 'date-fns';
 
@@ -194,37 +194,42 @@ export async function getDashboardData(): Promise<DashboardData> {
 
     const assetsAtDate = financialAssetsAtDate + physicalAssets;
     const debtsAtDate = totalDebts; // total debts snapshot
-    // compute credit-card debt at this date using debtEntries history when available
-    let creditCardDebtAtDate = creditCardDebt;
+    
+    // --- START: Corrected Debt Calculation Logic ---
     const debtValues: Record<string, number> = {};
-    if (debtEntries && debtEntries.length > 0) {
-      const debtNames = Array.from(new Set(debtEntries.map(d => d.name)));
-      creditCardDebtAtDate = debtNames.reduce((sum, name) => {
-        const entriesForDebtAtOrBefore = debtEntries.filter(
-          e => e.name === name && e.type === 'Credit Card' && (e.timestamp as Date) <= date
-        );
-        const val = entriesForDebtAtOrBefore.length
-          ? Math.abs(entriesForDebtAtOrBefore.sort((a, b) => (b.timestamp as Date).getTime() - (a.timestamp as Date).getTime())[0].balance || 0)
-          : 0;
-        debtValues[name] = val;
-        return sum + val;
-      }, 0);
-      // if there is at least one historical entry overall but this date yields zero for all, we don't fallback to current snapshot
-    } else {
-      // No historical `debtEntries` collection: include current debt balances only from their `lastUpdated` date onward.
-      creditCardDebtAtDate = debtBreakdown.reduce((sum, d) => {
-        if (d.type !== 'Credit Card') return sum;
-        const lastUpdatedDate = d.lastUpdated ? (d.lastUpdated as Date) : null;
-        // If we don't have a `lastUpdated`, assume it exists historically (preserve previous behavior)
-        if (!lastUpdatedDate || lastUpdatedDate <= date) return sum + Math.abs(d.balance);
-        return sum;
-      }, 0);
-      // record debtValues for debugging
-      debtBreakdown.filter(d => d.type === 'Credit Card').forEach(d => {
-        const lastUpdatedDate = d.lastUpdated ? (d.lastUpdated as Date) : null;
-        debtValues[d.id || d.name] = (!lastUpdatedDate || lastUpdatedDate <= date) ? Math.abs(d.balance) : 0;
-      });
-    }
+    
+    // Combine all unique credit card debt names from both current and historical data
+    const allCreditCardDebtNames = Array.from(new Set([
+        ...debtBreakdown.filter(d => d.type === 'Credit Card').map(d => d.name),
+        ...debtEntries.filter(d => d.type === 'Credit Card').map(d => d.name)
+    ]));
+
+    const creditCardDebtAtDate = allCreditCardDebtNames.reduce((sum, name) => {
+        // Find the latest historical entry for this debt on or before the current date
+        const latestHistoricalEntry = debtEntries
+            .filter(e => e.name === name && e.type === 'Credit Card' && (e.timestamp as Date) <= date)
+            .sort((a, b) => (b.timestamp as Date).getTime() - (a.timestamp as Date).getTime())[0];
+
+        let debtValue = 0;
+        if (latestHistoricalEntry) {
+            // If a historical entry is found, use its balance
+            debtValue = Math.abs(latestHistoricalEntry.balance);
+        } else {
+            // Otherwise, find the current debt record
+            const currentDebt = debtBreakdown.find(d => d.name === name && d.type === 'Credit Card');
+            if (currentDebt) {
+                const lastUpdated = currentDebt.lastUpdated as Date;
+                // Use the current balance only if the debt was created on or before the date
+                if (lastUpdated && startOfDay(lastUpdated) <= date) {
+                    debtValue = Math.abs(currentDebt.balance);
+                }
+            }
+        }
+        
+        debtValues[name] = debtValue;
+        return sum + debtValue;
+    }, 0);
+    // --- END: Corrected Debt Calculation Logic ---
 
     debug.push({
       date: format(date, 'dd/MM/yy'),
