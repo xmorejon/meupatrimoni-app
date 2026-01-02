@@ -208,7 +208,7 @@ export function ImporterClient({ banks, debts, assets }: ImporterClientProps) {
                             <FormControl>
                               <SelectTrigger>
                                 <SelectValue placeholder={`Select a ${entryType.toLowerCase()}`} />
-                              </SelectTrigger>
+                              </Trigger>
                             </FormControl>
                             <SelectContent>
                               {currentItems.map((item: any) => (
