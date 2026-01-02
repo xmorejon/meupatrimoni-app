@@ -2,19 +2,19 @@
 import type { FC } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import type { Asset } from '@/lib/types';
-import { ca, es, enUS } from 'date-fns/locale';
+import type { Debt } from '@/lib/types';
+import { ca } from 'date-fns/locale';
 import type { Locale } from 'date-fns';
-import { Home, Car, Edit } from 'lucide-react';
+import { CreditCard, Home, Edit } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { EntryDialog } from './EntryDialog';
 import type { z } from 'zod';
 import type { entrySchema } from './EntryDialog';
 import { TimeAgo } from './TimeAgo';
 
-interface AssetBreakdownProps {
-  assets: Asset[];
-  onEntry: (values: z.infer<typeof entrySchema>, type: 'Asset') => void;
+interface DebtBreakdownProps {
+  debts: Debt[];
+  onEntry: (values: z.infer<typeof entrySchema>, type: 'Debt') => void;
   translations: any;
   locale: string;
   currency: string;
@@ -22,23 +22,21 @@ interface AssetBreakdownProps {
 
 const localeMap: { [key: string]: Locale } = {
   'ca-ES': ca,
-  'es-ES': es,
-  'en-US': enUS,
 };
 
-const AssetIcon = ({ type }: { type: Asset['type'] }) => {
+const DebtIcon = ({ type }: { type: Debt['type'] }) => {
     switch (type) {
-        case 'House':
+        case 'Credit Card':
+            return <CreditCard className="h-4 w-4 text-muted-foreground"/>;
+        case 'Mortgage':
             return <Home className="h-4 w-4 text-muted-foreground"/>;
-        case 'Car':
-            return <Car className="h-4 w-4 text-muted-foreground"/>;
         default:
             return null;
     }
 }
 
-export const AssetBreakdown: FC<AssetBreakdownProps> = ({ assets, onEntry, translations, locale, currency }) => {
-  const t = translations.assetBreakdown;
+export const DebtBreakdown: FC<DebtBreakdownProps> = ({ debts, onEntry, translations, locale, currency }) => {
+  const t = translations.debtBreakdown;
   const tEntry = translations.entryDialog;
   const currentLocale = localeMap[locale as keyof typeof localeMap] || ca;
 
@@ -46,10 +44,10 @@ export const AssetBreakdown: FC<AssetBreakdownProps> = ({ assets, onEntry, trans
     <Card className="shadow-lg h-full flex flex-col">
       <CardHeader className="flex flex-row items-center justify-between">
         <CardTitle>{t.title}</CardTitle>
-        <EntryDialog 
-            type="Asset" 
-            onEntry={(values) => onEntry(values, 'Asset')}
-            trigger={<Button variant="outline" size="sm">{t.addAsset}</Button>}
+        <EntryDialog
+            type="Debt"
+            onEntry={(values) => onEntry(values, 'Debt')}
+            trigger={<Button variant="outline" size="sm">{t.addDebt}</Button>}
             translations={tEntry}
         />
       </CardHeader>
@@ -57,33 +55,33 @@ export const AssetBreakdown: FC<AssetBreakdownProps> = ({ assets, onEntry, trans
         <Table>
           <TableHeader>
             <TableRow>
-              <TableHead>{t.assetHeader}</TableHead>
-              <TableHead className="text-right">{t.valueHeader}</TableHead>
+              <TableHead>{t.debtHeader}</TableHead>
+              <TableHead className="text-right">{t.balanceHeader}</TableHead>
               <TableHead className="w-[80px] text-center">{tEntry.actionsHeader}</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
-            {assets.map((asset) => (
-              <TableRow key={asset.id}>
+            {debts.map((debt) => (
+              <TableRow key={debt.id}>
                 <TableCell>
                   <div className="flex items-center gap-3">
                     <div className="p-2 bg-muted rounded-md">
-                        <AssetIcon type={asset.type} />
+                        <DebtIcon type={debt.type} />
                     </div>
                     <div>
-                        <div className="font-medium text-foreground">{asset.name}</div>
-                        <TimeAgo date={asset.lastUpdated as Date} locale={currentLocale} translations={{ updated: translations.updated }}/>
+                        <div className="font-medium text-foreground">{debt.name}</div>
+                        <TimeAgo date={debt.lastUpdated as Date} locale={currentLocale} translations={{ updated: translations.updated }}/>
                     </div>
                   </div>
                 </TableCell>
                 <TableCell className="text-right font-mono text-foreground">
-                  {new Intl.NumberFormat(locale, { style: 'currency', currency }).format(asset.value)}
+                  {new Intl.NumberFormat(locale, { style: 'currency', currency }).format(debt.balance)}
                 </TableCell>
                 <TableCell className="text-center">
-                    <EntryDialog 
-                        type="Asset" 
-                        onEntry={(values) => onEntry(values, 'Asset')}
-                        item={asset}
+                    <EntryDialog
+                        type="Debt"
+                        onEntry={(values) => onEntry(values, 'Debt')}
+                        item={debt}
                         trigger={
                             <Button variant="ghost" size="icon" className="h-8 w-8">
                                 <Edit className="h-4 w-4" />

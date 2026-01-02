@@ -40,7 +40,7 @@ const DebtIcon = ({ type }: { type: Debt['type'] }) => {
 export const DebtBreakdown: FC<DebtBreakdownProps> = ({ debts, onEntry, translations, locale, currency }) => {
   const t = translations.debtBreakdown;
   const tEntry = translations.entryDialog;
-  const currentLocale = localeMap[locale as keyof typeof localeMap] || enUS;
+  const currentLocale = localeMap[locale as keyof typeof localeMap] || ca;
 
   return (
     <Card className="shadow-lg h-full flex flex-col">

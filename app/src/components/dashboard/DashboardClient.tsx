@@ -70,8 +70,8 @@ export function DashboardClient({ initialData, translations }: { initialData: Da
     await refreshData();
   };
 
-  const currentLocale = translations.locale['ca'] || translations.locale['en'];
-  const currency = "EUR";
+  const currentLocale = translations.locale['ca'] || 'ca-ES';
+  const currency = translations.Currency['ca'] || 'EUR';
 
   return (
     <div className="flex flex-col min-h-screen bg-background text-foreground">

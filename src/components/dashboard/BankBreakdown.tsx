@@ -29,7 +29,7 @@ const localeMap: { [key: string]: Locale } = {
 export const BankBreakdown: FC<BankBreakdownProps> = ({ banks, onEntry, translations, locale, currency }) => {
   const t = translations.bankBreakdown;
   const tEntry = translations.entryDialog;
-  const currentLocale = localeMap[locale as keyof typeof localeMap] || enUS;
+  const currentLocale = localeMap[locale as keyof typeof localeMap] || ca;
   
   return (
     <Card className="shadow-lg h-full flex flex-col">
