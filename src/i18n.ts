@@ -1,12 +1,4 @@
-import {notFound} from 'next/navigation';
-import {getRequestConfig} from 'next-intl/server';
- 
-const locales = ['en', 'es', 'ca'];
- 
-export default getRequestConfig(async ({locale}) => {
-  if (!locales.includes(locale as any)) notFound();
- 
-  return {
-    messages: (await import(`../messages/${locale}.json`)).default
-  };
-});
+
+// This file has been moved to the project root as /i18n.ts
+// This is to align with the latest next-intl best practices.
+// This file can be safely deleted.
