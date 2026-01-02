@@ -37,9 +37,10 @@ interface ImporterClientProps {
     banks: BankStatus[];
     debts: Debt[];
     assets: Asset[];
+    locale: string;
 }
 
-export function ImporterClient({ banks, debts, assets }: ImporterClientProps) {
+export function ImporterClient({ banks, debts, assets, locale }: ImporterClientProps) {
   const { toast } = useToast();
   const router = useRouter();
   const [loading, setLoading] = useState(false);
@@ -57,6 +58,7 @@ export function ImporterClient({ banks, debts, assets }: ImporterClientProps) {
   };
 
   const currentItems = entryType ? itemsForType[entryType] : [];
+  const rootPath = `/${locale}`;
 
   const onSubmit = (data: FormValues) => {
     setLoading(true);
@@ -126,7 +128,7 @@ export function ImporterClient({ banks, debts, assets }: ImporterClientProps) {
             title: "Import Complete",
             description: `Successfully imported ${entries.length} records for ${selectedItem.name}.`,
           });
-          router.push('/');
+          router.push(rootPath);
 
         } catch (error: any) {
            toast({
@@ -237,7 +239,7 @@ export function ImporterClient({ banks, debts, assets }: ImporterClientProps) {
                     <Button type="submit" disabled={loading || !form.formState.isValid}>
                       {loading ? "Importing..." : "Import Data"}
                     </Button>
-                    <Button type="button" variant="outline" onClick={() => router.push('/')} disabled={loading}>
+                    <Button type="button" variant="outline" onClick={() => router.push(rootPath)} disabled={loading}>
                       Cancel
                     </Button>
                   </div>

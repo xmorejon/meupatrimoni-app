@@ -1,13 +1,20 @@
 
 import { ImporterClient } from "@/components/importer/ImporterClient";
 import { getBankBreakdown, getDebtBreakdown, getAssetBreakdown } from "@/lib/firebase-service";
+import { locales } from "../../../i18n.config";
+import { unstable_setRequestLocale } from 'next-intl/server';
 
-export default async function ImportPage() {
+export function generateStaticParams() {
+  return locales.map((locale) => ({locale}));
+}
+
+export default async function ImportPage({ params: { locale } }: { params: { locale: string } }) {
+  unstable_setRequestLocale(locale);
   const [banks, debts, assets] = await Promise.all([
     getBankBreakdown(),
     getDebtBreakdown(),
     getAssetBreakdown(),
   ]);
   
-  return <ImporterClient banks={banks} debts={debts} assets={assets} />;
+  return <ImporterClient banks={banks} debts={debts} assets={assets} locale={locale} />;
 }

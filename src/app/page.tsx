@@ -1,9 +1,2 @@
-// This is the root page.
-// We are redirecting to the default locale.
-// The default locale is defined in middleware.ts
-
-import { redirect } from 'next/navigation';
-
-export default function RootPage() {
-  redirect('/en');
-}
+// This file is intentionally blank.
+// The root page is handled by src/app/[locale]/page.tsx and middleware.ts
