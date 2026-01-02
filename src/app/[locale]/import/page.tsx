@@ -1,8 +1,12 @@
 import { ImporterClient } from "@/components/importer/ImporterClient";
-import { getBankBreakdown } from "@/lib/firebase-service";
+import { getBankBreakdown, getDebtBreakdown, getAssetBreakdown } from "@/lib/firebase-service";
 
 export default async function ImportPage() {
-  const banks = await getBankBreakdown();
+  const [banks, debts, assets] = await Promise.all([
+    getBankBreakdown(),
+    getDebtBreakdown(),
+    getAssetBreakdown(),
+  ]);
 
-  return <ImporterClient banks={banks} />;
+  return <ImporterClient banks={banks} debts={debts} assets={assets} />;
 }

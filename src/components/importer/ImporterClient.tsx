@@ -8,8 +8,8 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import Papa from "papaparse";
 import { useRouter } from "next/navigation";
 
-import type { BankStatus } from "@/lib/types";
-import { batchImportBalanceEntries } from "@/lib/firebase-service";
+import type { BankStatus, Debt, Asset } from "@/lib/types";
+import { batchImportEntries } from "@/lib/firebase-service";
 import { Header } from "@/components/Header";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
@@ -19,7 +19,8 @@ import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
 
 const formSchema = z.object({
-  bankId: z.string().min(1, "Please select a bank."),
+  entryType: z.enum(["Bank", "Debt", "Asset"]),
+  itemId: z.string().min(1, "Please select an item."),
   file: z.instanceof(FileList).refine((files) => files?.length === 1, "A CSV file is required."),
 });
 
@@ -27,11 +28,18 @@ type FormValues = z.infer<typeof formSchema>;
 
 interface CsvData {
     Date: string;
-    Balance: string;
-    [key: string]: string;
+    Balance?: string;
+    Value?: string;
+    [key: string]: string | undefined;
 }
 
-export function ImporterClient({ banks }: { banks: BankStatus[] }) {
+interface ImporterClientProps {
+    banks: BankStatus[];
+    debts: Debt[];
+    assets: Asset[];
+}
+
+export function ImporterClient({ banks, debts, assets }: ImporterClientProps) {
   const { toast } = useToast();
   const router = useRouter();
   const [loading, setLoading] = useState(false);
@@ -40,16 +48,26 @@ export function ImporterClient({ banks }: { banks: BankStatus[] }) {
     resolver: zodResolver(formSchema),
   });
 
+  const entryType = form.watch("entryType");
+
+  const itemsForType = {
+    Bank: banks,
+    Debt: debts,
+    Asset: assets,
+  };
+
+  const currentItems = entryType ? itemsForType[entryType] : [];
+
   const onSubmit = (data: FormValues) => {
     setLoading(true);
     const file = data.file[0];
-    const selectedBank = banks.find(b => b.id === data.bankId);
-
-    if (!selectedBank) {
+    const selectedItem = (itemsForType[data.entryType] as any[]).find(i => i.id === data.itemId);
+    
+    if (!selectedItem) {
       toast({
         variant: "destructive",
         title: "Import Failed",
-        description: "Selected bank not found.",
+        description: "Selected item not found.",
       });
       setLoading(false);
       return;
@@ -61,13 +79,17 @@ export function ImporterClient({ banks }: { banks: BankStatus[] }) {
       delimitersToGuess: [',', ';'],
       complete: async (results) => {
         try {
-          const requiredColumns = ['Date', 'Balance'];
+          const isAsset = data.entryType === 'Asset';
+          const valueColumn = isAsset ? 'Value' : 'Balance';
+          const requiredColumns = ['Date', valueColumn];
+
           if (!results.meta.fields || !requiredColumns.every(col => results.meta.fields?.includes(col))) {
              throw new Error(`CSV must have the following columns: ${requiredColumns.join(', ')}`);
           }
 
           const entries = results.data.map(row => {
-            if (!row.Date || !row.Balance) return null;
+            const valueString = row[valueColumn];
+            if (!row.Date || !valueString) return null;
             
             const dateParts = row.Date.split('/');
             if (dateParts.length !== 3) return null;
@@ -76,26 +98,33 @@ export function ImporterClient({ banks }: { banks: BankStatus[] }) {
             const month = parseInt(dateParts[1], 10) - 1;
             const year = parseInt(dateParts[2], 10);
 
-            const balanceAsString = row.Balance.replace(/\./g, '').replace(',', '.');
-            const balanceAsNumber = parseFloat(balanceAsString);
+            const valueAsNumber = parseFloat(valueString.replace(/\./g, '').replace(',', '.'));
 
+            if(isAsset) {
+                return {
+                  timestamp: new Date(year, month, day),
+                  value: valueAsNumber,
+                }
+            }
             return {
               timestamp: new Date(year, month, day),
-              balance: balanceAsNumber,
+              balance: valueAsNumber,
             }
-          }).filter((entry): entry is { timestamp: Date; balance: number; } => 
-              entry !== null && !isNaN(entry.timestamp.getTime()) && !isNaN(entry.balance)
+          }).filter((entry): entry is { timestamp: Date; balance?: number; value?: number; } => 
+              entry !== null && 
+              !isNaN(entry.timestamp.getTime()) && 
+              (!isNaN(entry.balance ?? NaN) || !isNaN(entry.value ?? NaN))
           );
 
           if (entries.length === 0) {
-            throw new Error("No valid records found in the file. Check 'Date' (DD/MM/YYYY) and 'Balance' columns.");
+            throw new Error(`No valid records found in the file. Check 'Date' (DD/MM/YYYY) and '${valueColumn}' columns.`);
           }
 
-          await batchImportBalanceEntries(selectedBank, entries);
+          await batchImportEntries(data.entryType, selectedItem, entries);
 
           toast({
             title: "Import Complete",
-            description: `Successfully imported ${entries.length} records for ${selectedBank.name}.`,
+            description: `Successfully imported ${entries.length} records for ${selectedItem.name}.`,
           });
           router.push('/');
 
@@ -122,17 +151,19 @@ export function ImporterClient({ banks }: { banks: BankStatus[] }) {
     });
   };
 
+  const valueColumnName = entryType === 'Asset' ? 'Value' : 'Balance';
+
   return (
     <div className="flex flex-col min-h-screen bg-background text-foreground">
-      <Header title="Import Bank Movements" />
+      <Header title="Import Historical Data" />
       <main className="flex-1 p-4 md:p-8">
         <div className="max-w-2xl mx-auto">
           <Card>
             <CardHeader>
               <CardTitle>Upload Statement</CardTitle>
               <CardDescription>
-                Select a bank and upload the corresponding CSV file of movements. 
-                Ensure your CSV has columns for 'Date' (in DD/MM/YYYY format) and 'Balance'.
+                Select an entry type and item, then upload the corresponding CSV file. 
+                Ensure your CSV has columns for 'Date' (DD/MM/YYYY) and '{valueColumnName}'.
               </CardDescription>
             </CardHeader>
             <CardContent>
@@ -140,28 +171,55 @@ export function ImporterClient({ banks }: { banks: BankStatus[] }) {
                 <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
                   <FormField
                     control={form.control}
-                    name="bankId"
+                    name="entryType"
                     render={({ field }) => (
                       <FormItem>
-                        <FormLabel>Bank Account</FormLabel>
-                        <Select onValueChange={field.onChange} defaultValue={field.value}>
+                        <FormLabel>Entry Type</FormLabel>
+                        <Select onValueChange={(value) => {
+                          field.onChange(value);
+                          form.setValue('itemId', ''); // Reset item selection
+                        }} defaultValue={field.value}>
                           <FormControl>
                             <SelectTrigger>
-                              <SelectValue placeholder="Select a bank account" />
+                              <SelectValue placeholder="Select an entry type" />
                             </SelectTrigger>
                           </FormControl>
                           <SelectContent>
-                            {banks.map((bank) => (
-                              <SelectItem key={bank.id} value={bank.id}>
-                                {bank.name}
-                              </SelectItem>
-                            ))}
+                            <SelectItem value="Bank">Bank Account</SelectItem>
+                            <SelectItem value="Debt">Debt</SelectItem>
+                            <SelectItem value="Asset">Asset</SelectItem>
                           </SelectContent>
                         </Select>
                         <FormMessage />
                       </FormItem>
                     )}
                   />
+                  {entryType && (
+                    <FormField
+                      control={form.control}
+                      name="itemId"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>{entryType}</FormLabel>
+                          <Select onValueChange={field.onChange} defaultValue={field.value} value={field.value}>
+                            <FormControl>
+                              <SelectTrigger>
+                                <SelectValue placeholder={`Select a ${entryType.toLowerCase()}`} />
+                              </SelectTrigger>
+                            </FormControl>
+                            <SelectContent>
+                              {currentItems.map((item: any) => (
+                                <SelectItem key={item.id} value={item.id}>
+                                  {item.name}
+                                </SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                  )}
                   <FormField
                     control={form.control}
                     name="file"
@@ -176,8 +234,8 @@ export function ImporterClient({ banks }: { banks: BankStatus[] }) {
                     )}
                   />
                   <div className="flex gap-2">
-                    <Button type="submit" disabled={loading}>
-                      {loading ? "Importing..." : "Import Movements"}
+                    <Button type="submit" disabled={loading || !form.formState.isValid}>
+                      {loading ? "Importing..." : "Import Data"}
                     </Button>
                     <Button type="button" variant="outline" onClick={() => router.push('/')} disabled={loading}>
                       Cancel
