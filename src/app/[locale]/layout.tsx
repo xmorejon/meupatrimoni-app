@@ -2,16 +2,20 @@ import type {Metadata} from 'next';
 import '../globals.css';
 import { Toaster } from "@/components/ui/toaster";
 import {NextIntlClientProvider} from 'next-intl';
-import {getMessages} from 'next-intl/server';
+import {getMessages, unstable_setRequestLocale} from 'next-intl/server';
 
 export const metadata: Metadata = {
   title: 'MeuPatrimoni',
   description: 'Track your net worth in real-time.',
 };
 
-export default async function RootLayout(props: any) {
+export default async function RootLayout(props: {
+  children: React.ReactNode;
+  params: Promise<{locale: string}>;
+}) {
   const { children, params } = props;
-  const { locale } = params || {};
+  const { locale } = await params;
+  unstable_setRequestLocale(locale);
   const messages = await getMessages();
 
   return (

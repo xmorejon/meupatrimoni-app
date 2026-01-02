@@ -216,6 +216,7 @@ export async function getDashboardData(): Promise<DashboardData> {
 
   const dateInterval = eachDayOfInterval({ start: startDate, end: today });
 
+  const debugLogs: any[] = [];
   const historicalData = dateInterval.map(date => {
     const endOfDate = endOfDay(date);
 
@@ -238,7 +239,7 @@ export async function getDashboardData(): Promise<DashboardData> {
         const latestEntry = debtEntries
             .filter(e => e.debtId === debt.id && (e.timestamp as Date) <= endOfDate)
             .sort((a,b) => (b.timestamp as Date).getTime() - (a.timestamp as Date).getTime())[0];
-        return sum + (latestEntry ? latestEntry.balance : 0);
+        return sum + (latestEntry ? Math.abs(latestEntry.balance) : 0);
     }, 0);
 
     const creditCardDebtAtDate = debtBreakdown.filter(d => d.type === 'Credit Card').reduce((sum, debt) => {
@@ -249,11 +250,24 @@ export async function getDashboardData(): Promise<DashboardData> {
     }, 0);
 
     const totalAssetsAtDate = financialAssetsAtDate + physicalAssetsAtDate;
+    const netWorth = totalAssetsAtDate - debtsAtDate;
+    const cashFlow = financialAssetsAtDate - creditCardDebtAtDate;
+
+    debugLogs.push({
+      date: format(date, 'dd/MM/yy'),
+      financialAssetsAtDate,
+      physicalAssetsAtDate,
+      totalAssetsAtDate,
+      debtsAtDate,
+      creditCardDebtAtDate,
+      netWorth,
+      cashFlow
+    });
 
     return {
       date: format(date, 'dd/MM/yy'),
-      netWorth: totalAssetsAtDate - debtsAtDate,
-      cashFlow: financialAssetsAtDate - creditCardDebtAtDate,
+      netWorth,
+      cashFlow,
     };
   });
   
@@ -266,5 +280,5 @@ export async function getDashboardData(): Promise<DashboardData> {
     ? ((todayNetWorth - yesterdayNetWorth) / Math.abs(yesterdayNetWorth)) * 100 
     : 0;
 
-  return { totalNetWorth, netWorthChange, currentCashFlow, historicalData, bankBreakdown, debtBreakdown, assetBreakdown };
+  return { totalNetWorth, netWorthChange, currentCashFlow, historicalData, bankBreakdown, debtBreakdown, assetBreakdown, debug: debugLogs };
 };

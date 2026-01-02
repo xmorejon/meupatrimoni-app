@@ -10,9 +10,9 @@ import { AssetBreakdown } from "@/components/dashboard/AssetBreakdown";
 import { getDashboardData, addOrUpdateDebt, addOrUpdateAsset, addOrUpdateBank } from "@/lib/firebase-service";
 import type { DashboardData, BankStatus, Debt, Asset } from "@/lib/types";
 import { Skeleton } from "@/components/ui/skeleton";
+import { useMessages } from "next-intl";
 import type { z } from 'zod';
 import type { baseSchema } from '@/components/dashboard/EntryDialog';
-import { useTranslations } from 'next-intl';
 
 const DashboardSkeleton = () => (
   <div className="p-4 md:p-8 space-y-8">
@@ -29,12 +29,12 @@ const DashboardSkeleton = () => (
 export function DashboardClient({ initialData, locale }: { initialData: DashboardData, locale: string }) {
   const [data, setData] = useState<DashboardData | null>(initialData);
   const [loading, setLoading] = useState(false);
-  const t = useTranslations();
+  const messages = useMessages();
 
   const translations = {
-    dashboard: t.raw('Dashboard'),
-    locale: t.raw('Locale'),
-    currency: t.raw('Currency'),
+    dashboard: messages.Dashboard,
+    locale: messages.Locale,
+    currency: messages.Currency,
   };
 
   const refreshData = async () => {

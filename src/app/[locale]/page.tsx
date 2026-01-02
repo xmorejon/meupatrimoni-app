@@ -1,10 +1,14 @@
 import { getDashboardData } from "@/lib/firebase-service";
 import { DashboardClient } from "@/components/dashboard/DashboardClient";
-import { getLocale } from 'next-intl/server';
+import { unstable_setRequestLocale } from 'next-intl/server';
 
-export default async function Home() {
+export default async function Home({
+  params: {locale}
+}: {
+  params: {locale: string};
+}) {
+  unstable_setRequestLocale(locale);
   const data = await getDashboardData();
-  const locale = await getLocale();
 
   return (
     <DashboardClient 
