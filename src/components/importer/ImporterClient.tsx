@@ -58,6 +58,7 @@ export function ImporterClient({ banks }: { banks: BankStatus[] }) {
     Papa.parse<CsvData>(file, {
       header: true,
       skipEmptyLines: true,
+      delimitersToGuess: [',', ';'],
       complete: async (results) => {
         try {
           const requiredColumns = ['Date', 'Balance'];
@@ -75,7 +76,8 @@ export function ImporterClient({ banks }: { banks: BankStatus[] }) {
             const month = parseInt(dateParts[1], 10) - 1;
             const year = parseInt(dateParts[2], 10);
 
-            const balanceAsNumber = parseFloat(row.Balance.replace(',', '.'));
+            const balanceAsString = row.Balance.replace(/\./g, '').replace(',', '.');
+            const balanceAsNumber = parseFloat(balanceAsString);
 
             return {
               timestamp: new Date(year, month, day),
