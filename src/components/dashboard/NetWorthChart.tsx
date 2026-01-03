@@ -1,99 +1,162 @@
 
-"use client";
+"use client"
 
-import { type FC } from 'react';
-import { Area, AreaChart, CartesianGrid, ResponsiveContainer, Tooltip, XAxis, YAxis, Legend } from 'recharts';
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
-import { ChartConfig, ChartContainer, ChartTooltipContent, ChartLegendContent } from '@/components/ui/chart';
-import type { ChartDataPoint } from '@/lib/types';
+import { Area, AreaChart, CartesianGrid, ResponsiveContainer, Tooltip, XAxis, YAxis } from "recharts"
 
-interface NetWorthChartProps {
-  data: ChartDataPoint[];
-}
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card"
+import {
+  ChartContainer,
+  ChartLegend,
+  ChartLegendContent,
+  ChartTooltip,
+  ChartTooltipContent,
+} from "@/components/ui/chart"
+import type { HistoricalData } from "@/lib/types"
 
 const yAxisFormatter = (value: number) => {
-  return new Intl.NumberFormat('ca-ES', {
-    style: 'currency',
-    currency: 'EUR',
-    notation: 'compact',
-    compactDisplay: 'short',
-    maximumFractionDigits: 1,
-  }).format(value);
-};
+    if (Math.abs(value) >= 1000000) {
+      return `${(value / 1000000).toFixed(1)}M`
+    }
+    if (Math.abs(value) >= 1000) {
+      return `${(value / 1000).toFixed(0)}k`
+    }
+    return value.toString()
+}
 
-export const NetWorthChart: FC<NetWorthChartProps> = ({ data }) => {
-    const chartConfig = {
-      netWorth: {
-        label: "Patrimoni Net",
-        color: "hsl(var(--chart-1))",
-      },
-      cashFlow: {
-        label: "Cash Flow",
-        color: "hsl(var(--chart-2))",
-      },
-    } satisfies ChartConfig
+const chartConfig = {
+    netWorth: {
+      label: "Patrimoni Net",
+      color: "hsl(var(--chart-1))",
+    },
+    cashFlow: {
+      label: "Cash Flow",
+      color: "hsl(var(--chart-2))",
+    },
+}
+
+interface NetWorthChartProps {
+    data: HistoricalData[];
+}
+
+export function NetWorthChart({ data }: NetWorthChartProps) {
+    const itemWidth = 80;
+    const minChartWidth = 500;
+    const calculatedWidth = data.length * itemWidth;
+    const chartWidth = Math.max(calculatedWidth, minChartWidth);
+
+    if (!data || data.length === 0) {
+        return (
+            <Card>
+              <CardHeader>
+                <CardTitle>Patrimoni Net i Cash Flow</CardTitle>
+                <CardDescription>El teu patrimoni net i cash flow al llarg del temps</CardDescription>
+              </CardHeader>
+              <CardContent>
+                <div className="h-[350px] flex items-center justify-center">
+                  <p>No hi ha prou dades per mostrar el gràfic.</p>
+                </div>
+              </CardContent>
+            </Card>
+        )
+    }
 
     return (
         <Card>
-          <CardHeader>
-            <CardTitle>Patrimoni Net i Cash Flow</CardTitle>
-            <CardDescription>El teu patrimoni net i cash flow al llarg del temps</CardDescription>
-          </CardHeader>
-          <CardContent>
-            <div className="h-[350px] w-full">
-              {data && data.length > 0 ? (
-                <ChartContainer config={chartConfig} className="w-full h-full">
-                    <ResponsiveContainer width="100%" height="100%">
-                        <AreaChart data={data} margin={{ left: 12, right: 20, top: 10, bottom:10 }}>
-                          <CartesianGrid strokeDasharray="3 3" vertical={false} />
-                          <XAxis
-                              dataKey="date"
-                              tickLine={false}
-                              axisLine={false}
-                              tickMargin={8}
-                          />
-                          <YAxis
-                              yAxisId="left"
-                              tickFormatter={yAxisFormatter}
-                          />
-                          <YAxis
-                            yAxisId="right"
-                            orientation="right"
-                            tickFormatter={yAxisFormatter}
-                          />
-                           <Tooltip
-                              content={
-                                <ChartTooltipContent
-                                    formatter={yAxisFormatter}
-                                    indicator="dot"
+            <CardHeader>
+                <CardTitle>Patrimoni Net i Cash Flow</CardTitle>
+                <CardDescription>El teu patrimoni net i cash flow al llarg del temps</CardDescription>
+            </CardHeader>
+            <CardContent>
+              <ChartContainer config={chartConfig} className="h-[370px] w-full">
+                <div style={{ display: 'flex', height: '320px', width: '100%' }}>
+
+                    {/* Left Y-Axis Chart */}
+                    <div style={{ flex: '0 0 70px' }}>
+                        <ResponsiveContainer width="100%" height="100%">
+                            <AreaChart
+                                data={data}
+                                syncId="syncChart"
+                                margin={{ top: 10, right: 0, bottom: 20, left: 10 }}
+                            >
+                                <YAxis
+                                    yAxisId="left"
+                                    tickFormatter={yAxisFormatter}
+                                    stroke="#888888"
+                                    axisLine={false}
+                                    tickLine={false}
                                 />
-                              }
-                            />
-                          <Legend content={<ChartLegendContent />} />
-                          <Area 
-                            yAxisId="left" 
-                            dataKey="netWorth" 
-                            type="natural" 
-                            fill="var(--color-netWorth)" 
-                            fillOpacity={0.4} 
-                            stroke="var(--color-netWorth)" 
-                          />
-                          <Area 
-                            yAxisId="right" 
-                            dataKey="cashFlow" 
-                            type="natural" 
-                            fill="var(--color-cashFlow)" 
-                            fillOpacity={0.4} 
-                            stroke="var(--color-cashFlow)" 
-                          />
-                        </AreaChart>
-                    </ResponsiveContainer>
-                </ChartContainer>
-              ) : (
-                <div className="h-full w-full" />
-              )}
-            </div>
-          </CardContent>
+                                <Tooltip content={() => null} cursor={false} />
+                                <Area yAxisId="left" dataKey="netWorth" stroke="none" fill="none" />
+                            </AreaChart>
+                        </ResponsiveContainer>
+                    </div>
+
+                    {/* Scrollable Main Chart */}
+                    <div style={{ flex: '1 1 auto', overflowX: 'auto', overflowY: 'hidden' }}>
+                        <div style={{ width: `${chartWidth}px`, height: '100%' }}>
+                            <ResponsiveContainer width="100%" height="100%">
+                                <AreaChart
+                                    data={data}
+                                    syncId="syncChart"
+                                    margin={{ top: 10, right: 10, bottom: 20, left: 10 }}
+                                >
+                                    <CartesianGrid strokeDasharray="3 3" vertical={false} />
+                                    <XAxis
+                                        dataKey="date"
+                                        stroke="#888888"
+                                        tickLine={false}
+                                        axisLine={false}
+                                        tickMargin={8}
+                                    />
+                                    <Tooltip
+                                        cursor={true}
+                                        content={<ChartTooltipContent formatter={yAxisFormatter} indicator="dot" />}
+                                    />
+                                    <YAxis yAxisId="left" hide={true} />
+                                    <YAxis yAxisId="right" hide={true} />
+                                    <Area yAxisId="left" dataKey="netWorth" type="natural" fill="var(--color-netWorth)" fillOpacity={0.4} stroke="var(--color-netWorth)" />
+                                    <Area yAxisId="right" dataKey="cashFlow" type="natural" fill="var(--color-cashFlow)" fillOpacity={0.4} stroke="var(--color-cashFlow)" />
+                                </AreaChart>
+                            </ResponsiveContainer>
+                        </div>
+                    </div>
+
+                    {/* Right Y-Axis Chart */}
+                    <div style={{ flex: '0 0 70px' }}>
+                        <ResponsiveContainer width="100%" height="100%">
+                            <AreaChart
+                                data={data}
+                                syncId="syncChart"
+                                margin={{ top: 10, right: 10, bottom: 20, left: 0 }}
+                            >
+                                <YAxis
+                                    yAxisId="right"
+                                    orientation="right"
+                                    tickFormatter={yAxisFormatter}
+                                    stroke="#888888"
+                                    axisLine={false}
+                                    tickLine={false}
+                                />
+                                <Tooltip content={() => null} cursor={false} />
+                                <Area yAxisId="right" dataKey="cashFlow" stroke="none" fill="none" />
+                            </AreaChart>
+                        </ResponsiveContainer>
+                    </div>
+
+                </div>
+
+                {/* Legend Section */}
+                <div className="mt-4 flex w-full justify-center">
+                    <ChartLegend content={<ChartLegendContent />} />
+                </div>
+              </ChartContainer>
+            </CardContent>
         </Card>
-      );
-    };
+    );
+}
