@@ -4,13 +4,18 @@
 import type { FC } from 'react';
 import { useRouter } from 'next/navigation';
 import { Button } from '@/components/ui/button';
-import { Banknote, Landmark, TrendingUp, HandCoins, PiggyBank, ReceiptText, ArrowRightLeft } from 'lucide-react';
+import { ArrowRightLeft } from 'lucide-react';
+import type { z } from 'zod';
 
 import { NetWorthChart } from './NetWorthChart';
-import { Breakdown } from './Breakdown';
+import { BankBreakdown } from './BankBreakdown';
+import { DebtBreakdown } from './DebtBreakdown';
+import { AssetBreakdown } from './AssetBreakdown';
 import { Totals } from './Totals';
-
-import type { DashboardData } from '@/lib/types';
+import type { entrySchema } from './EntryDialog';
+import { addOrUpdateBank, addOrUpdateDebt, addOrUpdateAsset } from '@/lib/firebase-service';
+import type { DashboardData, Debt, Asset } from '@/lib/types';
+import { useToast } from "@/components/ui/use-toast"
 
 interface DashboardClientProps {
   data: DashboardData | null;
@@ -18,6 +23,37 @@ interface DashboardClientProps {
 
 export const DashboardClient: FC<DashboardClientProps> = ({ data }) => {
   const router = useRouter();
+  const { toast } = useToast()
+
+  const handleEntry = async (values: z.infer<typeof entrySchema>, type: 'Bank' | 'Debt' | 'Asset') => {
+    try {
+      let action = values.id ? 'actualitzat' : 'afegit';
+      switch (type) {
+        case 'Bank':
+          await addOrUpdateBank({ ...values, balance: Number(values.value) });
+          break;
+        case 'Debt':
+          await addOrUpdateDebt({ ...values, balance: Number(values.value), type: values.type as Debt['type'] });
+          break;
+        case 'Asset':
+          await addOrUpdateAsset({ ...values, value: Number(values.value), type: values.type as Asset['type'] });
+          break;
+      }
+      toast({
+        title: "Èxit",
+        description: `${type} '${values.name}' ${action} correctament.`,
+      })
+      router.refresh();
+    } catch (error) {
+      console.error(`Failed to add/update ${type}:`, error);
+      toast({
+        variant: "destructive",
+        title: "Error",
+        description: `No s'ha pogut desar el ${type}. Si us plau, intenta-ho de nou.`,
+      })
+    }
+  };
+
 
   if (!data) {
     return (
@@ -53,13 +89,13 @@ export const DashboardClient: FC<DashboardClientProps> = ({ data }) => {
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         <div className="lg:col-span-1 flex flex-col gap-6">
-          <Breakdown title="Bancs" items={bankBreakdown} type="bank" />
+          <BankBreakdown banks={bankBreakdown} onEntry={(values) => handleEntry(values, 'Bank')} />
         </div>
         <div className="lg:col-span-1 flex flex-col gap-6">
-          <Breakdown title="Deutes" items={debtBreakdown} type="debt" />
+          <DebtBreakdown debts={debtBreakdown} onEntry={(values) => handleEntry(values, 'Debt')} />
         </div>
         <div className="lg:col-span-1 flex flex-col gap-6">
-          <Breakdown title="Actius" items={assetBreakdown} type="asset" />
+          <AssetBreakdown assets={assetBreakdown} onEntry={(values) => handleEntry(values, 'Asset')} />
         </div>
       </div>
     </div>
