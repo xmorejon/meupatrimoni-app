@@ -2,6 +2,7 @@
 "use client"
 
 import { Area, AreaChart, CartesianGrid, ResponsiveContainer, Tooltip, XAxis, YAxis } from "recharts"
+import { useRef, useEffect } from "react"
 
 import {
   Card,
@@ -43,10 +44,24 @@ interface NetWorthChartProps {
 }
 
 export function NetWorthChart({ data }: NetWorthChartProps) {
+    const scrollContainerRef = useRef<HTMLDivElement>(null);
     const itemWidth = 80;
     const minChartWidth = 500;
     const calculatedWidth = data.length * itemWidth;
     const chartWidth = Math.max(calculatedWidth, minChartWidth);
+
+    useEffect(() => {
+        // A setTimeout is used here as a workaround for a race condition with the recharts library.
+        // The ResponsiveContainer can take a moment to calculate the chart's final dimensions asynchronously.
+        // This timer ensures that we set the scroll position after the chart has fully rendered and the scrollWidth is accurate.
+        const timer = setTimeout(() => {
+            if (scrollContainerRef.current) {
+                scrollContainerRef.current.scrollLeft = scrollContainerRef.current.scrollWidth;
+            }
+        }, 100); // 100ms delay for robustness
+
+        return () => clearTimeout(timer);
+    }, [data]);
 
     if (!data || data.length === 0) {
         return (
@@ -96,7 +111,10 @@ export function NetWorthChart({ data }: NetWorthChartProps) {
                     </div>
 
                     {/* Scrollable Main Chart */}
-                    <div style={{ flex: '1 1 auto', overflowX: 'auto', overflowY: 'hidden' }}>
+                    <div 
+                        ref={scrollContainerRef}
+                        style={{ flex: '1 1 auto', overflowX: 'auto', overflowY: 'hidden' }}
+                    >
                         <div style={{ width: `${chartWidth}px`, height: '100%' }}>
                             <ResponsiveContainer width="100%" height="100%">
                                 <AreaChart
@@ -151,11 +169,11 @@ export function NetWorthChart({ data }: NetWorthChartProps) {
               {/* Manual Legend */}
               <div className="mt-4 flex items-center justify-center gap-6">
                 <div className="flex items-center gap-2">
-                  <span className="h-3 w-3 rounded-full" style={{ backgroundColor: chartConfig.netWorth.color }} />
+                  <span className="h-3 w-3 rounded-full" style={{ backgroundColor: "hsl(var(--chart-1))" }} />
                   <span className="text-sm text-muted-foreground">{chartConfig.netWorth.label}</span>
                 </div>
                 <div className="flex items-center gap-2">
-                  <span className="h-3 w-3 rounded-full" style={{ backgroundColor: chartConfig.cashFlow.color }} />
+                  <span className="h-3 w-3 rounded-full" style={{ backgroundColor: "hsl(var(--chart-2))" }} />
                   <span className="text-sm text-muted-foreground">{chartConfig.cashFlow.label}</span>
                 </div>
               </div>
