@@ -28,6 +28,14 @@ const yAxisFormatter = (value: number) => {
     return value.toString()
 }
 
+const tooltipFormatter = (value: number) => {
+    const formattedValue = new Intl.NumberFormat('es-ES', {
+        style: 'decimal',
+        maximumFractionDigits: 0,
+    }).format(Math.round(value));
+    return `${formattedValue}€`;
+};
+
 const chartConfig = {
     netWorth: {
       label: "Patrimoni Net",
@@ -51,14 +59,11 @@ export function NetWorthChart({ data }: NetWorthChartProps) {
     const chartWidth = Math.max(calculatedWidth, minChartWidth);
 
     useEffect(() => {
-        // A setTimeout is used here as a workaround for a race condition with the recharts library.
-        // The ResponsiveContainer can take a moment to calculate the chart's final dimensions asynchronously.
-        // This timer ensures that we set the scroll position after the chart has fully rendered and the scrollWidth is accurate.
         const timer = setTimeout(() => {
             if (scrollContainerRef.current) {
                 scrollContainerRef.current.scrollLeft = scrollContainerRef.current.scrollWidth;
             }
-        }, 100); // 100ms delay for robustness
+        }, 300);
 
         return () => clearTimeout(timer);
     }, [data]);
@@ -132,7 +137,7 @@ export function NetWorthChart({ data }: NetWorthChartProps) {
                                     />
                                     <Tooltip
                                         cursor={true}
-                                        content={<ChartTooltipContent formatter={yAxisFormatter} indicator="dot" />}
+                                        content={<ChartTooltipContent formatter={tooltipFormatter} indicator="dot" />}
                                     />
                                     <YAxis yAxisId="left" hide={true} />
                                     <YAxis yAxisId="right" hide={true} />
