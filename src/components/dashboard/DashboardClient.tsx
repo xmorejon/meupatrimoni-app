@@ -1,109 +1,49 @@
+
 "use client";
 
-import { useState } from "react";
-import { Header } from "@/components/Header";
-import { NetWorthCard } from "@/components/dashboard/NetWorthCard";
-import { NetWorthChart } from "@/components/dashboard/NetWorthChart";
-import { BankBreakdown } from "@/components/dashboard/BankBreakdown";
-import { DebtBreakdown } from "@/components/dashboard/DebtBreakdown";
-import { AssetBreakdown } from "@/components/dashboard/AssetBreakdown";
-import { getDashboardData, addOrUpdateDebt, addOrUpdateAsset, addOrUpdateBank } from "@/lib/firebase-service";
-import type { DashboardData, BankStatus, Debt, Asset } from "@/lib/types";
-import { Skeleton } from "@/components/ui/skeleton";
-import type { z } from 'zod';
-import type { baseSchema } from '@/components/dashboard/EntryDialog';
+import { useState } from 'react';
+import { useRouter } from 'next/navigation';
+import { Button } from '@/components/ui/button';
+import { NetWorthChart } from './NetWorthChart';
+import { Breakdown } from './Breakdown';
+import { Totals } from './Totals';
+import type { DashboardData } from '@/lib/types';
 
-const DashboardSkeleton = () => (
-  <div className="p-4 md:p-8 space-y-8">
-    <Skeleton className="h-40 w-full rounded-lg" />
-    <Skeleton className="h-96 rounded-lg" />
-    <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-      <Skeleton className="h-96 rounded-lg" />
-      <Skeleton className="h-96 rounded-lg" />
-      <Skeleton className="h-96 rounded-lg" />
-    </div>
-  </div>
-);
+interface DashboardClientProps {
+  data: DashboardData | null;
+}
 
-export function DashboardClient({ initialData }: { initialData: DashboardData }) {
-  const [data, setData] = useState<DashboardData | null>(initialData);
-  const [loading, setLoading] = useState(false);
-  const translations = { title: "Meu Patrimoni" };
+export function DashboardClient({ data }: DashboardClientProps) {
+  const router = useRouter();
 
-  const refreshData = async () => {
-    setLoading(true);
-    const dashboardData = await getDashboardData();
-    setData(dashboardData);
-    setLoading(false);
-  };
-  
-  const handleEntry = async (values: z.infer<typeof baseSchema> & { balance?: number, value?: number }, type: 'Bank' | 'Debt' | 'Asset') => {
-    const id = typeof values.id === 'string' ? values.id : (values.id ? String(values.id) : Date.now().toString());
-    const now = new Date();
-    switch (type) {
-        case 'Bank':
-            await addOrUpdateBank({
-              id,
-              name: values.name,
-              balance: values.balance ?? 0,
-              lastUpdated: now,
-            } as BankStatus);
-            break;
-        case 'Debt':
-            await addOrUpdateDebt({
-              id,
-              name: values.name,
-              balance: values.balance ?? 0,
-              type: (values as any).type ?? 'Credit Card',
-              lastUpdated: now,
-            } as Debt);
-            break;
-        case 'Asset':
-            await addOrUpdateAsset({
-              id,
-              name: values.name,
-              value: values.value ?? 0,
-              type: (values as any).type ?? 'House',
-              lastUpdated: now,
-            } as Asset);
-            break;
-    }
-    await refreshData();
-  };
+  if (!data) {
+    return (
+      <div className="flex flex-col items-center justify-center h-full">
+        <p className="text-center text-muted-foreground mb-4">No hi ha dades per mostrar.</p>
+        <Button onClick={() => router.push('/import')}>Importar Dades</Button>
+      </div>
+    );
+  }
+
+  const { totalNetWorth, netWorthChange, currentCashFlow, historicalData, bankBreakdown, debtBreakdown, assetBreakdown } = data;
 
   return (
-    <div className="flex flex-col min-h-screen bg-background text-foreground">
-      <Header title={translations.title}/>
-      <main className="flex-1">
-        {loading || !data ? (
-          <DashboardSkeleton />
-        ) : (
-          <div className="p-4 md:p-8 space-y-8">
-            <NetWorthCard 
-              totalNetWorth={data.totalNetWorth} 
-              change={data.netWorthChange} 
-              cashFlow={data.currentCashFlow} 
-            />
-            <NetWorthChart 
-                data={data.historicalData} 
-            />
-            <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-                <BankBreakdown 
-                    banks={data.bankBreakdown} 
-                    onEntry={handleEntry}
-                />
-                <DebtBreakdown 
-                    debts={data.debtBreakdown} 
-                    onEntry={handleEntry} 
-                />
-                <AssetBreakdown 
-                    assets={data.assetBreakdown} 
-                    onEntry={handleEntry}
-                />
-            </div>
-          </div>
-        )}
-      </main>
+    <div className="flex flex-col gap-6">
+        <div className="flex justify-between items-center">
+            <h1 className="text-2xl font-bold">Dashboard</h1>
+            <Button onClick={() => router.push('/import')}>Importar</Button>
+        </div>
+      <Totals 
+        totalNetWorth={totalNetWorth} 
+        netWorthChange={netWorthChange} 
+        currentCashFlow={currentCashFlow} 
+      />
+      <NetWorthChart data={historicalData} />
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        <Breakdown title="Actius Financers" items={bankBreakdown} type="bank" />
+        <Breakdown title="Altres Actius" items={assetBreakdown} type="asset" />
+        <Breakdown title="Deutes" items={debtBreakdown} type="debt" />
+      </div>
     </div>
   );
 }

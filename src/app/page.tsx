@@ -7,7 +7,7 @@ export default async function Home() {
 
   return (
     <DashboardClient 
-      initialData={data}
+      data={data}
     />
   );
 }
