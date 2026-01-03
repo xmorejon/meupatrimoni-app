@@ -34,13 +34,11 @@ export function ImporterClient({ banks, debts, assets }: ImporterClientProps) {
   const { toast } = useToast();
   const router = useRouter();
   const [loading, setLoading] = useState(false);
-  const translations = { title: "Importar Dades" };
 
-  // Define the schema inside the component to avoid server-side evaluation of FileList
   const formSchema = z.object({
     entryType: z.enum(["Bank", "Debt", "Asset"]),
-    itemId: z.string().min(1, "Please select an item."),
-    file: z.instanceof(FileList).refine((files) => files?.length === 1, "A CSV file is required."),
+    itemId: z.string().min(1, "Si us plau, selecciona un element."),
+    file: z.instanceof(FileList).refine((files) => files?.length === 1, "Es requereix un fitxer CSV."),
   });
 
   type FormValues = z.infer<typeof formSchema>;
@@ -68,8 +66,8 @@ export function ImporterClient({ banks, debts, assets }: ImporterClientProps) {
     if (!selectedItem) {
       toast({
         variant: "destructive",
-        title: "Import Failed",
-        description: "Selected item not found.",
+        title: "Error d'Importació",
+        description: "No s'ha trobat l'element seleccionat.",
       });
       setLoading(false);
       return;
@@ -86,7 +84,7 @@ export function ImporterClient({ banks, debts, assets }: ImporterClientProps) {
           const requiredColumns = ['Date', valueColumn];
 
           if (!results.meta.fields || !requiredColumns.every(col => results.meta.fields?.includes(col))) {
-             throw new Error(`CSV must have the following columns: ${requiredColumns.join(', ')}`);
+             throw new Error(`El CSV ha de tenir les columnes següents: ${requiredColumns.join(', ')}`);
           }
 
           const entries = results.data.map(row => {
@@ -119,22 +117,22 @@ export function ImporterClient({ banks, debts, assets }: ImporterClientProps) {
           );
 
           if (entries.length === 0) {
-            throw new Error(`No valid records found in the file. Check 'Date' (DD/MM/YYYY) and '${valueColumn}' columns.`);
+            throw new Error(`No s'han trobat registres vàlids. Comprova les columnes 'Data' (DD/MM/YYYY) i '${valueColumn}'.`);
           }
 
           await batchImportEntries(data.entryType, selectedItem, entries);
 
           toast({
-            title: "Import Complete",
-            description: `Successfully imported ${entries.length} records for ${selectedItem.name}.`,
+            title: "Importació Completada",
+            description: `S'han importat ${entries.length} registres per a ${selectedItem.name} correctament.`,
           });
           router.push(rootPath);
 
         } catch (error: any) {
            toast({
             variant: "destructive",
-            title: "Import Failed",
-            description: error.message || "An unexpected error occurred.",
+            title: "Error d'Importació",
+            description: error.message || "Ha ocorregut un error inesperat.",
           });
         } finally {
           setLoading(false);
@@ -142,30 +140,29 @@ export function ImporterClient({ banks, debts, assets }: ImporterClientProps) {
         }
       },
       error: (error) => {
-        console.error("Error parsing CSV:", error);
+        console.error("Error en processar el CSV:", error);
         setLoading(false);
         toast({
           variant: "destructive",
-          title: "Import Failed",
-          description: "There was an error parsing the CSV file.",
+          title: "Error d'Importació",
+          description: "Error en processar el fitxer CSV.",
         });
       },
     });
   };
 
-  const valueColumnName = entryType === 'Asset' ? 'Value' : 'Balance';
+  const valueColumnName = entryType === 'Asset' ? 'Valor' : 'Balanç';
 
   return (
     <div className="flex flex-col min-h-screen bg-background text-foreground">
-      <Header title={translations.title} />
+      <Header title="Importar Dades" />
       <main className="flex-1 p-4 md:p-8">
         <div className="max-w-2xl mx-auto">
           <Card>
             <CardHeader>
-              <CardTitle>Upload Statement</CardTitle>
+              <CardTitle>Pujar Extracte</CardTitle>
               <CardDescription>
-                Select an entry type and item, then upload the corresponding CSV file. 
-                Ensure your CSV has columns for 'Date' (DD/MM/YYYY) and '{valueColumnName}'.
+                {`Selecciona un tipus d'entrada i un element, després puja el fitxer CSV corresponent. Assegura't que el teu CSV tingui columnes per a 'Data' (DD/MM/YYYY) i '${valueColumnName}'.`}
               </CardDescription>
             </CardHeader>
             <CardContent>
@@ -176,20 +173,20 @@ export function ImporterClient({ banks, debts, assets }: ImporterClientProps) {
                     name="entryType"
                     render={({ field }) => (
                       <FormItem>
-                        <FormLabel>Entry Type</FormLabel>
+                        <FormLabel>Tipus d'Entrada</FormLabel>
                         <Select onValueChange={(value) => {
                           field.onChange(value);
                           form.setValue('itemId', ''); // Reset item selection
                         }} defaultValue={field.value}>
                           <FormControl>
                             <SelectTrigger>
-                              <SelectValue placeholder="Select an entry type" />
+                              <SelectValue placeholder="Selecciona un tipus d'entrada" />
                             </SelectTrigger>
                           </FormControl>
                           <SelectContent>
-                            <SelectItem value="Bank">Bank Account</SelectItem>
-                            <SelectItem value="Debt">Debt</SelectItem>
-                            <SelectItem value="Asset">Asset</SelectItem>
+                            <SelectItem value="Bank">Compte Bancari</SelectItem>
+                            <SelectItem value="Debt">Deute</SelectItem>
+                            <SelectItem value="Asset">Actiu</SelectItem>
                           </SelectContent>
                         </Select>
                         <FormMessage />
@@ -202,11 +199,12 @@ export function ImporterClient({ banks, debts, assets }: ImporterClientProps) {
                       name="itemId"
                       render={({ field }) => (
                         <FormItem>
-                          <FormLabel>{entryType}</FormLabel>                          <Select onValueChange={field.onChange} defaultValue={field.value} value={field.value}>
+                          <FormLabel>{entryType}</FormLabel>
+                          <Select onValueChange={field.onChange} defaultValue={field.value} value={field.value}>
                             <FormControl>
                               <SelectTrigger>
-                                <SelectValue placeholder={`Select a ${entryType.toLowerCase()}`} />
-                              </Trigger>
+                                <SelectValue placeholder={`Selecciona un/a ${entryType.toLowerCase()}`} />
+                              </SelectTrigger>
                             </FormControl>
                             <SelectContent>
                               {currentItems.map((item: any) => (
@@ -226,7 +224,7 @@ export function ImporterClient({ banks, debts, assets }: ImporterClientProps) {
                     name="file"
                     render={({ field }) => (
                       <FormItem>
-                        <FormLabel>CSV File</FormLabel>
+                        <FormLabel>Fitxer CSV</FormLabel>
                         <FormControl>
                           <Input type="file" accept=".csv" {...form.register("file")} />
                         </FormControl>
@@ -236,10 +234,10 @@ export function ImporterClient({ banks, debts, assets }: ImporterClientProps) {
                   />
                   <div className="flex gap-2">
                     <Button type="submit" disabled={loading || !form.formState.isValid}>
-                      {loading ? "Importing..." : "Import Data"}
+                      {loading ? "Important..." : "Importar Dades"}
                     </Button>
                     <Button type="button" variant="outline" onClick={() => router.push(rootPath)} disabled={loading}>
-                      Cancel
+                      Cancel·lar
                     </Button>
                   </div>
                 </form>

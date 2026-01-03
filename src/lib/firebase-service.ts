@@ -1,6 +1,6 @@
 
 import { db } from '@/firebase/config';
-import { collection, getDocs, doc, writeBatch, query, orderBy, Timestamp, setDoc, addDoc, updateDoc } from 'firebase/firestore';
+import { collection, getDocs, doc, writeBatch, query, orderBy, getDoc, setDoc, addDoc, updateDoc, Timestamp } from 'firebase/firestore';
 import type { BankStatus, Debt, Asset, DashboardData, BalanceEntry, Entry } from './types';
 import { subDays, format, startOfToday, eachDayOfInterval, endOfDay, startOfDay, endOfYesterday } from 'date-fns';
 
@@ -102,22 +102,31 @@ export async function batchImportEntries(
 
     batch.set(newEntryRef, { ...commonData, ...specificData });
   });
-
+  
+  // Find the most recent entry in the imported data
   const latestEntry = entries.reduce((latest, current) =>
     current.timestamp > latest.timestamp ? current : latest
   );
 
-  const updatePayload: { balance?: number; value?: number; lastUpdated: Timestamp } = {
-    lastUpdated: Timestamp.fromDate(latestEntry.timestamp),
-  };
+  // Get the existing item document
+  const itemDoc = await getDoc(itemRef);
+  const itemData = itemDoc.data();
+  const lastUpdated = itemData?.lastUpdated?.toDate() ?? new Date(0);
 
-  if (entryType === 'Asset') {
-    updatePayload.value = latestEntry.value;
-  } else {
-    updatePayload.balance = latestEntry.balance;
+  // Only update the main item's balance/value if the latest imported entry is newer
+  // than the last update.
+  if (latestEntry.timestamp > lastUpdated) {
+    const updatePayload: { balance?: number; value?: number; lastUpdated: Timestamp } = {
+        lastUpdated: Timestamp.fromDate(latestEntry.timestamp),
+    };
+
+    if (entryType === 'Asset') {
+        updatePayload.value = latestEntry.value;
+    } else {
+        updatePayload.balance = latestEntry.balance;
+    }
+    batch.update(itemRef, updatePayload);
   }
-
-  batch.update(itemRef, updatePayload);
 
   await batch.commit();
 }
@@ -196,11 +205,30 @@ export async function getDashboardData(): Promise<DashboardData> {
   ]);
 
   // --- CURRENT TOTALS ---
-  const financialAssets = bankBreakdown.reduce((sum, entry) => sum + entry.balance, 0);
-  const physicalAssets = assetBreakdown.reduce((sum, asset) => sum + asset.value, 0);
+  let financialAssets = 0;
+  for (const entry of bankBreakdown) {
+    financialAssets += entry.balance;
+  }
+
+  let physicalAssets = 0;
+  for (const asset of assetBreakdown) {
+    physicalAssets += asset.value;
+  }
+
   const totalAssets = financialAssets + physicalAssets;
-  const totalDebts = debtBreakdown.reduce((sum, debt) => sum + debt.balance, 0);
-  const creditCardDebt = debtBreakdown.filter(d => d.type === 'Credit Card').reduce((sum, debt) => sum + debt.balance, 0);
+
+  let totalDebts = 0;
+  for (const debt of debtBreakdown) {
+    totalDebts += debt.balance;
+  }
+
+  let creditCardDebt = 0;
+  for (const debt of debtBreakdown) {
+      if (debt.type === 'Credit Card') {
+          creditCardDebt += debt.balance;
+      }
+  }
+
   const totalNetWorth = totalAssets - totalDebts;
   const currentCashFlow = financialAssets - creditCardDebt;
   
@@ -215,32 +243,32 @@ export async function getDashboardData(): Promise<DashboardData> {
 
   const dateInterval = eachDayOfInterval({ start: startDate, end: today });
 
-  const groupedBalanceEntries = balanceEntries.reduce((acc, entry) => {
-    const key = entry.bankId;
-    if (!acc[key]) {
-      acc[key] = [];
+  const groupedBalanceEntries: Record<string, BalanceEntry[]> = {};
+    for (const entry of balanceEntries) {
+        const key = entry.bankId;
+        if (!groupedBalanceEntries[key]) {
+            groupedBalanceEntries[key] = [];
+        }
+        groupedBalanceEntries[key].push(entry);
     }
-    acc[key].push(entry);
-    return acc;
-  }, {} as Record<string, BalanceEntry[]>);
 
-  const groupedDebtEntries = debtEntries.reduce((acc, entry) => {
-    const key = entry.debtId;
-    if (!acc[key]) {
-      acc[key] = [];
+    const groupedDebtEntries: Record<string, (Debt & { timestamp: Date, debtId: string })[]> = {};
+    for (const entry of debtEntries) {
+        const key = entry.debtId;
+        if (!groupedDebtEntries[key]) {
+            groupedDebtEntries[key] = [];
+        }
+        groupedDebtEntries[key].push(entry);
     }
-    acc[key].push(entry);
-    return acc;
-  }, {} as Record<string, (Debt & { timestamp: Date, debtId: string })[]>);
 
-  const groupedAssetEntries = assetEntries.reduce((acc, entry) => {
-    const key = entry.assetId;
-    if (!acc[key]) {
-      acc[key] = [];
+    const groupedAssetEntries: Record<string, (Asset & { timestamp: Date, assetId: string })[]> = {};
+    for (const entry of assetEntries) {
+        const key = entry.assetId;
+        if (!groupedAssetEntries[key]) {
+            groupedAssetEntries[key] = [];
+        }
+        groupedAssetEntries[key].push(entry);
     }
-    acc[key].push(entry);
-    return acc;
-  }, {} as Record<string, (Asset & { timestamp: Date, assetId: string })[]>);
 
   for (const key in groupedBalanceEntries) {
     groupedBalanceEntries[key].sort((a, b) => (b.timestamp as Date).getTime() - (a.timestamp as Date).getTime());
@@ -255,29 +283,43 @@ export async function getDashboardData(): Promise<DashboardData> {
   const historicalData = dateInterval.map(date => {
     const endOfDate = endOfDay(date);
 
-    const financialAssetsAtDate = bankBreakdown.reduce((total, bank) => {
+    let financialAssetsAtDate = 0;
+    for (const bank of bankBreakdown) {
         const bankEntries = groupedBalanceEntries[bank.id] || [];
         const latestEntry = bankEntries.find(e => (e.timestamp as Date) <= endOfDate);
-        return total + (latestEntry ? latestEntry.balance : 0);
-    }, 0);
+        if (latestEntry) {
+            financialAssetsAtDate += latestEntry.balance;
+        }
+    }
 
-    const physicalAssetsAtDate = assetBreakdown.reduce((sum, asset) => {
+    let physicalAssetsAtDate = 0;
+    for (const asset of assetBreakdown) {
         const assetEntries = groupedAssetEntries[asset.id] || [];
         const latestEntry = assetEntries.find(e => (e.timestamp as Date) <= endOfDate);
-        return sum + (latestEntry ? latestEntry.value : 0);
-    }, 0);
+        if (latestEntry) {
+            physicalAssetsAtDate += latestEntry.value;
+        }
+    }
     
-    const debtsAtDate = debtBreakdown.reduce((sum, debt) => {
+    let debtsAtDate = 0;
+    for (const debt of debtBreakdown) {
         const debtEntries = groupedDebtEntries[debt.id] || [];
         const latestEntry = debtEntries.find(e => (e.timestamp as Date) <= endOfDate);
-        return sum + (latestEntry ? latestEntry.balance : 0);
-    }, 0);
+        if (latestEntry) {
+            debtsAtDate += latestEntry.balance;
+        }
+    }
 
-    const creditCardDebtAtDate = debtBreakdown.filter(d => d.type === 'Credit Card').reduce((sum, debt) => {
-        const debtEntries = groupedDebtEntries[debt.id] || [];
-        const latestEntry = debtEntries.find(e => (e.timestamp as Date) <= endOfDate);
-        return sum + (latestEntry ? latestEntry.balance : 0);
-    }, 0);
+    let creditCardDebtAtDate = 0;
+    for (const debt of debtBreakdown) {
+        if (debt.type === 'Credit Card') {
+            const debtEntries = groupedDebtEntries[debt.id] || [];
+            const latestEntry = debtEntries.find(e => (e.timestamp as Date) <= endOfDate);
+            if (latestEntry) {
+                creditCardDebtAtDate += latestEntry.balance;
+            }
+        }
+    }
 
     const totalAssetsAtDate = financialAssetsAtDate + physicalAssetsAtDate;
     const netWorth = totalAssetsAtDate - debtsAtDate;
