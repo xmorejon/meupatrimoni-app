@@ -12,8 +12,6 @@ import {
 } from "@/components/ui/card"
 import {
   ChartContainer,
-  ChartLegend,
-  ChartLegendContent,
   ChartTooltip,
   ChartTooltipContent,
 } from "@/components/ui/chart"
@@ -73,8 +71,8 @@ export function NetWorthChart({ data }: NetWorthChartProps) {
                 <CardDescription>El teu patrimoni net i cash flow al llarg del temps</CardDescription>
             </CardHeader>
             <CardContent>
-              <ChartContainer config={chartConfig} className="h-[370px] w-full">
-                <div style={{ display: 'flex', height: '320px', width: '100%' }}>
+              <ChartContainer config={chartConfig} className="h-[320px] w-full">
+                <div style={{ display: 'flex', height: '100%', width: '100%' }}>
 
                     {/* Left Y-Axis Chart */}
                     <div style={{ flex: '0 0 70px' }}>
@@ -88,7 +86,7 @@ export function NetWorthChart({ data }: NetWorthChartProps) {
                                     yAxisId="left"
                                     tickFormatter={yAxisFormatter}
                                     stroke="#888888"
-                                    axisLine={false}
+                                    axisLine={{ stroke: "var(--color-netWorth)" }}
                                     tickLine={false}
                                 />
                                 <Tooltip content={() => null} cursor={false} />
@@ -140,7 +138,7 @@ export function NetWorthChart({ data }: NetWorthChartProps) {
                                     orientation="right"
                                     tickFormatter={yAxisFormatter}
                                     stroke="#888888"
-                                    axisLine={false}
+                                    axisLine={{ stroke: "var(--color-cashFlow)" }}
                                     tickLine={false}
                                 />
                                 <Tooltip content={() => null} cursor={false} />
@@ -148,14 +146,19 @@ export function NetWorthChart({ data }: NetWorthChartProps) {
                             </AreaChart>
                         </ResponsiveContainer>
                     </div>
-
-                </div>
-
-                {/* Legend Section */}
-                <div className="mt-4 flex w-full justify-center">
-                    <ChartLegend content={<ChartLegendContent />} />
                 </div>
               </ChartContainer>
+              {/* Manual Legend */}
+              <div className="mt-4 flex items-center justify-center gap-6">
+                <div className="flex items-center gap-2">
+                  <span className="h-3 w-3 rounded-full" style={{ backgroundColor: chartConfig.netWorth.color }} />
+                  <span className="text-sm text-muted-foreground">{chartConfig.netWorth.label}</span>
+                </div>
+                <div className="flex items-center gap-2">
+                  <span className="h-3 w-3 rounded-full" style={{ backgroundColor: chartConfig.cashFlow.color }} />
+                  <span className="text-sm text-muted-foreground">{chartConfig.cashFlow.label}</span>
+                </div>
+              </div>
             </CardContent>
         </Card>
     );
