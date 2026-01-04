@@ -1,3 +1,4 @@
 {
-    "IDX.aI.showChatInEditorTab": true
+    "IDX.aI.showChatInEditorTab": true,
+    "git.ignoreLimitWarning": true
 }
