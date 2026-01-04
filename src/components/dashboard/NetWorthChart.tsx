@@ -42,7 +42,7 @@ const chartConfig = {
       color: "hsl(var(--chart-1))",
     },
     cashFlow: {
-      label: "Cash Flow",
+      label: "Capital disponible",
       color: "hsl(var(--chart-2))",
     },
 }
@@ -72,8 +72,8 @@ export function NetWorthChart({ data }: NetWorthChartProps) {
         return (
             <Card>
               <CardHeader>
-                <CardTitle>Patrimoni Net i Cash Flow</CardTitle>
-                <CardDescription>El teu patrimoni net i cash flow al llarg del temps</CardDescription>
+                <CardTitle>Patrimoni Net i Capital disponible</CardTitle>
+                <CardDescription>El teu patrimoni net i capital disponible al llarg del temps</CardDescription>
               </CardHeader>
               <CardContent>
                 <div className="h-[350px] flex items-center justify-center">
@@ -87,8 +87,8 @@ export function NetWorthChart({ data }: NetWorthChartProps) {
     return (
         <Card>
             <CardHeader>
-                <CardTitle>Patrimoni Net i Cash Flow</CardTitle>
-                <CardDescription>El teu patrimoni net i cash flow al llarg del temps</CardDescription>
+                <CardTitle>Patrimoni Net i Capital disponibe</CardTitle>
+                <CardDescription>El teu patrimoni net i capital disponible al llarg del temps</CardDescription>
             </CardHeader>
             <CardContent>
               <ChartContainer config={chartConfig} className="h-[320px] w-full">

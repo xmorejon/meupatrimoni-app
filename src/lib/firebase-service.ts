@@ -60,6 +60,38 @@ async function getAssetEntries(): Promise<Array<Asset & { timestamp: Date, asset
   return snapshot.docs.map(d => convertTimestamps<Asset & { timestamp: Date, assetId: string }>({ id: d.id, ...d.data() }));
 }
 
+export async function batchImport(
+  data: any[],
+  importType: 'Bank' | 'Debt' | 'Asset',
+  entityId: string
+): Promise<void> {
+
+  const collectionName = importType.toLowerCase() + 's';
+  const entityRef = doc(db, collectionName, entityId);
+  const entityDoc = await getDoc(entityRef);
+
+  if (!entityDoc.exists()) {
+    throw new Error(`${importType} with ID ${entityId} not found.`);
+  }
+
+  const entity = { id: entityDoc.id, ...entityDoc.data() } as Entry;
+
+  const entries = data.map(row => {
+    const timestamp = new Date(row.Date || row.date || row.Timestamp || row.timestamp);
+    let balance, value;
+    
+    if (importType === 'Asset') {
+      value = parseFloat(row.Value || row.value);
+    } else {
+      balance = parseFloat(row.Balance || row.balance);
+    }
+
+    return { timestamp, balance, value };
+  }).filter(e => e.timestamp && (e.balance !== undefined || e.value !== undefined));
+  
+  await batchImportEntries(importType, entity, entries);
+}
+
 export async function batchImportEntries(
   entryType: 'Bank' | 'Debt' | 'Asset',
   item: Entry,
