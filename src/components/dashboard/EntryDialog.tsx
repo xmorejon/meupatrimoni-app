@@ -2,9 +2,9 @@
 
 import type { FC, ReactNode } from 'react';
 import { useState } from 'react';
-import { z } from "zod";
+import { z, type ZodType } from "zod";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { useForm } from "react-hook-form";
+import { useForm, type Resolver } from "react-hook-form";
 
 import { Button } from "@/components/ui/button";
 import {
@@ -21,11 +21,29 @@ import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import type { Entry } from '@/lib/types';
 
-export const baseSchema = z.object({
+// Base schema for common fields
+const baseSchema = z.object({
   id: z.string().optional(),
   name: z.string().min(2, { message: "El nom ha de tenir almenys 2 caràcters." }),
   type: z.string().min(1, { message: "Si us plau, selecciona un tipus." }),
 });
+
+// Create two distinct, static schemas. This is the robust solution that avoids confusing TypeScript.
+const bankDebtSchema = baseSchema.extend({
+  balance: z.coerce
+    .number({ invalid_type_error: "El valor ha de ser un número." })
+    .nonnegative({ message: "El valor no pot ser negatiu." }),
+});
+
+const assetSchema = baseSchema.extend({
+  value: z.coerce
+    .number({ invalid_type_error: "El valor ha de ser un número." })
+    .nonnegative({ message: "El valor no pot ser negatiu." }),
+});
+
+// A type that represents the union of both possible form structures.
+// This provides a clear, unified type for our form state.
+type FormValues = z.infer<typeof bankDebtSchema> | z.infer<typeof assetSchema>;
 
 const typeTranslations: { [key: string]: string } = {
   'House': 'Casa',
@@ -43,7 +61,7 @@ const reverseTypeTranslations: { [key: string]: string } = Object.fromEntries(
 
 interface EntryDialogProps {
   type: 'Bank' | 'Debt' | 'Asset';
-  onEntry: (values: z.infer<typeof baseSchema> & { balance?: number; value?: number; }) => void;
+  onEntry: (values: FormValues) => void;
   trigger: ReactNode;
   item?: Entry;
   translations: any;
@@ -65,39 +83,45 @@ export const EntryDialog: FC<EntryDialogProps> = ({ type, onEntry, trigger, item
   const [open, setOpen] = useState(false);
   const isEditing = !!item;
   
+  const formSchema = type === 'Asset' ? assetSchema : bankDebtSchema;
   const valueFieldName = type === 'Asset' ? 'value' : 'balance';
 
-  const formSchema = baseSchema.extend({
-    [valueFieldName]: z.coerce // Use coerce to automatically handle string-to-number conversion
-      .number({
-        invalid_type_error: "El valor ha de ser un número.",
-      })
-      .nonnegative({ message: "El valor no pot ser negatiu." }), // Allow 0 and positive numbers
-  });
-
-  const translatedType = item?.type ? typeTranslations[item.type] || item.type : (type === 'Bank' ? 'Compte Corrent' : '');
-  
-  // Sanitize the initial value from the database.
-  // If the value from the item is not a finite number (i.e., it is NaN, null, or undefined), default to 0.
-  const initialValue = (item as any)?.balance ?? (item as any)?.value;
-  const defaultNumericValue = Number.isFinite(initialValue) ? initialValue : 0;
-
-  const form = useForm<z.infer<typeof formSchema>>({
-    resolver: zodResolver(formSchema),
-    defaultValues: {
-      id: item?.id,
-      name: item?.name ?? "",
-      [valueFieldName]: defaultNumericValue,
-      type: translatedType,
-    },
-  });
-
-  function onSubmit(values: z.infer<typeof formSchema>) {
-    const submissionValues = {
-      ...values,
-      type: reverseTypeTranslations[values.type] || values.type,
+  const getDefaults = (): Partial<FormValues> => {
+    const getTranslatedType = () => {
+        if (item && 'type' in item && item.type) return typeTranslations[item.type] || item.type;
+        return undefined;
     };
-    onEntry(submissionValues as any);
+
+    const getInitialValue = (entry?: Entry): number | undefined => {
+        if (!entry) return 0;
+        const num = 'balance' in entry ? entry.balance : 'value' in entry ? entry.value : 0;
+        return Number.isFinite(num) ? num : 0;
+    };
+
+    const defaults = {
+        id: item?.id,
+        name: item?.name ?? '',
+        type: getTranslatedType(),
+    };
+
+    if (type === 'Asset') {
+        return { ...defaults, value: getInitialValue(item) };
+    } else {
+        return { ...defaults, balance: getInitialValue(item) };
+    }
+  };
+
+  const form = useForm<FormValues>({
+    resolver: zodResolver(formSchema as ZodType<FormValues>),
+    defaultValues: getDefaults(),
+  });
+
+  function onSubmit(values: FormValues) {
+    const submissionValues: FormValues = {
+      ...values,
+      type: reverseTypeTranslations[values.type!] || values.type!,
+    };
+    onEntry(submissionValues);
     form.reset();
     setOpen(false);
   }
@@ -113,9 +137,7 @@ export const EntryDialog: FC<EntryDialogProps> = ({ type, onEntry, trigger, item
 
   return (
     <Dialog open={open} onOpenChange={setOpen}>
-      <DialogTrigger asChild>
-        {trigger}
-      </DialogTrigger>
+      <DialogTrigger asChild>{trigger}</DialogTrigger>
       <DialogContent className="sm:max-w-[425px]">
         <DialogHeader>
           <DialogTitle>{(isEditing ? translations.editTitle : translations.addTitle).replace('{type}', type)}</DialogTitle>
@@ -140,7 +162,7 @@ export const EntryDialog: FC<EntryDialogProps> = ({ type, onEntry, trigger, item
             />
             <FormField
               control={form.control}
-              name={valueFieldName}
+              name={valueFieldName as 'balance' | 'value'}
               render={({ field }) => (
                 <FormItem>
                   <FormLabel>{translations.valueLabel.replace('{valueFieldLabel}', valueFieldLabel[type])}</FormLabel>
@@ -150,6 +172,7 @@ export const EntryDialog: FC<EntryDialogProps> = ({ type, onEntry, trigger, item
                         step="0.01"
                         placeholder={translations.valuePlaceholder} 
                         {...field}
+                        value={field.value ?? ''}
                     />
                   </FormControl>
                   <FormMessage />
@@ -162,7 +185,7 @@ export const EntryDialog: FC<EntryDialogProps> = ({ type, onEntry, trigger, item
               render={({ field }) => (
                 <FormItem>
                   <FormLabel>{translations.typeLabel}</FormLabel>
-                    <Select onValueChange={(v) => field.onChange(v)} defaultValue={String(field.value ?? '')} disabled={isEditing}>
+                    <Select onValueChange={field.onChange} defaultValue={field.value ?? ''} disabled={isEditing}>
                     <FormControl>
                       <SelectTrigger>
                         <SelectValue placeholder={translations.selectTypePlaceholder.replace('{type}', type.toLowerCase())} />
