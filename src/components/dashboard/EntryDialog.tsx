@@ -37,6 +37,19 @@ export const entrySchema = baseSchema.extend({
     path: ['balance'] // show error on balance field
 });
 
+const typeTranslations: { [key: string]: string } = {
+  'House': 'Casa',
+  'Car': 'Cotxe',
+  'Current Account': 'Compte Corrent',
+  'Investment Account': 'Compte d\'Inversió',
+  'Credit Card': 'Targeta de Crèdit',
+  'Mortgage': 'Hipoteca',
+  'Personal Loan': 'Crèdit Personal',
+};
+
+const reverseTypeTranslations: { [key: string]: string } = Object.fromEntries(
+  Object.entries(typeTranslations).map(([key, value]) => [value, key])
+);
 
 interface EntryDialogProps {
   type: 'Bank' | 'Debt' | 'Asset';
@@ -72,6 +85,7 @@ export const EntryDialog: FC<EntryDialogProps> = ({ type, onEntry, trigger, item
     ),
   });
 
+  const translatedType = item?.type ? typeTranslations[item.type] || item.type : (type === 'Bank' ? 'Compte Corrent' : '');
 
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
@@ -79,22 +93,18 @@ export const EntryDialog: FC<EntryDialogProps> = ({ type, onEntry, trigger, item
       id: item?.id,
       name: item?.name ?? "",
       [valueFieldName]: (item as any)?.balance ?? (item as any)?.value ?? 0,
-      type: (item as any)?.type ?? (type === 'Bank' ? 'Compte Corrent' : ''),
+      type: translatedType,
     },
-    // TS inference for dynamic key is tricky; cast defaultValues to any
   } as any);
 
   function onSubmit(values: z.infer<typeof formSchema>) {
-    onEntry(values as any);
+    const submissionValues = {
+      ...values,
+      type: reverseTypeTranslations[values.type] || values.type,
+    };
+    onEntry(submissionValues as any);
     form.reset();
     setOpen(false);
-    toast({
-      title: "Èxit!",
-      description: translations.successMessage
-        .replace('{type}', type)
-        .replace('{name}', values.name)
-        .replace('{action}', isEditing ? translations.actionUpdated : translations.actionAdded),
-    })
   }
   
   const getPlaceholder = (type: 'Bank' | 'Debt' | 'Asset') => {
