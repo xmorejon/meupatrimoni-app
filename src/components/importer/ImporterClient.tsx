@@ -68,6 +68,7 @@ export const ImporterClient: React.FC<ImporterClientProps> = ({ banks, debts, as
     Papa.parse(values.file, {
       header: true,
       skipEmptyLines: true,
+      delimiter: ';',
       complete: async (results) => {
         try {
           await batchImport(results.data, values.importType, values.entityId);
@@ -75,7 +76,7 @@ export const ImporterClient: React.FC<ImporterClientProps> = ({ banks, debts, as
             title: 'Importació exitosa',
             description: `S'han importat ${results.data.length} registres.`,
           });
-          router.push('/dashboard');
+          router.push('/');
         } catch (error) {
           console.error(error);
           toast({

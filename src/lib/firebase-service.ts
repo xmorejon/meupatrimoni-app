@@ -4,6 +4,23 @@ import { collection, getDocs, doc, writeBatch, query, getDoc, setDoc, addDoc, up
 import type { BankStatus, Debt, Asset, DashboardData, BalanceEntry, Entry } from './types';
 import { subDays, format, startOfToday, eachDayOfInterval, endOfDay, startOfDay, endOfYesterday, isSameDay } from 'date-fns';
 
+// Helper to parse DD/MM/YYYY
+const parseDate = (dateString: string): Date => {
+  if (!dateString) return null;
+  const [day, month, year] = dateString.split('/');
+  // new Date(year, monthIndex, day)
+  return new Date(parseInt(year, 10), parseInt(month, 10) - 1, parseInt(day, 10));
+};
+
+// Helper to parse numbers like '115.000,00'
+const parseValue = (valueString: string): number => {
+  if (typeof valueString !== 'string') return valueString;
+  // Remove thousand separators (.) and replace decimal comma (,) with a dot (.)
+  const cleanedString = valueString.replace(/\./g, '').replace(',', '.');
+  return parseFloat(cleanedString);
+};
+
+
 // Helper function to convert Firestore Timestamps to Dates in nested objects
 const convertTimestamps = <T>(data: any): T => {
     if (data?.lastUpdated instanceof Timestamp) {
@@ -77,13 +94,16 @@ export async function batchImport(
   const entity = { id: entityDoc.id, ...entityDoc.data() } as Entry;
 
   const entries = data.map(row => {
-    const timestamp = new Date(row.Date || row.date || row.Timestamp || row.timestamp);
+    const rawDate = row.Date || row.date || row.Timestamp || row.timestamp;
+    const timestamp = parseDate(rawDate);
+
     let balance, value;
+    const rawValue = row.Value || row.value;
     
     if (importType === 'Asset') {
-      value = parseFloat(row.Value || row.value);
+      value = parseValue(rawValue);
     } else {
-      balance = parseFloat(row.Balance || row.balance);
+      balance = parseValue(rawValue);
     }
 
     return { timestamp, balance, value };

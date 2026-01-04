@@ -12,33 +12,43 @@ import { BankBreakdown } from './BankBreakdown';
 import { DebtBreakdown } from './DebtBreakdown';
 import { AssetBreakdown } from './AssetBreakdown';
 import { Totals } from './Totals';
-import type { entrySchema } from './EntryDialog';
+import type { baseSchema } from './EntryDialog';
 import { addOrUpdateBank, addOrUpdateDebt, addOrUpdateAsset } from '@/lib/firebase-service';
-import type { DashboardData, Debt, Asset } from '@/lib/types';
+import type { DashboardData } from '@/lib/types';
 import { useToast } from "@/components/ui/use-toast"
 
 interface DashboardClientProps {
   data: DashboardData | null;
 }
 
+// Define a more accurate type for the values coming from the dialog
+  type EntryData = z.infer<typeof baseSchema> & {
+  balance?: number;
+  value?: number;
+};
+
 export const DashboardClient: FC<DashboardClientProps> = ({ data }) => {
   const router = useRouter();
   const { toast } = useToast()
 
-  const handleEntry = async (values: z.infer<typeof entrySchema>, type: 'Bank' | 'Debt' | 'Asset') => {
+  const handleEntry = async (values: EntryData, type: 'Bank' | 'Debt' | 'Asset') => {
     try {
-      let action = values.id ? 'actualitzat' : 'afegit';
+      const action = values.id ? 'actualitzat' : 'afegit';
+      
+      // The `values` object from the dialog is already correctly structured.
+      // We pass it directly to the corresponding database function.
       switch (type) {
         case 'Bank':
-          await addOrUpdateBank({ ...values, balance: Number(values.value) });
+          await addOrUpdateBank(values as any);
           break;
         case 'Debt':
-          await addOrUpdateDebt({ ...values, balance: Number(values.value), type: values.type as Debt['type'] });
+          await addOrUpdateDebt(values as any);
           break;
         case 'Asset':
-          await addOrUpdateAsset({ ...values, value: Number(values.value), type: values.type as Asset['type'] });
+          await addOrUpdateAsset(values as any);
           break;
       }
+      
       toast({
         title: "Èxit",
         description: `${type} '${values.name}' ${action} correctament.`,

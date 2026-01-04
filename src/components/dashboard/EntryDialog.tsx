@@ -1,6 +1,7 @@
 'use client';
 
 import type { FC, ReactNode } from 'react';
+import { useState } from 'react';
 import { z } from "zod";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
@@ -18,23 +19,12 @@ import {
 import { Input } from "@/components/ui/input";
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { useState } from 'react';
-import { useToast } from '@/components/ui/use-toast';
 import type { Entry } from '@/lib/types';
-
 
 export const baseSchema = z.object({
   id: z.string().optional(),
   name: z.string().min(2, { message: "El nom ha de tenir almenys 2 caràcters." }),
   type: z.string().min(1, { message: "Si us plau, selecciona un tipus." }),
-});
-
-export const entrySchema = baseSchema.extend({
-  balance: z.coerce.number().positive({ message: "El valor ha de ser un número positiu." }).optional(),
-  value: z.coerce.number().positive({ message: "El valor ha de ser un número positiu." }).optional(),
-}).refine(data => (data.balance !== undefined && data.balance > 0) || (data.value !== undefined && data.value > 0), {
-    message: "Es requereix un balanç o valor positiu.",
-    path: ['balance'] // show error on balance field
 });
 
 const typeTranslations: { [key: string]: string } = {
@@ -73,29 +63,34 @@ const valueFieldLabel = {
 
 export const EntryDialog: FC<EntryDialogProps> = ({ type, onEntry, trigger, item, translations }) => {
   const [open, setOpen] = useState(false);
-  const { toast } = useToast();
   const isEditing = !!item;
   
   const valueFieldName = type === 'Asset' ? 'value' : 'balance';
 
   const formSchema = baseSchema.extend({
-    [valueFieldName]: z.preprocess(
-      (val) => String(val).replace(',', '.'),
-      z.coerce.number().positive({ message: "El valor ha de ser un número positiu." })
-    ),
+    [valueFieldName]: z.coerce // Use coerce to automatically handle string-to-number conversion
+      .number({
+        invalid_type_error: "El valor ha de ser un número.",
+      })
+      .nonnegative({ message: "El valor no pot ser negatiu." }), // Allow 0 and positive numbers
   });
 
   const translatedType = item?.type ? typeTranslations[item.type] || item.type : (type === 'Bank' ? 'Compte Corrent' : '');
+  
+  // Sanitize the initial value from the database.
+  // If the value from the item is not a finite number (i.e., it is NaN, null, or undefined), default to 0.
+  const initialValue = (item as any)?.balance ?? (item as any)?.value;
+  const defaultNumericValue = Number.isFinite(initialValue) ? initialValue : 0;
 
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
     defaultValues: {
       id: item?.id,
       name: item?.name ?? "",
-      [valueFieldName]: (item as any)?.balance ?? (item as any)?.value ?? 0,
+      [valueFieldName]: defaultNumericValue,
       type: translatedType,
     },
-  } as any);
+  });
 
   function onSubmit(values: z.infer<typeof formSchema>) {
     const submissionValues = {
@@ -112,6 +107,7 @@ export const EntryDialog: FC<EntryDialogProps> = ({ type, onEntry, trigger, item
           case 'Bank': return translations.bankNamePlaceholder;
           case 'Debt': return translations.debtNamePlaceholder;
           case 'Asset': return translations.assetNamePlaceholder;
+          default: return '';
       }
   }
 
@@ -149,7 +145,12 @@ export const EntryDialog: FC<EntryDialogProps> = ({ type, onEntry, trigger, item
                 <FormItem>
                   <FormLabel>{translations.valueLabel.replace('{valueFieldLabel}', valueFieldLabel[type])}</FormLabel>
                   <FormControl>
-                    <Input type="number" placeholder={translations.valuePlaceholder} {...field} />
+                    <Input 
+                        type="number"
+                        step="0.01"
+                        placeholder={translations.valuePlaceholder} 
+                        {...field}
+                    />
                   </FormControl>
                   <FormMessage />
                 </FormItem>
