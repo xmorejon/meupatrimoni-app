@@ -1,10 +1,15 @@
 rules_version = '2';
-
 service cloud.firestore {
   match /databases/{database}/documents {
-    // Allow read and write access for all paths
+    // Helper function to check if the user trying to access the data is on the allow list.
+    // It checks if a document exists in the 'authorized_users' collection with the user's email.
+    function isAuthorized() {
+      return request.auth != null && exists(/databases/$(database)/documents/authorized_users/$(request.auth.token.email));
+    }
+
+    // Secure all collections. Only authorized users can read or write.
     match /{document=**} {
-      allow read, write: if true;
+      allow read, write: if isAuthorized();
     }
   }
 }
