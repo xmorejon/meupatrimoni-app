@@ -1,4 +1,4 @@
-"use client";
+'use client';
 
 import type { FC, ReactNode } from 'react';
 import { z } from "zod";
@@ -19,21 +19,21 @@ import { Input } from "@/components/ui/input";
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useState } from 'react';
-import { useToast } from '@/hooks/use-toast';
+import { useToast } from '@/components/ui/use-toast';
 import type { Entry } from '@/lib/types';
 
 
 export const baseSchema = z.object({
   id: z.string().optional(),
-  name: z.string().min(2, { message: "Name must be at least 2 characters." }),
-  type: z.string().min(1, { message: "Please select a type." }),
+  name: z.string().min(2, { message: "El nom ha de tenir almenys 2 caràcters." }),
+  type: z.string().min(1, { message: "Si us plau, selecciona un tipus." }),
 });
 
 export const entrySchema = baseSchema.extend({
-  balance: z.coerce.number().positive({ message: "Value must be a positive number." }).optional(),
-  value: z.coerce.number().positive({ message: "Value must be a positive number." }).optional(),
+  balance: z.coerce.number().positive({ message: "El valor ha de ser un número positiu." }).optional(),
+  value: z.coerce.number().positive({ message: "El valor ha de ser un número positiu." }).optional(),
 }).refine(data => (data.balance !== undefined && data.balance > 0) || (data.value !== undefined && data.value > 0), {
-    message: "A positive balance or value is required.",
+    message: "Es requereix un balanç o valor positiu.",
     path: ['balance'] // show error on balance field
 });
 
@@ -47,15 +47,15 @@ interface EntryDialogProps {
 }
 
 const typeOptions = {
-    'Bank': ['Current Account','Investment Account'],
-    'Debt': ['Credit Card', 'Mortgage', 'Personnel Credit'],
-    'Asset': ['House', 'Car']
+    'Bank': ['Compte Corrent', 'Compte d\'Inversió'],
+    'Debt': ['Targeta de Crèdit', 'Hipoteca', 'Crèdit Personal'],
+    'Asset': ['Casa', 'Cotxe']
 }
 
 const valueFieldLabel = {
-    'Bank': 'Balance',
-    'Debt': 'Balance',
-    'Asset': 'Value'
+    'Bank': 'Balanç',
+    'Debt': 'Balanç',
+    'Asset': 'Valor'
 }
 
 export const EntryDialog: FC<EntryDialogProps> = ({ type, onEntry, trigger, item, translations }) => {
@@ -66,7 +66,10 @@ export const EntryDialog: FC<EntryDialogProps> = ({ type, onEntry, trigger, item
   const valueFieldName = type === 'Asset' ? 'value' : 'balance';
 
   const formSchema = baseSchema.extend({
-    [valueFieldName]: z.coerce.number().positive({ message: "Value must be a positive number." }),
+    [valueFieldName]: z.preprocess(
+      (val) => String(val).replace(',', '.'),
+      z.coerce.number().positive({ message: "El valor ha de ser un número positiu." })
+    ),
   });
 
 
@@ -76,7 +79,7 @@ export const EntryDialog: FC<EntryDialogProps> = ({ type, onEntry, trigger, item
       id: item?.id,
       name: item?.name ?? "",
       [valueFieldName]: (item as any)?.balance ?? (item as any)?.value ?? 0,
-      type: (item as any)?.type ?? (type === 'Bank' ? 'Current Account' : ''),
+      type: (item as any)?.type ?? (type === 'Bank' ? 'Compte Corrent' : ''),
     },
     // TS inference for dynamic key is tricky; cast defaultValues to any
   } as any);
@@ -86,7 +89,7 @@ export const EntryDialog: FC<EntryDialogProps> = ({ type, onEntry, trigger, item
     form.reset();
     setOpen(false);
     toast({
-      title: "Success!",
+      title: "Èxit!",
       description: translations.successMessage
         .replace('{type}', type)
         .replace('{name}', values.name)

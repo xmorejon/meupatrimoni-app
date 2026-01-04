@@ -1,8 +1,8 @@
 
 import { db } from '@/firebase/config';
-import { collection, getDocs, doc, writeBatch, query, orderBy, getDoc, setDoc, addDoc, updateDoc, Timestamp } from 'firebase/firestore';
+import { collection, getDocs, doc, writeBatch, query, getDoc, setDoc, addDoc, updateDoc, Timestamp, orderBy } from 'firebase/firestore';
 import type { BankStatus, Debt, Asset, DashboardData, BalanceEntry, Entry } from './types';
-import { subDays, format, startOfToday, eachDayOfInterval, endOfDay, startOfDay, endOfYesterday } from 'date-fns';
+import { subDays, format, startOfToday, eachDayOfInterval, endOfDay, startOfDay, endOfYesterday, isSameDay } from 'date-fns';
 
 // Helper function to convert Firestore Timestamps to Dates in nested objects
 const convertTimestamps = <T>(data: any): T => {
@@ -23,22 +23,19 @@ const convertTimestamps = <T>(data: any): T => {
 
 export async function getBankBreakdown(): Promise<BankStatus[]> {
     const banksCol = collection(db, 'banks');
-    const q = query(banksCol, orderBy('balance', 'desc'));
-    const snapshot = await getDocs(q);
+    const snapshot = await getDocs(banksCol);
     return snapshot.docs.map(d => convertTimestamps<BankStatus>({ id: d.id, ...d.data() }));
 }
 
 export async function getDebtBreakdown(): Promise<Debt[]> {
     const debtsCol = collection(db, 'debts');
-    const q = query(debtsCol, orderBy('balance', 'desc'));
-    const snapshot = await getDocs(q);
+    const snapshot = await getDocs(debtsCol);
     return snapshot.docs.map(d => convertTimestamps<Debt>({ id: d.id, ...d.data() }));
 }
 
 export async function getAssetBreakdown(): Promise<Asset[]> {
     const assetsCol = collection(db, 'assets');
-    const q = query(assetsCol, orderBy('value', 'desc'));
-    const snapshot = await getDocs(q);
+    const snapshot = await getDocs(assetsCol);
     return snapshot.docs.map(d => convertTimestamps<Asset>({ id: d.id, ...d.data() }));
 }
 
@@ -103,18 +100,14 @@ export async function batchImportEntries(
     batch.set(newEntryRef, { ...commonData, ...specificData });
   });
   
-  // Find the most recent entry in the imported data
   const latestEntry = entries.reduce((latest, current) =>
     current.timestamp > latest.timestamp ? current : latest
   );
 
-  // Get the existing item document
   const itemDoc = await getDoc(itemRef);
   const itemData = itemDoc.data();
   const lastUpdated = itemData?.lastUpdated?.toDate() ?? new Date(0);
 
-  // Only update the main item's balance/value if the latest imported entry is newer
-  // than the last update.
   if (latestEntry.timestamp > lastUpdated) {
     const updatePayload: { balance?: number; value?: number; lastUpdated: Timestamp } = {
         lastUpdated: Timestamp.fromDate(latestEntry.timestamp),
@@ -207,25 +200,25 @@ export async function getDashboardData(): Promise<DashboardData> {
   // --- CURRENT TOTALS ---
   let financialAssets = 0;
   for (const entry of bankBreakdown) {
-    financialAssets += entry.balance;
+    financialAssets += entry.balance || 0;
   }
 
   let physicalAssets = 0;
   for (const asset of assetBreakdown) {
-    physicalAssets += asset.value;
+    physicalAssets += asset.value || 0;
   }
 
   const totalAssets = financialAssets + physicalAssets;
 
   let totalDebts = 0;
   for (const debt of debtBreakdown) {
-    totalDebts += debt.balance;
+    totalDebts += debt.balance || 0;
   }
 
   let creditCardDebt = 0;
   for (const debt of debtBreakdown) {
-      if (debt.type === 'Credit Card') {
-          creditCardDebt += debt.balance;
+      if (debt.type === 'Targeta de Crèdit') {
+          creditCardDebt += debt.balance || 0;
       }
   }
 
@@ -238,7 +231,7 @@ export async function getDashboardData(): Promise<DashboardData> {
   const allTimestamps = allEntries.map(e => (e.timestamp as Date).getTime()).filter(t => !isNaN(t));
   
   const startDate = allTimestamps.length > 0 
-    ? startOfDay(new Date(Math.min(...allTimestamps))) 
+    ? startOfDay(new Date(Math.min(...allTimestamps)))
     : subDays(today, 90);
 
   const dateInterval = eachDayOfInterval({ start: startDate, end: today });
@@ -281,6 +274,14 @@ export async function getDashboardData(): Promise<DashboardData> {
   }
 
   const historicalData = dateInterval.map(date => {
+    if (isSameDay(date, today)) {
+        return {
+            date: format(date, 'dd/MM/yy'),
+            netWorth: totalNetWorth,
+            cashFlow: currentCashFlow,
+        };
+    }
+
     const endOfDate = endOfDay(date);
 
     let financialAssetsAtDate = 0;
@@ -312,7 +313,7 @@ export async function getDashboardData(): Promise<DashboardData> {
 
     let creditCardDebtAtDate = 0;
     for (const debt of debtBreakdown) {
-        if (debt.type === 'Credit Card') {
+        if (debt.type === 'Targeta de Crèdit') {
             const debtEntries = groupedDebtEntries[debt.id] || [];
             const latestEntry = debtEntries.find(e => (e.timestamp as Date) <= endOfDate);
             if (latestEntry) {
@@ -333,13 +334,11 @@ export async function getDashboardData(): Promise<DashboardData> {
   });
   
   const yesterdayData = historicalData.find(d => d.date === format(endOfYesterday(), 'dd/MM/yy'));
-  const yesterdayNetWorth = yesterdayData?.netWorth ?? (historicalData.length > 1 ? historicalData[historicalData.length - 2].netWorth : totalNetWorth);
+  const yesterdayNetWorth = yesterdayData?.netWorth ?? (historicalData.length > 1 ? historicalData[historicalData.length - 2].netWorth : 0);
   
-  const todayNetWorth = historicalData.length > 0 ? historicalData[historicalData.length - 1].netWorth : totalNetWorth;
+  const todayNetWorth = historicalData.length > 0 ? historicalData[historicalData.length - 1].netWorth : 0;
   
-  const netWorthChange = todayNetWorth > 0 && yesterdayNetWorth > 0 && yesterdayNetWorth !== todayNetWorth 
-    ? ((todayNetWorth - yesterdayNetWorth) / Math.abs(yesterdayNetWorth)) * 100 
-    : 0;
+  const netWorthChange = todayNetWorth - yesterdayNetWorth;
 
   return { totalNetWorth, netWorthChange, currentCashFlow, historicalData, bankBreakdown, debtBreakdown, assetBreakdown };
-};
+}

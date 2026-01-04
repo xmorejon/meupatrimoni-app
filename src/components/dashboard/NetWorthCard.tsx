@@ -12,7 +12,7 @@ export const NetWorthCard: FC<NetWorthCardProps> = ({ totalNetWorth, change, cas
   const translations = {
     totalNetWorth: "Patrimoni Net Total",
     vsYesterday: "respecte ahir",
-    currentCashFlow: "Flux de Caixa Actual",
+    currentCashFlow: "Capital Disponible",
     cashFlowDescription: "Actius líquids menys deutes de targeta de crèdit.",
   };
   const locale = 'ca-ES';
@@ -28,29 +28,27 @@ export const NetWorthCard: FC<NetWorthCardProps> = ({ totalNetWorth, change, cas
     currency,
   }).format(cashFlow);
 
-  const ChangeIcon = change > 0.01 ? ArrowUpRight : change < -0.01 ? ArrowDownRight : Minus;
-  const changeColor = change > 0.01 ? 'text-green-400' : change < -0.01 ? 'text-red-400' : 'text-muted-foreground';
+  const ChangeIcon = change > 0 ? ArrowUpRight : change < 0 ? ArrowDownRight : Minus;
+  const changeColor = change > 0 ? 'text-green-500' : change < 0 ? 'text-red-500' : 'text-muted-foreground';
 
   return (
-    <Card className="shadow-lg">
-      <div className="grid grid-cols-1 md:grid-cols-3">
-        <div className="md:col-span-2 p-6">
-          <CardTitle className="text-muted-foreground font-medium">{translations.totalNetWorth}</CardTitle>
-          <div className="flex items-baseline gap-4 mt-2">
-            <p className="text-4xl md:text-5xl font-bold text-foreground">
-              {formattedNetWorth}
-            </p>
-            <div className={`flex items-center gap-1 text-lg font-semibold ${changeColor}`}>
-              <ChangeIcon className="h-5 w-5" />
-              <span>{change.toFixed(2)}%</span>
-            </div>
-          </div>
-          <p className="text-sm text-muted-foreground mt-2">{translations.vsYesterday}</p>
+    <Card>
+      <CardHeader>
+        <CardTitle>{translations.totalNetWorth}</CardTitle>
+      </CardHeader>
+      <CardContent>
+        <div className="text-3xl font-bold text-foreground">{formattedNetWorth}</div>
+        <div className="flex items-center text-sm mt-1">
+          <ChangeIcon className={`h-4 w-4 ${changeColor}`} />
+          <span className={`${changeColor} font-semibold`}>
+            {change.toFixed(2)}%
+          </span>
+          <span className="text-xs text-muted-foreground ml-1">{translations.vsYesterday}</span>
         </div>
-        <div className="p-6 flex flex-col justify-center border-t md:border-t-0 md:border-l border-border">
-          <div className="flex items-center gap-3">
-            <div className="p-2 bg-muted rounded-md">
-                <Wallet className="h-5 w-5 text-muted-foreground" />
+        <div className="border-t border-border mt-4 pt-4">
+          <div className="flex items-center">
+            <div className="p-2 bg-muted rounded-md mr-3">
+              <Wallet className="h-5 w-5 text-muted-foreground" />
             </div>
             <div>
               <p className="text-sm text-muted-foreground">{translations.currentCashFlow}</p>

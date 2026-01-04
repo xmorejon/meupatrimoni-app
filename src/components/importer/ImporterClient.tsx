@@ -1,251 +1,137 @@
-"use client";
+'use client';
 
-import { useState } from "react";
-import { useForm } from "react-hook-form";
-import { z } from "zod";
-import { zodResolver } from "@hookform/resolvers/zod";
-import Papa from "papaparse";
-import { useRouter } from "next/navigation";
+import { useState } from 'react';
+import { useRouter } from 'next/navigation';
+import { Button } from '@/components/ui/button';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
+import Papa from 'papaparse';
+import { useToast } from "@/components/ui/use-toast"
+import { batchImport } from '@/lib/firebase-service';
+import { zodResolver } from "@hookform/resolvers/zod"
+import { useForm } from "react-hook-form"
+import * as z from "zod"
+import {
+  Form,
+  FormControl,
+  FormField,
+  FormItem,
+  FormLabel,
+  FormMessage,
+} from "@/components/ui/form"
 
-import type { BankStatus, Debt, Asset } from "@/lib/types";
-import { batchImportEntries } from "@/lib/firebase-service";
-import { Header } from "@/components/Header";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Input } from "@/components/ui/input";
-import { Button } from "@/components/ui/button";
-import { useToast } from "@/hooks/use-toast";
 
-interface CsvData {
-    Date: string;
-    Balance?: string;
-    Value?: string;
-    [key: string]: string | undefined;
-}
+const supportedBanks = ['Revolut', 'N26'];
 
-interface ImporterClientProps {
-    banks: BankStatus[];
-    debts: Debt[];
-    assets: Asset[];
-}
+const formSchema = z.object({
+  bank: z.string().min(1, { message: 'Si us plau, selecciona un banc.' }),
+  file: z.any().refine(file => file instanceof File, 'Si us plau, puja un fitxer.'),
+});
 
-export function ImporterClient({ banks, debts, assets }: ImporterClientProps) {
-  const { toast } = useToast();
+export const ImporterClient = () => {
+  const [isParsing, setIsParsing] = useState(false);
   const router = useRouter();
-  const [loading, setLoading] = useState(false);
+  const { toast } = useToast();
 
-  const formSchema = z.object({
-    entryType: z.enum(["Bank", "Debt", "Asset"]),
-    itemId: z.string().min(1, "Si us plau, selecciona un element."),
-    file: z.instanceof(FileList).refine((files) => files?.length === 1, "Es requereix un fitxer CSV."),
-  });
-
-  type FormValues = z.infer<typeof formSchema>;
-  
-  const form = useForm<FormValues>({
+  const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
+    defaultValues: {
+      bank: '',
+      file: null,
+    },
   });
 
-  const entryType = form.watch("entryType");
-
-  const itemsForType = {
-    Bank: banks,
-    Debt: debts,
-    Asset: assets,
-  };
-
-  const currentItems = entryType ? itemsForType[entryType] : [];
-  const rootPath = `/`;
-
-  const onSubmit = (data: FormValues) => {
-    setLoading(true);
-    const file = data.file[0];
-    const selectedItem = (itemsForType[data.entryType] as any[]).find(i => i.id === data.itemId);
-    
-    if (!selectedItem) {
-      toast({
-        variant: "destructive",
-        title: "Error d'Importació",
-        description: "No s'ha trobat l'element seleccionat.",
-      });
-      setLoading(false);
-      return;
-    }
-    
-    Papa.parse<CsvData>(file, {
+  const onSubmit = async (values: z.infer<typeof formSchema>) => {
+    setIsParsing(true);
+    Papa.parse(values.file, {
       header: true,
       skipEmptyLines: true,
-      delimitersToGuess: [',', ';'],
       complete: async (results) => {
         try {
-          const isAsset = data.entryType === 'Asset';
-          const valueColumn = isAsset ? 'Value' : 'Balance';
-          const requiredColumns = ['Date', valueColumn];
-
-          if (!results.meta.fields || !requiredColumns.every(col => results.meta.fields?.includes(col))) {
-             throw new Error(`El CSV ha de tenir les columnes següents: ${requiredColumns.join(', ')}`);
-          }
-
-          const entries = results.data.map(row => {
-            const valueString = row[valueColumn];
-            if (!row.Date || !valueString) return null;
-            
-            const dateParts = row.Date.split('/');
-            if (dateParts.length !== 3) return null;
-            
-            const day = parseInt(dateParts[0], 10);
-            const month = parseInt(dateParts[1], 10) - 1;
-            const year = parseInt(dateParts[2], 10);
-
-            const valueAsNumber = parseFloat(valueString.replace(/\./g, '').replace(',', '.'));
-
-            if(isAsset) {
-                return {
-                  timestamp: new Date(year, month, day),
-                  value: valueAsNumber,
-                }
-            }
-            return {
-              timestamp: new Date(year, month, day),
-              balance: valueAsNumber,
-            }
-          }).filter((entry): entry is { timestamp: Date; balance?: number; value?: number; } => 
-              entry !== null && 
-              !isNaN(entry.timestamp.getTime()) && 
-              (!isNaN(entry.balance ?? NaN) || !isNaN(entry.value ?? NaN))
-          );
-
-          if (entries.length === 0) {
-            throw new Error(`No s'han trobat registres vàlids. Comprova les columnes 'Data' (DD/MM/YYYY) i '${valueColumn}'.`);
-          }
-
-          await batchImportEntries(data.entryType, selectedItem, entries);
-
+          await batchImport(results.data, values.bank);
           toast({
-            title: "Importació Completada",
-            description: `S'han importat ${entries.length} registres per a ${selectedItem.name} correctament.`,
+            title: 'Importació exitosa',
+            description: `S'han importat ${results.data.length} transaccions.`,
           });
-          router.push(rootPath);
-
-        } catch (error: any) {
-           toast({
+          router.push('/dashboard');
+        } catch (error) {
+          console.error(error);
+          toast({
             variant: "destructive",
-            title: "Error d'Importació",
-            description: error.message || "Ha ocorregut un error inesperat.",
+            title: 'Error en la importació',
+            description: 'Hi ha hagut un problema en importar les teves dades. Si us plau, intenta-ho de nou.',
           });
         } finally {
-          setLoading(false);
-          form.reset();
+          setIsParsing(false);
         }
       },
       error: (error) => {
-        console.error("Error en processar el CSV:", error);
-        setLoading(false);
+        console.error(error);
         toast({
-          variant: "destructive",
-          title: "Error d'Importació",
-          description: "Error en processar el fitxer CSV.",
+            variant: "destructive",
+            title: 'Error en el processament',
+            description: 'Hi ha hagut un problema en processar el teu fitxer CSV. Si us plau, comprova el format i intenta-ho de nou.',
         });
+        setIsParsing(false);
       },
     });
   };
 
-  const valueColumnName = entryType === 'Asset' ? 'Valor' : 'Balanç';
-
   return (
-    <div className="flex flex-col min-h-screen bg-background text-foreground">
-      <Header title="Importar Dades" />
-      <main className="flex-1 p-4 md:p-8">
-        <div className="max-w-2xl mx-auto">
-          <Card>
-            <CardHeader>
-              <CardTitle>Pujar Extracte</CardTitle>
-              <CardDescription>
-                {`Selecciona un tipus d'entrada i un element, després puja el fitxer CSV corresponent. Assegura't que el teu CSV tingui columnes per a 'Data' (DD/MM/YYYY) i '${valueColumnName}'.`}
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
-              <Form {...form}>
-                <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
-                  <FormField
-                    control={form.control}
-                    name="entryType"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Tipus d'Entrada</FormLabel>
-                        <Select onValueChange={(value) => {
-                          field.onChange(value);
-                          form.setValue('itemId', ''); // Reset item selection
-                        }} defaultValue={field.value}>
-                          <FormControl>
-                            <SelectTrigger>
-                              <SelectValue placeholder="Selecciona un tipus d'entrada" />
-                            </SelectTrigger>
-                          </FormControl>
-                          <SelectContent>
-                            <SelectItem value="Bank">Compte Bancari</SelectItem>
-                            <SelectItem value="Debt">Deute</SelectItem>
-                            <SelectItem value="Asset">Actiu</SelectItem>
-                          </SelectContent>
-                        </Select>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-                  {entryType && (
-                    <FormField
-                      control={form.control}
-                      name="itemId"
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormLabel>{entryType}</FormLabel>
-                          <Select onValueChange={field.onChange} defaultValue={field.value} value={field.value}>
-                            <FormControl>
-                              <SelectTrigger>
-                                <SelectValue placeholder={`Selecciona un/a ${entryType.toLowerCase()}`} />
-                              </SelectTrigger>
-                            </FormControl>
-                            <SelectContent>
-                              {currentItems.map((item: any) => (
-                                <SelectItem key={item.id} value={item.id}>
-                                  {item.name}
-                                </SelectItem>
-                              ))}
-                            </SelectContent>
-                          </Select>
-                          <FormMessage />
-                        </FormItem>
-                      )}
+    <Card className="max-w-xl mx-auto my-8">
+      <CardHeader>
+        <CardTitle>Importar Transaccions</CardTitle>
+        <CardDescription>Puja un fitxer CSV del teu banc per importar les teves transaccions.</CardDescription>
+      </CardHeader>
+      <CardContent>
+        <Form {...form}>
+          <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-8">
+            <FormField
+              control={form.control}
+              name="bank"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Banc</FormLabel>
+                  <Select onValueChange={field.onChange} defaultValue={field.value}>
+                    <FormControl>
+                      <SelectTrigger>
+                        <SelectValue placeholder="Selecciona un banc" />
+                      </SelectTrigger>
+                    </FormControl>
+                    <SelectContent>
+                      {supportedBanks.map(bank => (
+                        <SelectItem key={bank} value={bank}>{bank}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+
+            <FormField
+              control={form.control}
+              name="file"
+              render={({ field: { onChange, ...field } }) => (
+                <FormItem>
+                  <FormLabel>Fitxer CSV</FormLabel>
+                  <FormControl>
+                    <input 
+                      type="file" 
+                      accept=".csv"
+                      onChange={(e) => onChange(e.target.files ? e.target.files[0] : null)}
+                      className="block w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-md file:border-0 file:text-sm file:font-semibold file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100"
                     />
-                  )}
-                  <FormField
-                    control={form.control}
-                    name="file"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Fitxer CSV</FormLabel>
-                        <FormControl>
-                          <Input type="file" accept=".csv" {...form.register("file")} />
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-                  <div className="flex gap-2">
-                    <Button type="submit" disabled={loading || !form.formState.isValid}>
-                      {loading ? "Important..." : "Importar Dades"}
-                    </Button>
-                    <Button type="button" variant="outline" onClick={() => router.push(rootPath)} disabled={loading}>
-                      Cancel·lar
-                    </Button>
-                  </div>
-                </form>
-              </Form>
-            </CardContent>
-          </Card>
-        </div>
-      </main>
-    </div>
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+
+            <Button type="submit" disabled={isParsing}>{isParsing ? 'Processant...' : 'Importar'}</Button>
+          </form>
+        </Form>
+      </CardContent>
+    </Card>
   );
-}
+};
