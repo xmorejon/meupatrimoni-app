@@ -15,7 +15,8 @@ import { Totals } from './Totals';
 import type { baseSchema } from './EntryDialog';
 import { addOrUpdateBank, addOrUpdateDebt, addOrUpdateAsset } from '@/lib/firebase-service';
 import type { DashboardData } from '@/lib/types';
-import { useToast } from "@/components/ui/use-toast"
+import { useToast } from "@/components/ui/use-toast";
+import { ConnectWithPowens } from '@/components/connect-with-powens'; // Import the new component
 
 interface DashboardClientProps {
   data: DashboardData | null;
@@ -35,8 +36,6 @@ export const DashboardClient: FC<DashboardClientProps> = ({ data }) => {
     try {
       const action = values.id ? 'actualitzat' : 'afegit';
       
-      // The `values` object from the dialog is already correctly structured.
-      // We pass it directly to the corresponding database function.
       switch (type) {
         case 'Bank':
           await addOrUpdateBank(values as any);
@@ -69,7 +68,11 @@ export const DashboardClient: FC<DashboardClientProps> = ({ data }) => {
     return (
         <div className="flex flex-col items-center justify-center h-full">
             <p className="mb-4">No hi ha dades per mostrar.</p>
-            <Button onClick={() => router.push('/import')}>Importar Dades</Button>
+            {/* Also add the button here for the empty state */}
+            <div className="flex gap-2">
+                <ConnectWithPowens />
+                <Button onClick={() => router.push('/import')}>Importar Dades Manualment</Button>
+            </div>
         </div>
     );
   }
@@ -83,10 +86,14 @@ export const DashboardClient: FC<DashboardClientProps> = ({ data }) => {
     <div className="flex flex-col gap-6">
         <div className="flex justify-between items-center">
             <h1 className="text-2xl font-semibold">Dashboard</h1>
-            <Button onClick={() => router.push('/import')} variant="outline">
-                <ArrowRightLeft className="mr-2 h-4 w-4" />
-                Importar
-            </Button>
+            {/* Group the buttons together */}
+            <div className="flex items-center gap-2">
+                <ConnectWithPowens />
+                <Button onClick={() => router.push('/import')} variant="outline">
+                    <ArrowRightLeft className="mr-2 h-4 w-4" />
+                    Importar
+                </Button>
+            </div>
         </div>
 
       <Totals 

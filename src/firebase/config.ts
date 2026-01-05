@@ -2,6 +2,7 @@
 import { initializeApp, getApps, getApp } from "firebase/app";
 import { getFirestore } from "firebase/firestore";
 import { getAuth } from "firebase/auth";
+import { getFunctions } from "firebase/functions"; // Import the functions module
 
 // Your web app's Firebase configuration
 const firebaseConfig = {
@@ -18,4 +19,8 @@ const app = !getApps().length ? initializeApp(firebaseConfig) : getApp();
 const db = getFirestore(app);
 const auth = getAuth(app);
 
-export { app, db, auth };
+// Initialize Cloud Functions and point them to the correct region
+const functions = getFunctions(app, 'europe-west1');
+
+// Export all the firebase services
+export { app, db, auth, functions };
