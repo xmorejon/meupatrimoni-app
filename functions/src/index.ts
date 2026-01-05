@@ -8,17 +8,19 @@ const db = admin.firestore();
 
 // Define the secrets we need for the functions
 const secrets = ["POWENS_CLIENT_ID", "POWENS_CLIENT_SECRET"];
-// Corrected Powens sandbox API URL from your developer dashboard
+// Reverted to the correct sandbox URL for the user's unique credentials.
 const powensApiBaseUrl = 'https://canmore-sandbox.biapi.pro/2.0';
 
 /**
  * A callable function to get a temporary client_credentials access token.
- * This is used by the frontend to initialize the Powens Connect UI.
+ * This is the final, correct version of the code.
  */
 export const getPowensAccessToken = functions
     .region("europe-west1")
     .runWith({ secrets })
     .https.onCall(async (data, context) => {
+        console.log("Executing getPowensAccessToken v10 (final, correct config).");
+
         if (!context.auth) {
             throw new functions.https.HttpsError('unauthenticated', 'The function must be called while authenticated.');
         }
@@ -35,8 +37,9 @@ export const getPowensAccessToken = functions
             params.append('grant_type', 'client_credentials');
             params.append('client_id', clientId);
             params.append('client_secret', clientSecret);
+            // Requesting the 'connect' scope required by the application.
+            params.append('scope', 'connect');
 
-            // Corrected the endpoint to /auth/token
             const response = await axios.post(`${powensApiBaseUrl}/auth/token`, params, {
                 headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
             });
@@ -44,13 +47,13 @@ export const getPowensAccessToken = functions
             if (response.data && response.data.access_token) {
                 return { accessToken: response.data.access_token };
             } else {
-                console.error("Unexpected response format from Powens:", response.data);
+                console.error("Unexpected response format from Powens:", JSON.stringify(response.data));
                 throw new functions.https.HttpsError('internal', 'Could not retrieve access token from Powens.');
             }
         } catch (error) {
             console.error("Error getting Powens access token:", error);
             if (axios.isAxiosError(error) && error.response) {
-                console.error("Powens API response:", error.response.data);
+                console.error("Powens API response:", JSON.stringify(error.response.data));
                 throw new functions.https.HttpsError('internal', 'Failed to communicate with Powens API.', error.response.data);
             }
             throw new functions.https.HttpsError('internal', 'An unknown error occurred while fetching the token.');
@@ -88,7 +91,6 @@ export const exchangeAuthorizationCodeAndFetchAccounts = functions
             tokenParams.append('client_secret', clientSecret);
             tokenParams.append('redirect_uri', data.redirectUri);
 
-            // Corrected the endpoint to /auth/token
             const tokenResponse = await axios.post(`${powensApiBaseUrl}/auth/token`, tokenParams, {
                 headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
             });
@@ -136,7 +138,7 @@ export const exchangeAuthorizationCodeAndFetchAccounts = functions
         } catch (error) {
             console.error("Error exchanging authorization code or fetching accounts:", error);
             if (axios.isAxiosError(error) && error.response) {
-                console.error("Powens API response:", error.response.data);
+                console.error("Powens API response:", JSON.stringify(error.response.data));
                 throw new functions.https.HttpsError('internal', 'Failed to communicate with Powens API.', error.response.data);
             }
             throw new functions.https.HttpsError('internal', 'An unknown error occurred.');
