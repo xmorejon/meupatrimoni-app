@@ -6,127 +6,107 @@ import { URLSearchParams } from "url";
 admin.initializeApp();
 const db = admin.firestore();
 
-// Define the secrets we need for the functions
-const secrets = ["POWENS_CLIENT_ID", "POWENS_CLIENT_SECRET"];
-// Reverted to the correct sandbox URL for the user's unique credentials.
-const powensApiBaseUrl = 'https://canmore-sandbox.biapi.pro/2.0';
+const secrets = ["TRUELAYER_CLIENT_SECRET"];
 
-/**
- * A callable function to get a temporary client_credentials access token.
- * This is the final, correct version of the code.
- */
-export const getPowensAccessToken = functions
+const truelayerAuthBaseUrl = 'https://auth.truelayer.com';
+const truelayerApiBaseUrl = 'https://api.truelayer.com';
+const redirectUri = "https://meupatrimoni-app.web.app";
+
+export const getTrueLayerAuthLink = functions
     .region("europe-west1")
     .runWith({ secrets })
     .https.onCall(async (data, context) => {
-        console.log("Executing getPowensAccessToken v10 (final, correct config).");
-
         if (!context.auth) {
             throw new functions.https.HttpsError('unauthenticated', 'The function must be called while authenticated.');
         }
+        
+        // As per the new format, the client_id is static for this provider
+        const clientId = "santander-e56236";
 
-        const clientId = process.env.POWENS_CLIENT_ID;
-        const clientSecret = process.env.POWENS_CLIENT_SECRET;
+        const authUrl = new URL(`${truelayerAuthBaseUrl}/`);
+        authUrl.searchParams.set('response_type', 'code');
+        authUrl.searchParams.set('client_id', clientId);
+        authUrl.searchParams.set('scope', 'info accounts balance cards transactions direct_debits standing_orders offline_access');
+        authUrl.searchParams.set('redirect_uri', redirectUri);
+        authUrl.searchParams.set('providers', 'uk-oauth-all es-ob-revolut es-xs2a-santander es-xs2a-ing');
+        authUrl.searchParams.set('disable_providers', 'uk-ob-all');
 
-        if (!clientId || !clientSecret) {
-            throw new functions.https.HttpsError('internal', 'Server configuration error: missing secrets.');
-        }
+        functions.logger.info("Generated TrueLayer Auth URL:", authUrl.toString());
 
-        try {
-            const params = new URLSearchParams();
-            params.append('grant_type', 'client_credentials');
-            params.append('client_id', clientId);
-            params.append('client_secret', clientSecret);
-            // Requesting the 'connect' scope required by the application.
-            params.append('scope', 'connect');
-
-            const response = await axios.post(`${powensApiBaseUrl}/auth/token`, params, {
-                headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-            });
-
-            if (response.data && response.data.access_token) {
-                return { accessToken: response.data.access_token };
-            } else {
-                console.error("Unexpected response format from Powens:", JSON.stringify(response.data));
-                throw new functions.https.HttpsError('internal', 'Could not retrieve access token from Powens.');
-            }
-        } catch (error) {
-            console.error("Error getting Powens access token:", error);
-            if (axios.isAxiosError(error) && error.response) {
-                console.error("Powens API response:", JSON.stringify(error.response.data));
-                throw new functions.https.HttpsError('internal', 'Failed to communicate with Powens API.', error.response.data);
-            }
-            throw new functions.https.HttpsError('internal', 'An unknown error occurred while fetching the token.');
-        }
+        return { authUrl: authUrl.toString() };
     });
 
-/**
- * Exchanges a Powens authorization_code for a permanent user token,
- * fetches the user's accounts, and saves them to Firestore.
- */
-export const exchangeAuthorizationCodeAndFetchAccounts = functions
+export const handleTrueLayerCallback = functions
     .region("europe-west1")
     .runWith({ secrets })
     .https.onCall(async (data, context) => {
         if (!context.auth) {
             throw new functions.https.HttpsError('unauthenticated', 'The function must be called while authenticated.');
         }
-        if (!data.authorizationCode || !data.redirectUri) {
-            throw new functions.https.HttpsError('invalid-argument', 'The function must be called with an "authorizationCode" and "redirectUri".');
+        if (!data.code) {
+            throw new functions.https.HttpsError('invalid-argument', 'The function must be called with a "code".');
         }
 
         const uid = context.auth.uid;
-        const clientId = process.env.POWENS_CLIENT_ID;
-        const clientSecret = process.env.POWENS_CLIENT_SECRET;
+        const clientId = "santander-e56236"; // Use the static client_id
+        const clientSecret = process.env.TRUELAYER_CLIENT_SECRET;
 
-        if (!clientId || !clientSecret) {
+        if (!clientSecret) {
             throw new functions.https.HttpsError('internal', 'Server configuration error: missing secrets.');
         }
 
         try {
             const tokenParams = new URLSearchParams();
             tokenParams.append('grant_type', 'authorization_code');
-            tokenParams.append('code', data.authorizationCode);
             tokenParams.append('client_id', clientId);
             tokenParams.append('client_secret', clientSecret);
-            tokenParams.append('redirect_uri', data.redirectUri);
+            tokenParams.append('redirect_uri', redirectUri);
+            tokenParams.append('code', data.code);
 
-            const tokenResponse = await axios.post(`${powensApiBaseUrl}/auth/token`, tokenParams, {
+            const tokenResponse = await axios.post(`${truelayerAuthBaseUrl}/connect/token`, tokenParams, {
                 headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
             });
 
             const userAccessToken = tokenResponse.data.access_token;
             if (!userAccessToken) {
-                throw new functions.https.HttpsError('internal', 'Could not retrieve user access token from Powens.');
+                throw new functions.https.HttpsError('internal', 'Could not retrieve user access token from TrueLayer.');
             }
-            
-            const accountsResponse = await axios.get(`${powensApiBaseUrl}/accounts`, {
+
+            const accountsResponse = await axios.get(`${truelayerApiBaseUrl}/data/v1/accounts`, {
                 headers: { 'Authorization': `Bearer ${userAccessToken}` },
             });
 
-            const accounts = accountsResponse.data.accounts;
+            const accounts = accountsResponse.data.results;
             const batch = db.batch();
             let importedCount = 0;
 
             for (const account of accounts) {
-                const bankRef = db.collection('users').doc(uid).collection('banks').doc(account.id);
+                if (account.account_type !== 'TRANSACTION') {
+                    continue;
+                }
+                const bankRef = db.collection('users').doc(uid).collection('banks').doc(account.account_id);
+
+                const balanceResponse = await axios.get(`${truelayerApiBaseUrl}/data/v1/accounts/${account.account_id}/balance`, {
+                     headers: { 'Authorization': `Bearer ${userAccessToken}` },
+                });
+                const balance = balanceResponse.data.results[0];
                 
                 batch.set(bankRef, {
-                    id: account.id,
-                    name: account.name,
-                    type: account.type,
-                    currency: account.currency.id,
-                    iban: account.iban,
-                    number: account.number,
-                    institution: account.connection.connector.name,
-                    logo: account.connection.connector.logo,
+                    id: account.account_id,
+                    name: account.display_name,
+                    type: account.account_type.toLowerCase(),
+                    currency: account.currency,
+                    iban: account.account_number?.iban,
+                    number: account.account_number?.number,
+                    institution: account.provider.display_name,
+                    logo: account.provider.logo_uri,
                     lastUpdated: admin.firestore.FieldValue.serverTimestamp()
                 }, { merge: true });
 
                 const balanceEntryRef = bankRef.collection('balanceEntries').doc();
                 batch.set(balanceEntryRef, {
-                    date: admin.firestore.Timestamp.fromDate(new Date(account.balance_date)),
-                    balance: account.balance,
+                    date: admin.firestore.Timestamp.fromDate(new Date(balance.update_timestamp)),
+                    balance: balance.current,
                 });
                 importedCount++;
             }
@@ -136,10 +116,10 @@ export const exchangeAuthorizationCodeAndFetchAccounts = functions
             return { success: true, message: `Successfully imported ${importedCount} accounts.` };
 
         } catch (error) {
-            console.error("Error exchanging authorization code or fetching accounts:", error);
+            console.error("Error during TrueLayer callback process:", error);
             if (axios.isAxiosError(error) && error.response) {
-                console.error("Powens API response:", JSON.stringify(error.response.data));
-                throw new functions.https.HttpsError('internal', 'Failed to communicate with Powens API.', error.response.data);
+                console.error("TrueLayer API response:", JSON.stringify(error.response.data));
+                throw new functions.https.HttpsError('internal', 'Failed to communicate with TrueLayer API.', error.response.data);
             }
             throw new functions.https.HttpsError('internal', 'An unknown error occurred.');
         }

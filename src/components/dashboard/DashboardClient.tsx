@@ -16,7 +16,8 @@ import type { baseSchema } from './EntryDialog';
 import { addOrUpdateBank, addOrUpdateDebt, addOrUpdateAsset } from '@/lib/firebase-service';
 import type { DashboardData } from '@/lib/types';
 import { useToast } from "@/components/ui/use-toast";
-import { ConnectWithPowens } from '@/components/connect-with-powens'; // Import the new component
+// *** Replace Powens with TrueLayer ***
+import ConnectWithTrueLayer from '@/components/connect-with-truelayer'; 
 
 interface DashboardClientProps {
   data: DashboardData | null;
@@ -68,9 +69,9 @@ export const DashboardClient: FC<DashboardClientProps> = ({ data }) => {
     return (
         <div className="flex flex-col items-center justify-center h-full">
             <p className="mb-4">No hi ha dades per mostrar.</p>
-            {/* Also add the button here for the empty state */}
             <div className="flex gap-2">
-                <ConnectWithPowens />
+                {/* *** Replace Powens with TrueLayer *** */}
+                <ConnectWithTrueLayer />
                 <Button onClick={() => router.push('/import')}>Importar Dades Manualment</Button>
             </div>
         </div>
@@ -86,9 +87,9 @@ export const DashboardClient: FC<DashboardClientProps> = ({ data }) => {
     <div className="flex flex-col gap-6">
         <div className="flex justify-between items-center">
             <h1 className="text-2xl font-semibold">Dashboard</h1>
-            {/* Group the buttons together */}
             <div className="flex items-center gap-2">
-                <ConnectWithPowens />
+                {/* *** Replace Powens with TrueLayer *** */}
+                <ConnectWithTrueLayer />
                 <Button onClick={() => router.push('/import')} variant="outline">
                     <ArrowRightLeft className="mr-2 h-4 w-4" />
                     Importar
