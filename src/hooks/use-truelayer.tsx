@@ -1,49 +1,49 @@
 import { useState } from 'react';
 import { httpsCallable } from 'firebase/functions';
 import { functions } from '../firebase/config';
+import type { Bank, Debt, Asset } from '@/lib/types';
 
-// Get references to our new backend functions
 const getAuthLink = httpsCallable(functions, 'getTrueLayerAuthLink');
 const handleCallback = httpsCallable(functions, 'handleTrueLayerCallback');
+
+type TrueLayerAccount = (Bank | Debt | Asset) & { importType: string };
 
 export const useTrueLayer = () => {
     const [isLoading, setIsLoading] = useState(false);
     const [error, setError] = useState<string | null>(null);
 
-    /**
-     * Step 1: Get the authentication URL from our backend and redirect the user.
-     */
     const connect = async () => {
         setIsLoading(true);
         setError(null);
+        console.log("useTrueLayer: Initiating connection...");
         try {
             const result = await getAuthLink();
             const { authUrl } = result.data as { authUrl: string };
-            // Redirect the user to the TrueLayer auth page
+            console.log("useTrueLayer: Received auth URL, redirecting...");
             window.location.href = authUrl;
         } catch (err) {
-            console.error("Error getting TrueLayer auth link:", err);
+            console.error("useTrueLayer: Error getting TrueLayer auth link:", err);
             setError("Could not initiate connection with TrueLayer.");
             setIsLoading(false);
         }
     };
 
-    /**
-     * Step 2: Handle the callback from TrueLayer after user authorization.
-     */
-    const exchangeCode = async (code: string) => {
+    const exchangeCode = async (code: string): Promise<{ success: boolean; accounts: TrueLayerAccount[] }> => {
         setIsLoading(true);
         setError(null);
+        console.log(`useTrueLayer: Attempting to exchange code: ${code}`);
         try {
             const result = await handleCallback({ code });
-            console.log("Successfully exchanged code and fetched accounts:", result.data);
-            return { success: true };
+            const data = result.data as { success: boolean; accounts: TrueLayerAccount[] };
+            console.log("useTrueLayer: Successfully exchanged code. Received data:", data);
+            return { success: true, accounts: data.accounts || [] };
         } catch (err) {
-            console.error("Error exchanging TrueLayer code:", err);
+            console.error("useTrueLayer: Error exchanging TrueLayer code:", err);
             setError("Failed to connect accounts.");
-            return { success: false };
+            return { success: false, accounts: [] };
         } finally {
             setIsLoading(false);
+            console.log("useTrueLayer: Finished exchangeCode process.");
         }
     };
 

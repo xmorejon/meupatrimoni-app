@@ -1,0 +1,33 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Authorizing...</title>
+  <script>
+    try {
+      const params = new URLSearchParams(window.location.search);
+      const code = params.get('code');
+      const error = params.get('error');
+
+      if (code) {
+        // Store the code and redirect to the main import page.
+        localStorage.setItem('truelayer_code', code);
+        window.location.href = '/import';
+      } else if (error) {
+        // Store the error and redirect.
+        localStorage.setItem('truelayer_error', error);
+        window.location.href = '/import';
+      } else {
+        // Fallback if no code or error is present.
+        window.location.href = '/import';
+      }
+    } catch (e) {
+      // In case of any script error, just try to redirect.
+      console.error("Error in callback.html:", e);
+      window.location.href = '/import';
+    }
+  </script>
+</head>
+<body>
+  <p>Please wait, you are being redirected...</p>
+</body>
+</html>
