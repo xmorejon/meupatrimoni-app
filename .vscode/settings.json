@@ -1,5 +1,4 @@
 {
-    "IDX.aI.showChatInEditorTab": true,
-    "git.ignoreLimitWarning": true,
-    "IDX.agenticWorkspace": false
+    "IDX.aI.showChatInEditorTab": false,
+    "git.ignoreLimitWarning": true
 }
