@@ -1,12 +1,8 @@
 'use client';
 
 import { useState, useCallback } from 'react';
-import { httpsCallable } from 'firebase/functions';
-import { functions, auth } from '../firebase/config';
+import { auth, getAuthLink, handleCallback } from '../firebase/config';
 import type { Bank, Debt, Asset } from '@/lib/types';
-
-const getAuthLink = httpsCallable(functions, 'getTrueLayerAuthLink');
-const handleCallback = httpsCallable(functions, 'handleTrueLayerCallback');
 
 type TrueLayerAccount = (Bank | Debt | Asset) & { importType: string };
 

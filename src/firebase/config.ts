@@ -2,7 +2,7 @@
 import { initializeApp, getApps, getApp } from "firebase/app";
 import { getFirestore } from "firebase/firestore";
 import { getAuth, browserLocalPersistence, setPersistence } from "firebase/auth";
-import { getFunctions } from "firebase/functions"; // Import the functions module
+import { getFunctions, httpsCallable } from "firebase/functions"; // Import the functions module
 
 // Your web app's Firebase configuration
 const firebaseConfig = {
@@ -25,5 +25,9 @@ setPersistence(auth, browserLocalPersistence);
 // Initialize Cloud Functions and point them to the correct region
 const functions = getFunctions(app, 'europe-west1');
 
+const getAuthLink = httpsCallable(functions, 'getTrueLayerAuthLink');
+const handleCallback = httpsCallable(functions, 'handleTrueLayerCallback');
+
+
 // Export all the firebase services
-export { app, db, auth, functions };
+export { app, db, auth, functions, getAuthLink, handleCallback };
