@@ -8,7 +8,6 @@ const db = admin.firestore();
 
 const secrets = ["TRUELAYER_CLIENT_ID", "TRUELAYER_CLIENT_SECRET"];
 
-// Define a regional function builder
 const regionalFunctions = functions.region("europe-west1");
 
 const truelayerAuthBaseUrl = 'https://auth.truelayer.com';
@@ -18,10 +17,6 @@ const redirectUri = "https://meupatrimoni-app.web.app/callback.html";
 export const getTrueLayerAuthLink = regionalFunctions
     .runWith({ secrets })
     .https.onCall(async (data, context) => {
-        if (!context.auth) {
-            throw new functions.https.HttpsError('unauthenticated', 'The function must be called while authenticated.');
-        }
-        
         const clientId = process.env.TRUELAYER_CLIENT_ID;
         if (!clientId) {
             throw new functions.https.HttpsError('internal', 'Server configuration error: missing TrueLayer Client ID.');
@@ -42,16 +37,12 @@ export const getTrueLayerAuthLink = regionalFunctions
 export const handleTrueLayerCallback = regionalFunctions
     .runWith({ secrets })
     .https.onCall(async (data, context) => {
-        if (!context.auth) {
-            throw new functions.https.HttpsError('unauthenticated', 'The function must be called while authenticated.');
-        }
         if (!data.code) {
             throw new functions.https.HttpsError('invalid-argument', 'The function must be called with a "code".');
         }
 
         functions.logger.info("handleTrueLayerCallback received code:", data.code);
 
-        const uid = context.auth.uid;
         const clientId = process.env.TRUELAYER_CLIENT_ID;
         const clientSecret = process.env.TRUELAYER_CLIENT_SECRET;
 
@@ -89,29 +80,37 @@ export const handleTrueLayerCallback = regionalFunctions
             const newlyImportedAccountsForClient = [];
 
             for (const account of accounts) {
+                let balance = null;
+                try {
+                    const balanceResponse = await axios.get(`${truelayerApiBaseUrl}/data/v1/accounts/${account.account_id}/balance`, {
+                        headers: { 'Authorization': `Bearer ${userAccessToken}` },
+                    });
+                    if (balanceResponse.data.results && balanceResponse.data.results.length > 0) {
+                        balance = balanceResponse.data.results[0].current;
+                    }
+                } catch (balanceError) {
+                    functions.logger.warn(`Could not fetch balance for account ${account.account_id}.`, balanceError);
+                }
+
                 if (account.account_type === 'TRANSACTION' || account.account_type === 'SAVING') {
-                    const bankRef = db.collection('users').doc(uid).collection('banks').doc(account.account_id);
+                    const bankRef = db.collection('banks').doc(account.account_id);
                     const bankDataForDb = {
                         id: account.account_id,
                         name: account.display_name,
                         type: account.account_type.toLowerCase(),
                         currency: account.currency,
-                        // Use nullish coalescing operator to provide null if the value is undefined
                         iban: account.account_number?.iban ?? null,
                         number: account.account_number?.number ?? null,
                         institution: account.provider.display_name,
                         logo: account.provider.logo_uri,
+                        balance: balance,
                         lastUpdated: admin.firestore.FieldValue.serverTimestamp()
                     };
                     batch.set(bankRef, bankDataForDb, { merge: true });
-                    newlyImportedAccountsForClient.push({ 
-                        ...bankDataForDb, 
-                        lastUpdated: new Date().toISOString(), // Use a simple timestamp for the client
-                        importType: 'Bank'
-                    });
+                    newlyImportedAccountsForClient.push({ ...bankDataForDb, lastUpdated: new Date().toISOString(), importType: 'Bank' });
 
                 } else if (account.account_type === 'CREDIT_CARD') {
-                    const debtRef = db.collection('users').doc(uid).collection('debts').doc(account.account_id);
+                    const debtRef = db.collection('debts').doc(account.account_id);
                     const debtDataForDb = {
                         id: account.account_id,
                         name: account.display_name,
@@ -119,14 +118,11 @@ export const handleTrueLayerCallback = regionalFunctions
                         currency: account.currency,
                         institution: account.provider.display_name,
                         logo: account.provider.logo_uri,
+                        balance: balance, // Storing balance for credit cards as well
                         lastUpdated: admin.firestore.FieldValue.serverTimestamp()
                     };
                     batch.set(debtRef, debtDataForDb, { merge: true });
-                    newlyImportedAccountsForClient.push({ 
-                        ...debtDataForDb,
-                        lastUpdated: new Date().toISOString(), // Use a simple timestamp for the client
-                        importType: 'Debt' 
-                    });
+                    newlyImportedAccountsForClient.push({ ...debtDataForDb, lastUpdated: new Date().toISOString(), importType: 'Debt' });
                 }
             }
 
