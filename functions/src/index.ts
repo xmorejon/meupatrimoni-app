@@ -104,8 +104,6 @@ export const handleTrueLayerCallback = regionalFunctions
                     continue; // Skip accounts where balance couldn't be fetched
                 }
 
-                const balanceEntryRef = db.collection('balanceEntries').doc();
-
                 if (account.account_type === 'TRANSACTION' || account.account_type === 'SAVING') {
                     const bankRef = db.collection('banks').doc(account.account_id);
                     const doc = await bankRef.get();
@@ -128,6 +126,7 @@ export const handleTrueLayerCallback = regionalFunctions
                     batch.set(bankRef, bankData, { merge: true });
 
                     // Add the linked balance entry
+                    const balanceEntryRef = db.collection('balanceEntries').doc();
                     batch.set(balanceEntryRef, {
                         balance: balance,
                         timestamp: now,
@@ -156,12 +155,13 @@ export const handleTrueLayerCallback = regionalFunctions
                     };
                     batch.set(debtRef, debtData, { merge: true });
 
-                    // Add the linked balance entry
-                    batch.set(balanceEntryRef, {
+                    // Add the linked debt entry
+                    const debtEntryRef = db.collection('debtEntries').doc();
+                    batch.set(debtEntryRef, {
                         balance: balance,
                         timestamp: now,
-                        bankId: debtRef.id, // Using bankId field to link to the debt item
-                        bank: debtName     // Using bank field to store the name
+                        debtId: debtRef.id,
+                        debtName: debtName
                     });
 
                     newlyImportedAccountsForClient.push({ ...debtData, lastUpdated: new Date().toISOString(), importType: 'Debt' });
