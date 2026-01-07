@@ -30,15 +30,15 @@ function CallbackProcessor() {
                 } else {
                     toast({ variant: "destructive", title: "Error de Connexió", description: result.error || "No s'ha pogut connectar el teu compte bancari." });
                 }
-                router.replace('/importer');
+                router.replace('/');
             });
 
         } else if (error) {
             localStorage.removeItem('truelayer_error');
             toast({ variant: "destructive", title: "Error en l'Autorització", description: error });
-            router.replace('/importer');
+            router.replace('/');
         } else {
-            router.replace('/importer');
+            router.replace('/');
         }
 
     }, [loading, user, router, toast, exchangeCode]);
