@@ -1,33 +1,39 @@
 <!DOCTYPE html>
 <html>
 <head>
-  <title>Authorizing...</title>
-  <script>
-    try {
-      const params = new URLSearchParams(window.location.search);
-      const code = params.get('code');
-      const error = params.get('error');
+    <title>Connecting...</title>
+    <script>
+        function handleCallback() {
+            try {
+                console.log("callback.html: Processing redirect...");
+                const params = new URLSearchParams(window.location.search);
+                const code = params.get('code');
+                const error = params.get('error');
 
-      if (code) {
-        // Store the code and redirect to the main import page.
-        localStorage.setItem('truelayer_code', code);
-        window.location.href = '/import';
-      } else if (error) {
-        // Store the error and redirect.
-        localStorage.setItem('truelayer_error', error);
-        window.location.href = '/import';
-      } else {
-        // Fallback if no code or error is present.
-        window.location.href = '/import';
-      }
-    } catch (e) {
-      // In case of any script error, just try to redirect.
-      console.error("Error in callback.html:", e);
-      window.location.href = '/import';
-    }
-  </script>
+                if (code) {
+                    console.log("callback.html: Found code. Storing and redirecting to /importer/callback.html");
+                    localStorage.setItem('truelayer_code', code);
+                    // Corrected the redirect path to point to the actual exported HTML file
+                    window.location.href = '/importer/callback.html'; 
+                } else if (error) {
+                    console.log("callback.html: Found error. Storing and redirecting to /importer/callback.html");
+                    localStorage.setItem('truelayer_error', error);
+                    window.location.href = '/importer/callback.html';
+                } else {
+                    // Fallback in case the page is loaded without params
+                    console.log("callback.html: No code or error found. Redirecting to /importer/callback.html");
+                    window.location.href = '/importer/callback.html'; 
+                }
+            } catch (e) {
+                console.error("Error in callback.html script:", e);
+                // Attempt to redirect anyway to handle the error on the main app page
+                window.location.href = '/importer/callback.html';
+            }
+        }
+        handleCallback();
+    </script>
 </head>
 <body>
-  <p>Please wait, you are being redirected...</p>
+    <p>Please wait while we connect your account...</p>
 </body>
 </html>

@@ -6,21 +6,26 @@ import { URLSearchParams } from "url";
 admin.initializeApp();
 const db = admin.firestore();
 
-const secrets = ["TRUELAYER_CLIENT_SECRET"];
+const secrets = ["TRUELAYER_CLIENT_ID", "TRUELAYER_CLIENT_SECRET"];
+
+// Define a regional function builder
+const regionalFunctions = functions.region("europe-west1");
 
 const truelayerAuthBaseUrl = 'https://auth.truelayer.com';
 const truelayerApiBaseUrl = 'https://api.truelayer.com';
 const redirectUri = "https://meupatrimoni-app.web.app/callback.html";
 
-export const getTrueLayerAuthLink = functions
-    .region("europe-west1")
+export const getTrueLayerAuthLink = regionalFunctions
     .runWith({ secrets })
     .https.onCall(async (data, context) => {
         if (!context.auth) {
             throw new functions.https.HttpsError('unauthenticated', 'The function must be called while authenticated.');
         }
         
-        const clientId = "santander-e56236";
+        const clientId = process.env.TRUELAYER_CLIENT_ID;
+        if (!clientId) {
+            throw new functions.https.HttpsError('internal', 'Server configuration error: missing TrueLayer Client ID.');
+        }
 
         const authUrl = new URL(`${truelayerAuthBaseUrl}/`);
         authUrl.searchParams.set('response_type', 'code');
@@ -28,15 +33,13 @@ export const getTrueLayerAuthLink = functions
         authUrl.searchParams.set('scope', 'info accounts balance cards transactions direct_debits standing_orders offline_access');
         authUrl.searchParams.set('redirect_uri', redirectUri);
         authUrl.searchParams.set('providers', 'uk-oauth-all es-ob-revolut es-xs2a-santander es-xs2a-ing');
-        authUrl.searchParams.set('disable_providers', 'uk-ob-all');
 
         functions.logger.info("Generated TrueLayer Auth URL:", authUrl.toString());
 
         return { authUrl: authUrl.toString() };
     });
 
-export const handleTrueLayerCallback = functions
-    .region("europe-west1")
+export const handleTrueLayerCallback = regionalFunctions
     .runWith({ secrets })
     .https.onCall(async (data, context) => {
         if (!context.auth) {
@@ -49,10 +52,10 @@ export const handleTrueLayerCallback = functions
         functions.logger.info("handleTrueLayerCallback received code:", data.code);
 
         const uid = context.auth.uid;
-        const clientId = "santander-e56236";
+        const clientId = process.env.TRUELAYER_CLIENT_ID;
         const clientSecret = process.env.TRUELAYER_CLIENT_SECRET;
 
-        if (!clientSecret) {
+        if (!clientId || !clientSecret) {
             throw new functions.https.HttpsError('internal', 'Server configuration error: missing secrets.');
         }
 
