@@ -86,28 +86,33 @@ export const handleTrueLayerCallback = regionalFunctions
             functions.logger.info(`Fetched ${accounts.length} raw accounts from TrueLayer.`, { accounts });
 
             const batch = db.batch();
-            const newlyImportedAccounts = [];
+            const newlyImportedAccountsForClient = [];
 
             for (const account of accounts) {
                 if (account.account_type === 'TRANSACTION' || account.account_type === 'SAVING') {
                     const bankRef = db.collection('users').doc(uid).collection('banks').doc(account.account_id);
-                    const bankData = {
+                    const bankDataForDb = {
                         id: account.account_id,
                         name: account.display_name,
                         type: account.account_type.toLowerCase(),
                         currency: account.currency,
-                        iban: account.account_number?.iban,
-                        number: account.account_number?.number,
+                        // Use nullish coalescing operator to provide null if the value is undefined
+                        iban: account.account_number?.iban ?? null,
+                        number: account.account_number?.number ?? null,
                         institution: account.provider.display_name,
                         logo: account.provider.logo_uri,
                         lastUpdated: admin.firestore.FieldValue.serverTimestamp()
                     };
-                    batch.set(bankRef, bankData, { merge: true });
-                    newlyImportedAccounts.push({ ...bankData, importType: 'Bank' });
+                    batch.set(bankRef, bankDataForDb, { merge: true });
+                    newlyImportedAccountsForClient.push({ 
+                        ...bankDataForDb, 
+                        lastUpdated: new Date().toISOString(), // Use a simple timestamp for the client
+                        importType: 'Bank'
+                    });
 
                 } else if (account.account_type === 'CREDIT_CARD') {
                     const debtRef = db.collection('users').doc(uid).collection('debts').doc(account.account_id);
-                    const debtData = {
+                    const debtDataForDb = {
                         id: account.account_id,
                         name: account.display_name,
                         type: 'credit_card',
@@ -116,15 +121,19 @@ export const handleTrueLayerCallback = regionalFunctions
                         logo: account.provider.logo_uri,
                         lastUpdated: admin.firestore.FieldValue.serverTimestamp()
                     };
-                    batch.set(debtRef, debtData, { merge: true });
-                    newlyImportedAccounts.push({ ...debtData, importType: 'Debt' });
+                    batch.set(debtRef, debtDataForDb, { merge: true });
+                    newlyImportedAccountsForClient.push({ 
+                        ...debtDataForDb,
+                        lastUpdated: new Date().toISOString(), // Use a simple timestamp for the client
+                        importType: 'Debt' 
+                    });
                 }
             }
 
             await batch.commit();
-            functions.logger.info(`Successfully committed ${newlyImportedAccounts.length} accounts to Firestore and returning to client.`, { newlyImportedAccounts });
+            functions.logger.info(`Successfully committed ${newlyImportedAccountsForClient.length} accounts to Firestore and returning to client.`, { newlyImportedAccountsForClient });
 
-            return { success: true, message: `Successfully imported ${newlyImportedAccounts.length} accounts.`, accounts: newlyImportedAccounts };
+            return { success: true, message: `Successfully imported ${newlyImportedAccountsForClient.length} accounts.`, accounts: newlyImportedAccountsForClient };
 
         } catch (error) {
             functions.logger.error("Error during TrueLayer callback process:", error);
@@ -132,6 +141,6 @@ export const handleTrueLayerCallback = regionalFunctions
                 functions.logger.error("TrueLayer API error response:", JSON.stringify(error.response.data));
                 throw new functions.https.HttpsError('internal', 'Failed to communicate with TrueLayer API.', error.response.data);
             }
-            throw new functions.https.HttpsError('internal', 'An unknown error occurred.');
+            throw new functions.https.HttpsError('internal', 'An unknown error occurred.', { message: (error as Error).message });
         }
     });
