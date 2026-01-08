@@ -27,7 +27,8 @@ const functions = getFunctions(app, 'europe-west1');
 
 const getAuthLink = httpsCallable(functions, 'getTrueLayerAuthLink');
 const handleCallback = httpsCallable(functions, 'handleTrueLayerCallback');
+const importCsv = httpsCallable(functions, 'importCsv');
 
 
 // Export all the firebase services
-export { app, db, auth, functions, getAuthLink, handleCallback };
+export { app, db, auth, functions, getAuthLink, handleCallback, importCsv };

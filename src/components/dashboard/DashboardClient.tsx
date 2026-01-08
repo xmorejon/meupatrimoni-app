@@ -1,7 +1,7 @@
 
 "use client";
 
-import type { FC } from 'react';
+import { useState, type FC } from 'react';
 import { useRouter } from 'next/navigation';
 import { Button } from '@/components/ui/button';
 import { ArrowRightLeft } from 'lucide-react';
@@ -12,12 +12,19 @@ import { BankBreakdown } from './BankBreakdown';
 import { DebtBreakdown } from './DebtBreakdown';
 import { AssetBreakdown } from './AssetBreakdown';
 import { Totals } from './Totals';
-import type { baseSchema } from './EntryDialog';
+import { baseSchema } from './EntryDialog';
 import { addOrUpdateBank, addOrUpdateDebt, addOrUpdateAsset } from '@/lib/firebase-service';
 import type { DashboardData } from '@/lib/types';
 import { useToast } from "@/components/ui/use-toast";
-// *** Replace Powens with TrueLayer ***
-import ConnectWithTrueLayer from '@/components/connect-with-truelayer'; 
+import ConnectWithTrueLayer from '@/components/connect-with-truelayer';
+import { CsvImporter } from '@/components/CsvImporter';
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from "@/components/ui/dialog";
 
 interface DashboardClientProps {
   data: DashboardData | null;
@@ -31,7 +38,8 @@ interface DashboardClientProps {
 
 export const DashboardClient: FC<DashboardClientProps> = ({ data }) => {
   const router = useRouter();
-  const { toast } = useToast()
+  const { toast } = useToast();
+  const [isCsvImporterOpen, setIsCsvImporterOpen] = useState(false);
 
   const handleEntry = async (values: EntryData, type: 'Bank' | 'Debt' | 'Asset') => {
     try {
@@ -64,15 +72,31 @@ export const DashboardClient: FC<DashboardClientProps> = ({ data }) => {
     }
   };
 
+  const renderImportButton = () => (
+    <Dialog open={isCsvImporterOpen} onOpenChange={setIsCsvImporterOpen}>
+      <DialogTrigger asChild>
+        <Button>
+          <ArrowRightLeft className="mr-2 h-4 w-4" />
+          Importar CSV
+        </Button>
+      </DialogTrigger>
+      <DialogContent>
+        <DialogHeader>
+          <DialogTitle>Importar CSV</DialogTitle>
+        </DialogHeader>
+        <CsvImporter />
+      </DialogContent>
+    </Dialog>
+  );
+
 
   if (!data) {
     return (
         <div className="flex flex-col items-center justify-center h-full">
             <p className="mb-4">No hi ha dades per mostrar.</p>
             <div className="flex gap-2">
-                {/* *** Replace Powens with TrueLayer *** */}
                 <ConnectWithTrueLayer />
-                <Button onClick={() => router.push('/import')}>Importar Dades Manualment</Button>
+                {renderImportButton()}
             </div>
         </div>
     );
@@ -88,12 +112,8 @@ export const DashboardClient: FC<DashboardClientProps> = ({ data }) => {
         <div className="flex justify-between items-center">
             <h1 className="text-2xl font-semibold">Dashboard</h1>
             <div className="flex items-center gap-2">
-                {/* *** Replace Powens with TrueLayer *** */}
                 <ConnectWithTrueLayer />
-                <Button onClick={() => router.push('/import')} variant="outline">
-                    <ArrowRightLeft className="mr-2 h-4 w-4" />
-                    Importar
-                </Button>
+                {renderImportButton()}
             </div>
         </div>
 

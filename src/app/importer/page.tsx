@@ -10,6 +10,7 @@ import type { BankStatus, Debt, Asset } from '@/lib/types';
 import PrivateRoute from "@/components/PrivateRoute";
 import { useTrueLayer } from "@/hooks/use-truelayer";
 import ConnectWithTrueLayer from "@/components/connect-with-truelayer";
+import { CsvImporter } from '@/components/CsvImporter';
 
 function ImporterPageContents() {
   // Log every single time this component function is executed.
@@ -73,7 +74,18 @@ function ImporterPageContents() {
           </CardContent>
         </Card>
 
-        {/* The CSV import form can be re-added here later */}
+        <Card>
+          <CardHeader>
+            <CardTitle>Importar un arxiu CSV</CardTitle>
+            <CardDescription>
+                Importa un arxiu CSV amb les teves dades.
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <CsvImporter />
+          </CardContent>
+        </Card>
+
       </div>
     </PrivateRoute>
   );

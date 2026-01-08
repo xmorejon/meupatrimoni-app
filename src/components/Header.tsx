@@ -1,8 +1,21 @@
+import { useState } from 'react';
 import Link from 'next/link';
 import { MountainIcon } from 'lucide-react';
 import { UserButton } from '@clerk/nextjs';
+import { Button } from '@/components/ui/button';
+import { CsvImporter } from '@/components/CsvImporter';
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from "@/components/ui/dialog";
+
 
 export const Header = () => {
+  const [isCsvImporterOpen, setIsCsvImporterOpen] = useState(false);
+
   return (
     <header className="flex h-16 w-full items-center justify-between bg-white px-4 md:px-6 shadow-md">
       <Link href="/" className="flex items-center gap-2">
@@ -16,12 +29,19 @@ export const Header = () => {
         >
           Panell de Control
         </Link>
-        <Link
-          href="/import"
-          className="text-gray-500 transition-colors hover:text-gray-900 dark:text-gray-400 dark:hover:text-gray-50"
-        >
-          Importar
-        </Link>
+        <Dialog open={isCsvImporterOpen} onOpenChange={setIsCsvImporterOpen}>
+          <DialogTrigger asChild>
+            <Button variant="link" className="text-gray-500 transition-colors hover:text-gray-900 dark:text-gray-400 dark:hover:text-gray-50">
+              Importar CSV
+            </Button>
+          </DialogTrigger>
+          <DialogContent>
+            <DialogHeader>
+              <DialogTitle>Importar CSV</DialogTitle>
+            </DialogHeader>
+            <CsvImporter />
+          </DialogContent>
+        </Dialog>
       </nav>
       <UserButton afterSignOutUrl="/" />
     </header>

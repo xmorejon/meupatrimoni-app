@@ -22,7 +22,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import type { Entry } from '@/lib/types';
 
 // Base schema for common fields
-const baseSchema = z.object({
+export const baseSchema = z.object({
   id: z.string().optional(),
   name: z.string().min(2, { message: "El nom ha de tenir almenys 2 caràcters." }),
   type: z.string().min(1, { message: "Si us plau, selecciona un tipus." }),
