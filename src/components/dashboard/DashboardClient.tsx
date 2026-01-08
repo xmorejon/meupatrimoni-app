@@ -110,7 +110,7 @@ export const DashboardClient: FC<DashboardClientProps> = ({ data }) => {
   return (
     <div className="flex flex-col gap-6">
         <div className="flex justify-between items-center">
-            <h1 className="text-2xl font-semibold">Dashboard</h1>
+            <h1 className="text-2xl font-semibold"> Patrimoni Familiar</h1>
             <div className="flex items-center gap-2">
                 <ConnectWithTrueLayer />
                 {renderImportButton()}

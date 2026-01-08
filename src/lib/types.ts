@@ -37,6 +37,7 @@ export interface ChartDataPoint {
   date: string;
   netWorth: number;
   cashFlow: number;
+  hasChange?: boolean;
 }
 
 export interface DashboardData {

@@ -1,7 +1,7 @@
 
 "use client"
 
-import { Area, AreaChart, CartesianGrid, ResponsiveContainer, Tooltip, XAxis, YAxis } from "recharts"
+import { Area, AreaChart, CartesianGrid, ResponsiveContainer, Tooltip, XAxis, YAxis, Dot } from "recharts"
 import { useRef, useEffect } from "react"
 
 import {
@@ -16,7 +16,7 @@ import {
   ChartTooltip,
   ChartTooltipContent,
 } from "@/components/ui/chart"
-import type { HistoricalData } from "@/lib/types"
+import type { ChartDataPoint } from "@/lib/types"
 
 const yAxisFormatter = (value: number) => {
     if (Math.abs(value) >= 1000000) {
@@ -28,12 +28,15 @@ const yAxisFormatter = (value: number) => {
     return value.toString()
 }
 
-const tooltipFormatter = (value: number) => {
-    const formattedValue = new Intl.NumberFormat('es-ES', {
-        style: 'decimal',
-        maximumFractionDigits: 0,
-    }).format(Math.round(value));
-    return `${formattedValue}€`;
+const tooltipFormatter = (value: unknown) => {
+    if (typeof value === 'number') {
+        const formattedValue = new Intl.NumberFormat('es-ES', {
+            style: 'decimal',
+            maximumFractionDigits: 0,
+        }).format(Math.round(value));
+        return `${formattedValue}€`;
+    }
+    return null;
 };
 
 const chartConfig = {
@@ -48,8 +51,20 @@ const chartConfig = {
 }
 
 interface NetWorthChartProps {
-    data: HistoricalData[];
+    data: ChartDataPoint[];
 }
+
+const CustomizedDot = (props: any) => {
+  const { cx, cy, stroke, payload } = props;
+
+  if (payload.hasChange) {
+    return (
+      <Dot cx={cx} cy={cy} r={4} stroke={stroke} strokeWidth={2} fill="#fff" />
+    );
+  }
+
+  return null;
+};
 
 export function NetWorthChart({ data }: NetWorthChartProps) {
     const scrollContainerRef = useRef<HTMLDivElement>(null);
@@ -141,8 +156,8 @@ export function NetWorthChart({ data }: NetWorthChartProps) {
                                     />
                                     <YAxis yAxisId="left" hide={true} />
                                     <YAxis yAxisId="right" hide={true} />
-                                    <Area yAxisId="left" dataKey="netWorth" type="natural" fill="var(--color-netWorth)" fillOpacity={0.4} stroke="var(--color-netWorth)" />
-                                    <Area yAxisId="right" dataKey="cashFlow" type="natural" fill="var(--color-cashFlow)" fillOpacity={0.4} stroke="var(--color-cashFlow)" />
+                                    <Area yAxisId="left" dataKey="netWorth" type="natural" fill="var(--color-netWorth)" fillOpacity={0.4} stroke="var(--color-netWorth)" dot={<CustomizedDot />} />
+                                    <Area yAxisId="right" dataKey="cashFlow" type="natural" fill="var(--color-cashFlow)" fillOpacity={0.4} stroke="var(--color-cashFlow)" dot={<CustomizedDot />} />
                                 </AreaChart>
                             </ResponsiveContainer>
                         </div>

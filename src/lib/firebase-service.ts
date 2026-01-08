@@ -299,6 +299,8 @@ export async function getDashboardData(): Promise<DashboardData> {
   const today = startOfToday();
   const allTimestamps = allEntries.map(e => (e.timestamp as Date).getTime()).filter(t => !isNaN(t));
   
+  const entryDates = new Set(allEntries.map(e => format(startOfDay((e.timestamp as Date)), 'dd/MM/yy')));
+
   const startDate = allTimestamps.length > 0 
     ? startOfDay(new Date(Math.min(...allTimestamps)))
     : subDays(today, 90);
@@ -343,11 +345,15 @@ export async function getDashboardData(): Promise<DashboardData> {
   }
 
   const historicalData = dateInterval.map(date => {
+    const formattedDate = format(date, 'dd/MM/yy');
+    const hasChange = entryDates.has(formattedDate) || isSameDay(date, today);
+
     if (isSameDay(date, today)) {
         return {
-            date: format(date, 'dd/MM/yy'),
+            date: formattedDate,
             netWorth: totalNetWorth,
             cashFlow: currentCashFlow,
+            hasChange: hasChange,
         };
     }
 
@@ -396,9 +402,10 @@ export async function getDashboardData(): Promise<DashboardData> {
     const cashFlow = financialAssetsAtDate - creditCardDebtAtDate;
 
     return {
-      date: format(date, 'dd/MM/yy'),
+      date: formattedDate,
       netWorth,
       cashFlow,
+      hasChange: hasChange,
     };
   });
   
