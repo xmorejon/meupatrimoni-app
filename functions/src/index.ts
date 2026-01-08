@@ -70,13 +70,13 @@ export const handleTrueLayerCallback = regionalFunctions
                 headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
             });
             
-            const userAccessToken = tokenResponse.data.access_token;
-            if (!userAccessToken) {
+            const { access_token, refresh_token, expires_in } = tokenResponse.data;
+            if (!access_token) {
                 throw new functions.https.HttpsError('internal', 'Could not retrieve user access token from TrueLayer.');
             }
 
             const accountsResponse = await axios.get(`${truelayerApiBaseUrl}/data/v1/accounts`, {
-                headers: { 'Authorization': `Bearer ${userAccessToken}` },
+                headers: { 'Authorization': `Bearer ${access_token}` },
             });
 
             const accounts = accountsResponse.data.results;
@@ -90,7 +90,7 @@ export const handleTrueLayerCallback = regionalFunctions
                 let balance = null;
                 try {
                     const balanceResponse = await axios.get(`${truelayerApiBaseUrl}/data/v1/accounts/${account.account_id}/balance`, {
-                        headers: { 'Authorization': `Bearer ${userAccessToken}` },
+                        headers: { 'Authorization': `Bearer ${access_token}` },
                     });
                     if (balanceResponse.data.results && balanceResponse.data.results.length > 0) {
                         balance = balanceResponse.data.results[0].current;
@@ -109,7 +109,8 @@ export const handleTrueLayerCallback = regionalFunctions
                     const existingName = doc.exists ? doc.data()?.name : null;
                     const bankName = existingName || account.display_name;
 
-                    // Set the main bank document (create or update)
+                    const tokenExpiresAt = admin.firestore.Timestamp.fromMillis(now.toMillis() + expires_in * 1000);
+
                     const bankData = {
                         id: account.account_id,
                         name: bankName,
@@ -120,11 +121,15 @@ export const handleTrueLayerCallback = regionalFunctions
                         institution: account.provider.display_name,
                         logo: account.provider.logo_uri,
                         balance: balance,
-                        lastUpdated: now
+                        lastUpdated: now,
+                        truelayer: {
+                            accessToken: access_token,
+                            refreshToken: refresh_token,
+                            tokenExpiresAt: tokenExpiresAt
+                        }
                     };
                     batch.set(bankRef, bankData, { merge: true });
 
-                    // Add the linked balance entry
                     const balanceEntryRef = db.collection('balanceEntries').doc();
                     batch.set(balanceEntryRef, {
                         balance: balance,
@@ -141,7 +146,6 @@ export const handleTrueLayerCallback = regionalFunctions
                     const existingName = doc.exists ? doc.data()?.name : null;
                     const debtName = existingName || account.display_name;
 
-                    // Set the main debt document
                     const debtData = {
                         id: account.account_id,
                         name: debtName,
@@ -154,7 +158,6 @@ export const handleTrueLayerCallback = regionalFunctions
                     };
                     batch.set(debtRef, debtData, { merge: true });
 
-                    // Add the linked debt entry
                     const debtEntryRef = db.collection('debtEntries').doc();
                     batch.set(debtEntryRef, {
                         balance: balance,
@@ -180,6 +183,83 @@ export const handleTrueLayerCallback = regionalFunctions
             }
             throw new functions.https.HttpsError('internal', 'An unknown error occurred.', { message: (error as Error).message });
         }
+    });
+
+export const refreshTruelayerData = regionalFunctions
+    .runWith({ secrets })
+    .https.onCall(async (data, context) => {
+        const clientId = process.env.TRUELAYER_CLIENT_ID;
+        const clientSecret = process.env.TRUELAYER_CLIENT_SECRET;
+        if (!clientId || !clientSecret) {
+            throw new functions.https.HttpsError('internal', 'Server configuration error: missing secrets.');
+        }
+
+        const banksSnapshot = await db.collection('banks').where('truelayer', '!=', null).get();
+        if (banksSnapshot.empty) {
+            return { success: true, message: "No banks with Truelayer tokens to refresh." };
+        }
+
+        const batch = db.batch();
+        let refreshedAccounts = 0;
+
+        for (const doc of banksSnapshot.docs) {
+            const bank = doc.data();
+            let { accessToken, refreshToken, tokenExpiresAt } = bank.truelayer;
+
+            if (tokenExpiresAt.toMillis() < Date.now()) {
+                functions.logger.info(`Token for ${bank.name} is expired. Refreshing...`);
+                const tokenParams = new URLSearchParams();
+                tokenParams.append('grant_type', 'refresh_token');
+                tokenParams.append('client_id', clientId);
+                tokenParams.append('client_secret', clientSecret);
+                tokenParams.append('refresh_token', refreshToken);
+
+                try {
+                    const tokenResponse = await axios.post(`${truelayerAuthBaseUrl}/connect/token`, tokenParams, {
+                        headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+                    });
+                    accessToken = tokenResponse.data.access_token;
+                    refreshToken = tokenResponse.data.refresh_token;
+                    tokenExpiresAt = admin.firestore.Timestamp.fromMillis(Date.now() + tokenResponse.data.expires_in * 1000);
+                    
+                    batch.update(doc.ref, {
+                        'truelayer.accessToken': accessToken,
+                        'truelayer.refreshToken': refreshToken,
+                        'truelayer.tokenExpiresAt': tokenExpiresAt
+                    });
+                } catch (error) {
+                    functions.logger.error(`Failed to refresh token for ${bank.name}:`, error);
+                    continue; // Skip to the next bank
+                }
+            }
+
+            try {
+                const balanceResponse = await axios.get(`${truelayerApiBaseUrl}/data/v1/accounts/${bank.id}/balance`, {
+                    headers: { 'Authorization': `Bearer ${accessToken}` },
+                });
+
+                if (balanceResponse.data.results && balanceResponse.data.results.length > 0) {
+                    const newBalance = balanceResponse.data.results[0].current;
+                    const now = admin.firestore.Timestamp.now();
+
+                    batch.update(doc.ref, { balance: newBalance, lastUpdated: now });
+
+                    const balanceEntryRef = db.collection('balanceEntries').doc();
+                    batch.set(balanceEntryRef, {
+                        balance: newBalance,
+                        timestamp: now,
+                        bankId: doc.id,
+                        bank: bank.name 
+                    });
+                    refreshedAccounts++;
+                }
+            } catch (error) {
+                functions.logger.error(`Failed to fetch balance for ${bank.name}:`, error);
+            }
+        }
+
+        await batch.commit();
+        return { success: true, message: `Refreshed ${refreshedAccounts} accounts.` };
     });
 
 export * from "./csv";

@@ -156,8 +156,8 @@ export function NetWorthChart({ data }: NetWorthChartProps) {
                                     />
                                     <YAxis yAxisId="left" hide={true} />
                                     <YAxis yAxisId="right" hide={true} />
-                                    <Area yAxisId="left" dataKey="netWorth" type="natural" fill="var(--color-netWorth)" fillOpacity={0.4} stroke="var(--color-netWorth)" dot={<CustomizedDot />} />
-                                    <Area yAxisId="right" dataKey="cashFlow" type="natural" fill="var(--color-cashFlow)" fillOpacity={0.4} stroke="var(--color-cashFlow)" dot={<CustomizedDot />} />
+                                    <Area yAxisId="left" dataKey="netWorth" type="linear" fill="var(--color-netWorth)" fillOpacity={0.4} stroke="var(--color-netWorth)" dot={<CustomizedDot />} />
+                                    <Area yAxisId="right" dataKey="cashFlow" type="linear" fill="var(--color-cashFlow)" fillOpacity={0.4} stroke="var(--color-cashFlow)" dot={<CustomizedDot />} />
                                 </AreaChart>
                             </ResponsiveContainer>
                         </div>

@@ -4,7 +4,7 @@
 import { useState, type FC } from 'react';
 import { useRouter } from 'next/navigation';
 import { Button } from '@/components/ui/button';
-import { ArrowRightLeft } from 'lucide-react';
+import { ArrowRightLeft, RefreshCw } from 'lucide-react';
 import type { z } from 'zod';
 
 import { NetWorthChart } from './NetWorthChart';
@@ -25,6 +25,8 @@ import {
   DialogTitle,
   DialogTrigger,
 } from "@/components/ui/dialog";
+import { getFunctions, httpsCallable } from 'firebase/functions';
+import { getApp } from 'firebase/app';
 
 interface DashboardClientProps {
   data: DashboardData | null;
@@ -40,6 +42,7 @@ export const DashboardClient: FC<DashboardClientProps> = ({ data }) => {
   const router = useRouter();
   const { toast } = useToast();
   const [isCsvImporterOpen, setIsCsvImporterOpen] = useState(false);
+  const [isRefreshing, setIsRefreshing] = useState(false);
 
   const handleEntry = async (values: EntryData, type: 'Bank' | 'Debt' | 'Asset') => {
     try {
@@ -69,6 +72,30 @@ export const DashboardClient: FC<DashboardClientProps> = ({ data }) => {
         title: "Error",
         description: `No s'ha pogut desar el ${type}. Si us plau, intenta-ho de nou.`,
       })
+    }
+  };
+
+  const handleRefresh = async () => {
+    setIsRefreshing(true);
+    const app = getApp();
+    const functions = getFunctions(app, 'europe-west1');
+    const refreshTruelayerData = httpsCallable(functions, 'refreshTruelayerData');
+    try {
+      const result = await refreshTruelayerData();
+      toast({
+        title: "Èxit",
+        description: (result.data as any).message,
+      });
+      router.refresh();
+    } catch (error) {
+      console.error("Error refreshing accounts:", error);
+      toast({
+        variant: "destructive",
+        title: "Error",
+        description: "No s'ha pogut actualitzar els comptes. Si us plau, intenta-ho de nou.",
+      });
+    } finally {
+      setIsRefreshing(false);
     }
   };
 
@@ -112,6 +139,14 @@ export const DashboardClient: FC<DashboardClientProps> = ({ data }) => {
         <div className="flex justify-between items-center">
             <h1 className="text-2xl font-semibold"> Patrimoni Familiar</h1>
             <div className="flex items-center gap-2">
+                <Button onClick={handleRefresh} disabled={isRefreshing}>
+                  {isRefreshing ? (
+                    <RefreshCw className="mr-2 h-4 w-4 animate-spin" />
+                  ) : (
+                    <RefreshCw className="mr-2 h-4 w-4" />
+                  )}
+                  Actualitzar comptes
+                </Button>
                 <ConnectWithTrueLayer />
                 {renderImportButton()}
             </div>
