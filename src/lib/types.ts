@@ -13,6 +13,7 @@ export interface Bank {
   name: string;
   balance: number;
   lastUpdated: Date | Timestamp;
+  truelayerId?: string;
 }
 
 export interface Debt {
@@ -22,6 +23,7 @@ export interface Debt {
   balance: number;
   type: 'Credit Card' | 'Mortgage' | 'Personnel Credit';
   lastUpdated: Date | Timestamp;
+  truelayerId?: string;
 }
 
 export interface Asset {
@@ -31,6 +33,7 @@ export interface Asset {
   value: number;
   type: 'House' | 'Car';
   lastUpdated: Date | Timestamp;
+  truelayerId?: string;
 }
 
 export interface ChartDataPoint {

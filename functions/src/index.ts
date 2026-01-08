@@ -119,13 +119,13 @@ export const handleTrueLayerCallback = regionalFunctions
                     continue; // Skip accounts where balance couldn't be fetched
                 }
 
+                const tokenExpiresAt = admin.firestore.Timestamp.fromMillis(now.toMillis() + expires_in * 1000);
+
                 if (account.account_type === 'TRANSACTION' || account.account_type === 'SAVING') {
                     const bankRef = db.collection('banks').doc(account.account_id);
                     const doc = await bankRef.get();
                     const existingName = doc.exists ? doc.data()?.name : null;
                     const bankName = existingName || account.display_name;
-
-                    const tokenExpiresAt = admin.firestore.Timestamp.fromMillis(now.toMillis() + expires_in * 1000);
 
                     const bankData = {
                         id: account.account_id,
@@ -138,6 +138,7 @@ export const handleTrueLayerCallback = regionalFunctions
                         logo: account.provider.logo_uri,
                         balance: balance,
                         lastUpdated: now,
+                        truelayerId: account.account_id, // Explicitly set truelayerId
                         truelayer: {
                             accessToken: access_token,
                             refreshToken: refresh_token,
@@ -165,12 +166,18 @@ export const handleTrueLayerCallback = regionalFunctions
                     const debtData = {
                         id: account.account_id,
                         name: debtName,
-                        type: 'credit_card',
+                        type: 'Credit Card', // Corrected type
                         currency: account.currency,
                         institution: account.provider.display_name,
                         logo: account.provider.logo_uri,
                         balance: balance,
-                        lastUpdated: now
+                        lastUpdated: now,
+                        truelayerId: account.account_id, // Explicitly set truelayerId
+                        truelayer: { // Added truelayer token info for future use
+                            accessToken: access_token,
+                            refreshToken: refresh_token,
+                            tokenExpiresAt: tokenExpiresAt
+                        }
                     };
                     batch.set(debtRef, debtData, { merge: true });
 
@@ -211,19 +218,22 @@ export const refreshTruelayerData = regionalFunctions
         }
 
         const banksSnapshot = await db.collection('banks').where('truelayer', '!=', null).get();
-        if (banksSnapshot.empty) {
-            return { success: true, message: "No banks with Truelayer tokens to refresh." };
+        const debtsSnapshot = await db.collection('debts').where('truelayer', '!=', null).get();
+        const allAccounts = [...banksSnapshot.docs, ...debtsSnapshot.docs];
+
+        if (allAccounts.length === 0) {
+            return { success: true, message: "No accounts with Truelayer tokens to refresh." };
         }
 
         const batch = db.batch();
         let refreshedAccounts = 0;
 
-        for (const doc of banksSnapshot.docs) {
-            const bank = doc.data();
-            let { accessToken, refreshToken, tokenExpiresAt } = bank.truelayer;
+        for (const doc of allAccounts) {
+            const account = doc.data();
+            let { accessToken, refreshToken, tokenExpiresAt } = account.truelayer;
 
             if (tokenExpiresAt.toMillis() < Date.now()) {
-                functions.logger.info(`Token for ${bank.name} is expired. Refreshing...`);
+                functions.logger.info(`Token for ${account.name} is expired. Refreshing...`);
                 const tokenParams = new URLSearchParams();
                 tokenParams.append('grant_type', 'refresh_token');
                 tokenParams.append('client_id', clientId);
@@ -244,13 +254,13 @@ export const refreshTruelayerData = regionalFunctions
                         'truelayer.tokenExpiresAt': tokenExpiresAt
                     });
                 } catch (error) {
-                    functions.logger.error(`Failed to refresh token for ${bank.name}:`, error);
-                    continue; // Skip to the next bank
+                    functions.logger.error(`Failed to refresh token for ${account.name}:`, error);
+                    continue; // Skip to the next account
                 }
             }
 
             try {
-                const balanceResponse = await axios.get(`${truelayerApiBaseUrl}/data/v1/accounts/${bank.id}/balance`, {
+                const balanceResponse = await axios.get(`${truelayerApiBaseUrl}/data/v1/accounts/${account.id}/balance`, {
                     headers: { 'Authorization': `Bearer ${accessToken}` },
                 });
 
@@ -260,17 +270,27 @@ export const refreshTruelayerData = regionalFunctions
 
                     batch.update(doc.ref, { balance: newBalance, lastUpdated: now });
 
-                    const balanceEntryRef = await getOrCreateEntry('balanceEntries', 'bankId', doc.id, now);
-                    batch.set(balanceEntryRef, {
-                        balance: newBalance,
-                        timestamp: now,
-                        bankId: doc.id,
-                        bank: bank.name 
-                    }, { merge: true });
+                    if (doc.ref.parent.id === 'banks') {
+                        const balanceEntryRef = await getOrCreateEntry('balanceEntries', 'bankId', doc.id, now);
+                        batch.set(balanceEntryRef, {
+                            balance: newBalance,
+                            timestamp: now,
+                            bankId: doc.id,
+                            bank: account.name 
+                        }, { merge: true });
+                    } else if (doc.ref.parent.id === 'debts') {
+                        const debtEntryRef = await getOrCreateEntry('debtEntries', 'debtId', doc.id, now);
+                        batch.set(debtEntryRef, {
+                            balance: newBalance,
+                            timestamp: now,
+                            debtId: doc.id,
+                            debtName: account.name
+                        }, { merge: true });
+                    }
                     refreshedAccounts++;
                 }
             } catch (error) {
-                functions.logger.error(`Failed to fetch balance for ${bank.name}:`, error);
+                functions.logger.error(`Failed to fetch balance for ${account.name}:`, error);
             }
         }
 

@@ -10,6 +10,7 @@ import { EntryDialog } from './EntryDialog';
 import type { z } from 'zod';
 import { bankDebtSchema } from './EntryDialog';
 import { TimeAgo } from './TimeAgo';
+import { Badge } from '@/components/ui/badge';
 
 interface BankBreakdownProps {
   banks: Bank[];
@@ -26,6 +27,9 @@ export const BankBreakdown: FC<BankBreakdownProps> = ({ banks, onEntry }) => {
     addBank: "Afegir Compte",
     bankHeader: "Compte",
     balanceHeader: "Saldo",
+    updateTypeHeader: "Tipus d'Actualització",
+    automated: "Automatitzat",
+    manual: "Manual"
   };
   const tEntry = {
     editTitle: "Editar {type}",
@@ -67,6 +71,7 @@ export const BankBreakdown: FC<BankBreakdownProps> = ({ banks, onEntry }) => {
           <TableHeader>
             <TableRow>
               <TableHead>{t.bankHeader}</TableHead>
+              <TableHead>{t.updateTypeHeader}</TableHead>
               <TableHead className="text-right">{t.balanceHeader}</TableHead>
               <TableHead className="w-[80px] text-center">{tEntry.actionsHeader}</TableHead>
             </TableRow>
@@ -84,6 +89,11 @@ export const BankBreakdown: FC<BankBreakdownProps> = ({ banks, onEntry }) => {
                         <TimeAgo date={bank.lastUpdated as Date} locale={currentLocale} translations={updatedTranslations}/>
                     </div>
                   </div>
+                </TableCell>
+                <TableCell>
+                  <Badge variant={bank.truelayerId ? 'success' : 'secondary'}>
+                    {bank.truelayerId ? t.automated : t.manual}
+                  </Badge>
                 </TableCell>
                 <TableCell className="text-right font-mono text-foreground">
                   {new Intl.NumberFormat(locale, { style: 'currency', currency }).format(bank.balance)}

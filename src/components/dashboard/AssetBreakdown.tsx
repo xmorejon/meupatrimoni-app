@@ -10,6 +10,7 @@ import { EntryDialog } from './EntryDialog';
 import type { z } from 'zod';
 import { assetSchema } from './EntryDialog';
 import { TimeAgo } from './TimeAgo';
+import { Badge } from '@/components/ui/badge';
 
 interface AssetBreakdownProps {
   assets: Asset[];
@@ -37,6 +38,9 @@ export const AssetBreakdown: FC<AssetBreakdownProps> = ({ assets, onEntry }) => 
     addAsset: "Afegir Actiu",
     assetHeader: "Actiu",
     valueHeader: "Valor",
+    updateTypeHeader: "Tipus d'Actualització",
+    automated: "Automatitzat",
+    manual: "Manual"
   };
   const tEntry = {
     editTitle: "Editar {type}",
@@ -78,6 +82,7 @@ export const AssetBreakdown: FC<AssetBreakdownProps> = ({ assets, onEntry }) => 
           <TableHeader>
             <TableRow>
               <TableHead>{t.assetHeader}</TableHead>
+              <TableHead>{t.updateTypeHeader}</TableHead>
               <TableHead className="text-right">{t.valueHeader}</TableHead>
               <TableHead className="w-[80px] text-center">{tEntry.actionsHeader}</TableHead>
             </TableRow>
@@ -95,6 +100,11 @@ export const AssetBreakdown: FC<AssetBreakdownProps> = ({ assets, onEntry }) => 
                         <TimeAgo date={asset.lastUpdated as Date} locale={currentLocale} translations={updatedTranslations}/>
                     </div>
                   </div>
+                </TableCell>
+                <TableCell>
+                  <Badge variant={asset.truelayerId ? 'success' : 'secondary'}>
+                    {asset.truelayerId ? t.automated : t.manual}
+                  </Badge>
                 </TableCell>
                 <TableCell className="text-right font-mono text-foreground">
                   {new Intl.NumberFormat(locale, { style: 'currency', currency }).format(asset.value)}
