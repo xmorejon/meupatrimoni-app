@@ -135,7 +135,7 @@ export const handleTrueLayerCallback = regionalFunctions
                         iban: account.account_number?.iban ?? null,
                         number: account.account_number?.number ?? null,
                         institution: account.provider.display_name,
-                        logo: account.provider.logo_uri,
+                        providerId: account.provider.provider_id, // Persist the provider_id
                         balance: balance,
                         lastUpdated: now,
                         truelayerId: account.account_id, // Explicitly set truelayerId
@@ -169,7 +169,7 @@ export const handleTrueLayerCallback = regionalFunctions
                         type: 'Credit Card', // Corrected type
                         currency: account.currency,
                         institution: account.provider.display_name,
-                        logo: account.provider.logo_uri,
+                        providerId: account.provider.provider_id, // Persist the provider_id
                         balance: balance,
                         lastUpdated: now,
                         truelayerId: account.account_id, // Explicitly set truelayerId

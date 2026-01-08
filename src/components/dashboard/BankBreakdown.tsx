@@ -82,7 +82,11 @@ export const BankBreakdown: FC<BankBreakdownProps> = ({ banks, onEntry }) => {
                 <TableCell>
                   <div className="flex items-center gap-3">
                     <div className="p-2 bg-muted rounded-md">
-                        <Landmark className="h-4 w-4 text-muted-foreground"/>
+                        {bank.providerId ? (
+                            <img src={`/logos/${bank.providerId}.svg`} alt={bank.name} className="h-4 w-4" />
+                        ) : (
+                            <Landmark className="h-4 w-4 text-muted-foreground" />
+                        )}
                     </div>
                     <div>
                         <div className="font-medium text-foreground">{bank.name}</div>

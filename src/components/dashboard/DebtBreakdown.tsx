@@ -93,7 +93,11 @@ export const DebtBreakdown: FC<DebtBreakdownProps> = ({ debts, onEntry }) => {
                 <TableCell>
                   <div className="flex items-center gap-3">
                     <div className="p-2 bg-muted rounded-md">
-                        <DebtIcon type={debt.type} />
+                        {debt.providerId ? (
+                            <img src={`/logos/${debt.providerId}.svg`} alt={debt.name} className="h-4 w-4" />
+                        ) : (
+                            <DebtIcon type={debt.type} />
+                        )}
                     </div>
                     <div>
                         <div className="font-medium text-foreground">{debt.name}</div>

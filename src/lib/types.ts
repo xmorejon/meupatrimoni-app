@@ -14,6 +14,7 @@ export interface Bank {
   balance: number;
   lastUpdated: Date | Timestamp;
   truelayerId?: string;
+  providerId?: string;
 }
 
 export interface Debt {
@@ -24,6 +25,7 @@ export interface Debt {
   type: 'Credit Card' | 'Mortgage' | 'Personnel Credit';
   lastUpdated: Date | Timestamp;
   truelayerId?: string;
+  providerId?: string;
 }
 
 export interface Asset {
