@@ -6,24 +6,37 @@ import { Input } from '@/components/ui/input';
 import { useToast } from '@/components/ui/use-toast';
 import { auth, getBankBreakdown, getDebtBreakdown, getAssetBreakdown } from '../lib/firebase-service';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import type { BankStatus, Debt, Asset } from '@/lib/types';
+import type { Bank, Debt, Asset } from '@/lib/types';
+
+// Augment the existing types to include our new property for reliable categorization
+type CategorizedEntity = (Bank | Debt | Asset) & { entityCategory: 'Bank' | 'Debt' | 'Asset' };
 
 export function CsvImporter() {
   const [file, setFile] = useState<File | null>(null);
   const [importing, setImporting] = useState(false);
-  const [entities, setEntities] = useState<(BankStatus | Debt | Asset)[]>([]);
+  const [entities, setEntities] = useState<CategorizedEntity[]>([]);
   const [selectedEntity, setSelectedEntity] = useState<string | null>(null);
   const { toast } = useToast();
 
   useEffect(() => {
     async function fetchEntities() {
       try {
+        // Fetch all entity types in parallel
         const [banks, debts, assets] = await Promise.all([
           getBankBreakdown(),
           getDebtBreakdown(),
           getAssetBreakdown(),
         ]);
-        setEntities([...banks, ...debts, ...assets]);
+
+        // Create a single, reliably categorized list
+        const allEntities: CategorizedEntity[] = [
+          ...banks.map((e) => ({ ...e, entityCategory: 'Bank' as const })),
+          ...debts.map((e) => ({ ...e, entityCategory: 'Debt' as const })),
+          ...assets.map((e) => ({ ...e, entityCategory: 'Asset' as const })),
+        ];
+
+        setEntities(allEntities);
+
       } catch (error) {
         console.error("Error fetching entities:", error);
         toast({
@@ -134,7 +147,8 @@ export function CsvImporter() {
           </SelectTrigger>
           <SelectContent>
             {entities.map((entity) => (
-              <SelectItem key={entity.id} value={`${(entity as BankStatus).institution ? 'Bank' : (entity as Debt).institution ? 'Debt' : 'Asset'}-${entity.id}`}>
+              // Use the new, reliable entityCategory property
+              <SelectItem key={entity.id} value={`${entity.entityCategory}-${entity.id}`}>
                 {entity.name}
               </SelectItem>
             ))}

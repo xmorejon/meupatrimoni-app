@@ -2,7 +2,7 @@
 
 import { collection, getDocs, doc, writeBatch, query, getDoc, setDoc, addDoc, updateDoc, Timestamp, orderBy } from 'firebase/firestore';
 import { db, auth } from '../firebase/config'; // Centralized Firebase imports
-import type { BankStatus, Debt, Asset, DashboardData, BalanceEntry, Entry } from './types';
+import type { Bank, Debt, Asset, DashboardData, BalanceEntry, Entry } from './types';
 import { subDays, format, startOfToday, eachDayOfInterval, endOfDay, startOfDay, endOfYesterday, isSameDay } from 'date-fns';
 
 // Export the imported function so other modules can use it
@@ -42,10 +42,10 @@ const convertTimestamps = <T>(data: any): T => {
 };
 
 
-export async function getBankBreakdown(): Promise<BankStatus[]> {
+export async function getBankBreakdown(): Promise<Bank[]> {
     const banksCol = collection(db, 'banks');
     const snapshot = await getDocs(banksCol);
-    return snapshot.docs.map(d => convertTimestamps<BankStatus>({ id: d.id, ...d.data() }));
+    return snapshot.docs.map(d => convertTimestamps<Bank>({ id: d.id, ...d.data() }));
 }
 
 export async function getDebtBreakdown(): Promise<Debt[]> {
@@ -194,7 +194,7 @@ export async function batchImportEntries(
 }
 
 
-export async function addOrUpdateBank(bankData: Partial<BankStatus> & { name: string; balance: number }): Promise<void> {
+export async function addOrUpdateBank(bankData: Partial<Bank> & { name: string; balance: number }): Promise<void> {
     const now = Timestamp.now();
     const batch = writeBatch(db);
     

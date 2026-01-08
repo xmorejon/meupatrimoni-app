@@ -8,7 +8,7 @@ export interface BalanceEntry {
   timestamp: Date | Timestamp;
 }
 
-export interface BankStatus {
+export interface Bank {
   id: string;
   name: string;
   balance: number;
@@ -44,10 +44,10 @@ export interface DashboardData {
   netWorthChange: number;
   currentCashFlow: number;
   historicalData: ChartDataPoint[];
-  bankBreakdown: BankStatus[];
+  bankBreakdown: Bank[];
   debtBreakdown: Debt[];
   assetBreakdown: Asset[];
   debug?: Array<any>;
 }
 
-export type Entry = BankStatus | Debt | Asset;
+export type Entry = Bank | Debt | Asset;

@@ -6,7 +6,7 @@ import { Button } from '@/components/ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { getBankBreakdown, getDebtBreakdown, getAssetBreakdown } from '@/lib/firebase-service';
-import type { BankStatus, Debt, Asset } from '@/lib/types';
+import type { Bank, Debt, Asset } from '@/lib/types';
 import PrivateRoute from "@/components/PrivateRoute";
 import { useTrueLayer } from "@/hooks/use-truelayer";
 import ConnectWithTrueLayer from "@/components/connect-with-truelayer";
@@ -18,7 +18,7 @@ function ImporterPageContents() {
 
   const { isLoading: isExchanging, error: exchangeError } = useTrueLayer();
 
-  const [banks, setBanks] = useState<BankStatus[]>([]);
+  const [banks, setBanks] = useState<Bank[]>([]);
   const [debts, setDebts] = useState<Debt[]>([]);
   const [assets, setAssets] = useState<Asset[]>([]);
   const [loading, setLoading] = useState(true);

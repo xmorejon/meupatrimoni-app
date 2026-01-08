@@ -40,8 +40,7 @@ export const getTrueLayerAuthLink = regionalFunctions
         authUrl.searchParams.set('client_id', clientId);
         authUrl.searchParams.set('scope', 'info accounts balance cards transactions direct_debits standing_orders offline_access');
         authUrl.searchParams.set('redirect_uri', redirectUri);
-        authUrl.searchParams.set('providers', 'uk-oauth-all es-ob-revolut es-xs2a-santander es-xs2a-ing');
-        authUrl.searchParams.set('disable_providers', 'uk-ob-all');
+        authUrl.searchParams.set('providers', 'es-ob-revolut es-xs2a-santander es-xs2a-ing');
         functions.logger.info("Generated TrueLayer Auth URL:", authUrl.toString());
         return { authUrl: authUrl.toString() };
     });

@@ -1,19 +1,19 @@
 import type { FC } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import type { BankStatus } from '@/lib/types';
+import type { Bank } from '@/lib/types';
 import { ca } from 'date-fns/locale';
 import type { Locale } from 'date-fns';
 import { Landmark, Edit } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { EntryDialog } from './EntryDialog';
 import type { z } from 'zod';
-import type { entrySchema } from './EntryDialog';
+import { bankDebtSchema } from './EntryDialog';
 import { TimeAgo } from './TimeAgo';
 
 interface BankBreakdownProps {
-  banks: BankStatus[];
-  onEntry: (values: z.infer<typeof entrySchema>, type: 'Bank') => void;
+  banks: Bank[];
+  onEntry: (values: z.infer<typeof bankDebtSchema>, type: 'Bank') => void;
 }
 
 const localeMap: { [key: string]: Locale } = {

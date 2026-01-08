@@ -29,13 +29,13 @@ export const baseSchema = z.object({
 });
 
 // Create two distinct, static schemas. This is the robust solution that avoids confusing TypeScript.
-const bankDebtSchema = baseSchema.extend({
+export const bankDebtSchema = baseSchema.extend({
   balance: z.coerce
     .number({ invalid_type_error: "El valor ha de ser un número." })
     .nonnegative({ message: "El valor no pot ser negatiu." }),
 });
 
-const assetSchema = baseSchema.extend({
+export const assetSchema = baseSchema.extend({
   value: z.coerce
     .number({ invalid_type_error: "El valor ha de ser un número." })
     .nonnegative({ message: "El valor no pot ser negatiu." }),

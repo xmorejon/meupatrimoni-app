@@ -8,12 +8,12 @@ import { Home, Car, Edit } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { EntryDialog } from './EntryDialog';
 import type { z } from 'zod';
-import type { entrySchema } from './EntryDialog';
+import { assetSchema } from './EntryDialog';
 import { TimeAgo } from './TimeAgo';
 
 interface AssetBreakdownProps {
   assets: Asset[];
-  onEntry: (values: z.infer<typeof entrySchema>, type: 'Asset') => void;
+  onEntry: (values: z.infer<typeof assetSchema>, type: 'Asset') => void;
 }
 
 const localeMap: { [key: string]: Locale } = {

@@ -8,12 +8,12 @@ import { CreditCard, Home, Edit } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { EntryDialog } from './EntryDialog';
 import type { z } from 'zod';
-import type { entrySchema } from './EntryDialog';
+import { bankDebtSchema } from './EntryDialog';
 import { TimeAgo } from './TimeAgo';
 
 interface DebtBreakdownProps {
   debts: Debt[];
-  onEntry: (values: z.infer<typeof entrySchema>, type: 'Debt') => void;
+  onEntry: (values: z.infer<typeof bankDebtSchema>, type: 'Debt') => void;
 }
 
 const localeMap: { [key: string]: Locale } = {

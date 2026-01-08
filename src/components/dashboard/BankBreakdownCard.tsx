@@ -1,9 +1,9 @@
 import type { FC } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import type { BankStatus } from '@/lib/types';
+import type { Bank } from '@/lib/types';
 
 interface BankBreakdownCardProps {
-  banks: BankStatus[];
+  banks: Bank[];
 }
 
 export const BankBreakdownCard: FC<BankBreakdownCardProps> = ({ banks }) => {

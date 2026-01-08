@@ -2,9 +2,9 @@
 
 import { useState, useCallback } from 'react';
 import { auth, getAuthLink, handleCallback } from '../firebase/config';
-import type { BankStatus, Debt, Asset } from '@/lib/types';
+import type { Bank, Debt, Asset } from '@/lib/types';
 
-type TrueLayerAccount = (BankStatus | Debt | Asset) & { importType: string };
+type TrueLayerAccount = (Bank | Debt | Asset) & { importType: string };
 
 interface ExchangeResult {
     success: boolean;
