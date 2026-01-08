@@ -1,11 +1,41 @@
+'use client';
 
-import { db } from '@/firebase/config';
-import { collection, getDocs, doc, writeBatch, query, getDoc, setDoc, addDoc, updateDoc, Timestamp, orderBy } from 'firebase/firestore';
+import { initializeApp, getApps, getApp } from "firebase/app";
+import { getFirestore, collection, getDocs, doc, writeBatch, query, getDoc, setDoc, addDoc, updateDoc, Timestamp, orderBy } from 'firebase/firestore';
+import { getAuth, browserLocalPersistence, setPersistence } from "firebase/auth";
+import { getFunctions, httpsCallable } from "firebase/functions";
 import type { BankStatus, Debt, Asset, DashboardData, BalanceEntry, Entry } from './types';
 import { subDays, format, startOfToday, eachDayOfInterval, endOfDay, startOfDay, endOfYesterday, isSameDay } from 'date-fns';
 
+// Your web app's Firebase configuration
+const firebaseConfig = {
+  apiKey: "AIzaSyC-BAp-Uh3OC7pe4-Mv6ij3lScRl96fDl4",
+  authDomain: "meupatrimoni-app.web.app",
+  projectId: "meupatrimoni-app",
+  storageBucket: "meupatrimoni-app.appspot.com",
+  messagingSenderId: "792203456948",
+  appId: "1:792203456948:web:3b76693471fbc59ba6c2e1"
+};
+
+// Initialize Firebase
+const app = !getApps().length ? initializeApp(firebaseConfig) : getApp();
+const db = getFirestore(app);
+const auth = getAuth(app);
+
+// Set persistence to local storage
+setPersistence(auth, browserLocalPersistence);
+
+// Initialize Cloud Functions and point them to the correct region
+const functions = getFunctions(app, 'europe-west1');
+
+const getAuthLink = httpsCallable(functions, 'getTrueLayerAuthLink');
+const handleCallback = httpsCallable(functions, 'handleTrueLayerCallback');
+
+// Export all the firebase services
+export { app, db, auth, functions, getAuthLink, handleCallback };
+
 // Helper to parse DD/MM/YYYY
-const parseDate = (dateString: string): Date => {
+const parseDate = (dateString: string): Date | null => {
   if (!dateString) return null;
   const [day, month, year] = dateString.split('/');
   // new Date(year, monthIndex, day)
@@ -94,28 +124,41 @@ export async function batchImport(
   const entity = { id: entityDoc.id, ...entityDoc.data() } as Entry;
 
   const entries = data.map(row => {
-    const rawDate = row.Date || row.date || row.Timestamp || row.timestamp;
-    const timestamp = parseDate(rawDate);
+    const keys = Object.keys(row);
+    const dateKey = keys.find(k => k.toLowerCase() === 'date' || k.toLowerCase() === 'timestamp');
+    const valueKey = keys.find(k => k.toLowerCase() === 'value' || k.toLowerCase() === 'balance');
 
-    let balance, value;
-    const rawValue = row.Value || row.value;
-    
-    if (importType === 'Asset') {
-      value = parseValue(rawValue);
-    } else {
-      balance = parseValue(rawValue);
+    if (!dateKey || !valueKey) {
+        return null;
     }
 
-    return { timestamp, balance, value };
-  }).filter(e => e.timestamp && (e.balance !== undefined || e.value !== undefined));
+    const rawDate = row[dateKey];
+    const timestamp = parseDate(rawDate);
+    
+    const rawValue = row[valueKey];
+    
+    if (!timestamp || rawValue === undefined) {
+        return null; 
+    }
+
+    const parsedAmount = parseValue(rawValue);
+
+    if (importType === 'Asset') {
+      return { timestamp, value: parsedAmount };
+    } else {
+      return { timestamp, balance: parsedAmount };
+    }
+  }).filter(e => e !== null);
   
-  await batchImportEntries(importType, entity, entries);
+  if (entries.length > 0) {
+    await batchImportEntries(importType, entity, entries as any);
+  }
 }
 
 export async function batchImportEntries(
   entryType: 'Bank' | 'Debt' | 'Asset',
   item: Entry,
-  entries: { timestamp: Date; balance?: number; value?: number }[]
+  entries: ({ timestamp: Date; value: number; balance?: undefined; } | { timestamp: Date; balance: number; value?: undefined; })[]
 ): Promise<void> {
   if (entries.length === 0) return;
 
@@ -269,7 +312,7 @@ export async function getDashboardData(): Promise<DashboardData> {
 
   let creditCardDebt = 0;
   for (const debt of debtBreakdown) {
-      if (debt.type === 'Targeta de Crèdit') {
+      if (debt.type === 'Credit Card') {
           creditCardDebt += debt.balance || 0;
       }
   }
@@ -365,7 +408,7 @@ export async function getDashboardData(): Promise<DashboardData> {
 
     let creditCardDebtAtDate = 0;
     for (const debt of debtBreakdown) {
-        if (debt.type === 'Targeta de Crèdit') {
+        if (debt.type === 'Credit Card') {
             const debtEntries = groupedDebtEntries[debt.id] || [];
             const latestEntry = debtEntries.find(e => (e.timestamp as Date) <= endOfDate);
             if (latestEntry) {

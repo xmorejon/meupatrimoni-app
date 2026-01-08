@@ -57,7 +57,7 @@ export const NetWorthCard: FC<NetWorthCardProps> = ({ totalNetWorth, change, cas
           </div>
           <p className="text-xs text-muted-foreground mt-2">{translations.cashFlowDescription}</p>
         </div>
-      </div>
+      </CardContent>
     </Card>
   );
 };
