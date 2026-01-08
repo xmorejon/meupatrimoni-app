@@ -55,6 +55,34 @@ Follow these instructions to get a copy of the project up and running on your lo
    - In the root of your project, find the `src/firebase/config.ts` file.
    - Replace the placeholder values in the `firebaseConfig` object with the ones you copied from your Firebase project.
 
+### Required Firestore Indexes
+
+To ensure the CSV import functionality works correctly, you must create the following composite indexes in your Firestore database:
+
+1.  **Go to the Firestore Indexes Page:** Navigate to the "Indexes" tab in your Firestore database.
+2.  **Create Three Separate Indexes:** Create a new index for each of the following configurations:
+
+    *   **Index 1 (for Banks):**
+        *   **Collection ID:** `balanceEntries`
+        *   **Fields to index:**
+            1.  `bankId` -> `Ascending`
+            2.  `timestamp` -> `Ascending`
+        *   **Query scope:** `Collection`
+
+    *   **Index 2 (for Debts):**
+        *   **Collection ID:** `debtEntries`
+        *   **Fields to index:**
+            1.  `debtId` -> `Ascending`
+            2.  `timestamp` -> `Ascending`
+        *   **Query scope:** `Collection`
+
+    *   **Index 3 (for Assets):**
+        *   **Collection ID:** `assetEntries`
+        *   **Fields to index:**
+            1.  `assetId` -> `Ascending`
+            2.  `timestamp` -> `Ascending`
+        *   **Query scope:** `Collection`
+
 ### Running the Development Server
 
 Once the setup is complete, you can run the application locally:

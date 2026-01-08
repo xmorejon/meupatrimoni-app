@@ -1,6 +1,6 @@
 'use client';
 
-import { collection, getDocs, doc, writeBatch, query, getDoc, setDoc, addDoc, updateDoc, Timestamp, orderBy } from 'firebase/firestore';
+import { collection, getDocs, doc, writeBatch, query, getDoc, setDoc, addDoc, updateDoc, Timestamp, orderBy, where } from 'firebase/firestore';
 import { db, auth } from '../firebase/config'; // Centralized Firebase imports
 import type { Bank, Debt, Asset, DashboardData, BalanceEntry, Entry } from './types';
 import { subDays, format, startOfToday, eachDayOfInterval, endOfDay, startOfDay, endOfYesterday, isSameDay } from 'date-fns';
@@ -129,6 +129,23 @@ export async function batchImport(
   }
 }
 
+async function getOrCreateEntry(collectionName: string, itemId: string, timestamp: Timestamp) {
+    const startOfDate = startOfDay(timestamp.toDate());
+    const endOfDate = endOfDay(timestamp.toDate());
+    const q = query(
+        collection(db, collectionName),
+        where("bankId", "==", itemId),
+        where("timestamp", ">=", startOfDate),
+        where("timestamp", "<=", endOfDate)
+    );
+    const querySnapshot = await getDocs(q);
+    if (!querySnapshot.empty) {
+        return querySnapshot.docs[0].ref;
+    } else {
+        return doc(collection(db, collectionName));
+    }
+}
+
 export async function batchImportEntries(
   entryType: 'Bank' | 'Debt' | 'Asset',
   item: Entry,
@@ -203,13 +220,13 @@ export async function addOrUpdateBank(bankData: Partial<Bank> & { name: string; 
 
     batch.set(bankRef, { ...newBankData, lastUpdated: now }, { merge: true });
     
-    const balanceEntryRef = doc(collection(db, 'balanceEntries'));
+    const balanceEntryRef = await getOrCreateEntry('balanceEntries', bankRef.id, now);
     batch.set(balanceEntryRef, {
         bankId: bankRef.id,
         bank: newBankData.name,
         balance: newBankData.balance,
         timestamp: now
-    });
+    }, { merge: true });
 
     await batch.commit();
 }
@@ -225,12 +242,12 @@ export async function addOrUpdateDebt(debtData: Partial<Debt> & { name: string; 
 
   batch.set(debtRef, { ...payload, lastUpdated: now }, { merge: true });
 
-  const debtEntryRef = doc(collection(db, 'debtEntries'));
+  const debtEntryRef = await getOrCreateEntry('debtEntries', debtRef.id, now);
   batch.set(debtEntryRef, {
     ...payload,
     debtId: debtRef.id,
     timestamp: now
-  });
+  }, { merge: true });
 
   await batch.commit();
 }
@@ -245,12 +262,12 @@ export async function addOrUpdateAsset(assetData: Partial<Asset> & { name:string
 
   batch.set(assetRef, { ...payload, lastUpdated: now }, { merge: true });
 
-  const assetEntryRef = doc(collection(db, 'assetEntries'));
+  const assetEntryRef = await getOrCreateEntry('assetEntries', assetRef.id, now);
   batch.set(assetEntryRef, {
     ...payload,
     assetId: assetRef.id,
     timestamp: now
-  });
+  }, { merge: true });
 
   await batch.commit();
 }

@@ -102,7 +102,7 @@ export const DashboardClient: FC<DashboardClientProps> = ({ data }) => {
   const renderImportButton = () => (
     <Dialog open={isCsvImporterOpen} onOpenChange={setIsCsvImporterOpen}>
       <DialogTrigger asChild>
-        <Button>
+        <Button variant="outline">
           <ArrowRightLeft className="mr-2 h-4 w-4" />
           Importar CSV
         </Button>
@@ -137,7 +137,7 @@ export const DashboardClient: FC<DashboardClientProps> = ({ data }) => {
   return (
     <div className="flex flex-col gap-6">
         <div className="flex justify-between items-center">
-            <h1 className="text-2xl font-semibold"> Patrimoni Familiar</h1>
+            <h1 className="text-2xl font-semibold pl-4">Patrimoni Familiar</h1>
             <div className="flex items-center gap-2">
                 <Button onClick={handleRefresh} disabled={isRefreshing}>
                   {isRefreshing ? (
@@ -147,7 +147,7 @@ export const DashboardClient: FC<DashboardClientProps> = ({ data }) => {
                   )}
                   Actualitzar comptes
                 </Button>
-                <ConnectWithTrueLayer />
+                <ConnectWithTrueLayer variant="outline" />
                 {renderImportButton()}
             </div>
         </div>

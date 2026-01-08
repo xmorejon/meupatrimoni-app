@@ -2,6 +2,7 @@ import * as functions from "firebase-functions";
 import * as admin from "firebase-admin";
 import axios from "axios";
 import { URLSearchParams } from "url";
+import { startOfDay, endOfDay } from 'date-fns';
 
 admin.initializeApp();
 const db = admin.firestore();
@@ -24,6 +25,21 @@ const mapAccountType = (truelayerType: string): string => {
             return 'Credit Card';
         default:
             return 'Other';
+    }
+}
+
+async function getOrCreateEntry(collectionName: string, itemIdField: string, itemId: string, timestamp: admin.firestore.Timestamp) {
+    const start = startOfDay(timestamp.toDate());
+    const end = endOfDay(timestamp.toDate());
+    const q = db.collection(collectionName)
+        .where(itemIdField, "==", itemId)
+        .where("timestamp", ">=", start)
+        .where("timestamp", "<=", end);
+    const querySnapshot = await q.get();
+    if (!querySnapshot.empty) {
+        return querySnapshot.docs[0].ref;
+    } else {
+        return db.collection(collectionName).doc();
     }
 }
 
@@ -130,13 +146,13 @@ export const handleTrueLayerCallback = regionalFunctions
                     };
                     batch.set(bankRef, bankData, { merge: true });
 
-                    const balanceEntryRef = db.collection('balanceEntries').doc();
+                    const balanceEntryRef = await getOrCreateEntry('balanceEntries', 'bankId', bankRef.id, now);
                     batch.set(balanceEntryRef, {
                         balance: balance,
                         timestamp: now,
                         bankId: bankRef.id,
                         bank: bankName 
-                    });
+                    }, { merge: true });
 
                     newlyImportedAccountsForClient.push({ ...bankData, lastUpdated: new Date().toISOString(), importType: 'Bank' });
 
@@ -158,13 +174,13 @@ export const handleTrueLayerCallback = regionalFunctions
                     };
                     batch.set(debtRef, debtData, { merge: true });
 
-                    const debtEntryRef = db.collection('debtEntries').doc();
+                    const debtEntryRef = await getOrCreateEntry('debtEntries', 'debtId', debtRef.id, now);
                     batch.set(debtEntryRef, {
                         balance: balance,
                         timestamp: now,
                         debtId: debtRef.id,
                         debtName: debtName
-                    });
+                    }, { merge: true });
 
                     newlyImportedAccountsForClient.push({ ...debtData, lastUpdated: new Date().toISOString(), importType: 'Debt' });
                 }
@@ -244,13 +260,13 @@ export const refreshTruelayerData = regionalFunctions
 
                     batch.update(doc.ref, { balance: newBalance, lastUpdated: now });
 
-                    const balanceEntryRef = db.collection('balanceEntries').doc();
+                    const balanceEntryRef = await getOrCreateEntry('balanceEntries', 'bankId', doc.id, now);
                     batch.set(balanceEntryRef, {
                         balance: newBalance,
                         timestamp: now,
                         bankId: doc.id,
                         bank: bank.name 
-                    });
+                    }, { merge: true });
                     refreshedAccounts++;
                 }
             } catch (error) {

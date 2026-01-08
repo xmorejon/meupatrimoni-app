@@ -2,6 +2,7 @@ import * as functions from "firebase-functions";
 import * as admin from "firebase-admin";
 import { parse } from "csv-parse/sync";
 import * as cors from "cors";
+import { startOfDay, endOfDay } from 'date-fns';
 
 const db = admin.firestore();
 const corsHandler = cors({ origin: true });
@@ -21,6 +22,21 @@ const parseValue = (valueString: string): number => {
     const cleanedString = valueString.replace(/\./g, '').replace(',', '.');
     return parseFloat(cleanedString);
 };
+
+async function getOrCreateEntry(collectionName: string, itemIdField: string, itemId: string, timestamp: admin.firestore.Timestamp) {
+    const start = startOfDay(timestamp.toDate());
+    const end = endOfDay(timestamp.toDate());
+    const q = db.collection(collectionName)
+        .where(itemIdField, "==", itemId)
+        .where("timestamp", ">=", start)
+        .where("timestamp", "<=", end);
+    const querySnapshot = await q.get();
+    if (!querySnapshot.empty) {
+        return querySnapshot.docs[0].ref;
+    } else {
+        return db.collection(collectionName).doc();
+    }
+}
 
 export const importCsv = functions.region("europe-west1").https.onRequest(async (req, res) => {
   corsHandler(req, res, async () => {
@@ -100,11 +116,12 @@ export const importCsv = functions.region("europe-west1").https.onRequest(async 
       if (entries.length > 0) {
           const batch = db.batch();
           const entriesCollectionName = entityType === 'Bank' ? 'balanceEntries' : entityType.toLowerCase() + 'Entries';
-          const entriesRef = db.collection(entriesCollectionName);
 
-          entries.forEach((entry: any) => {
-              const newEntryRef = entriesRef.doc();
-              const commonData = { timestamp: admin.firestore.Timestamp.fromDate(entry.timestamp) };
+          for (const entry of entries) {
+              const entryTimestamp = admin.firestore.Timestamp.fromDate(entry.timestamp);
+              const itemIdField = `${entityType.toLowerCase()}Id`;
+              const entryRef = await getOrCreateEntry(entriesCollectionName, itemIdField, entity.id, entryTimestamp);
+              const commonData = { timestamp: entryTimestamp };
               let specificData = {};
 
               switch (entityType) {
@@ -119,8 +136,8 @@ export const importCsv = functions.region("europe-west1").https.onRequest(async 
                       break;
               }
 
-              batch.set(newEntryRef, { ...commonData, ...specificData });
-          });
+              batch.set(entryRef, { ...commonData, ...specificData }, { merge: true });
+          }
 
           const latestEntry = entries.reduce((latest: any, current: any) =>
               current.timestamp > latest.timestamp ? current : latest
