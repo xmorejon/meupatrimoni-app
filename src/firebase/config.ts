@@ -7,9 +7,9 @@ import { getFunctions, httpsCallable } from "firebase/functions"; // Import the 
 // Your web app's Firebase configuration
 const firebaseConfig = {
   apiKey: "AIzaSyC-BAp-Uh3OC7pe4-Mv6ij3lScRl96fDl4",
-  authDomain: "meupatrimoni-app.web.app",
+  authDomain: "meupatrimoni-app.firebaseapp.com",
   projectId: "meupatrimoni-app",
-  storageBucket: "meupatrimoni-app.appspot.com",
+  storageBucket: "meupatrimoni-app.firebasestorage.app",
   messagingSenderId: "792203456948",
   appId: "1:792203456948:web:3b76693471fbc59ba6c2e1"
 };

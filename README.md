@@ -1,3 +1,4 @@
+
 # MeuPatrimoni - Net Worth Tracker
 
 MeuPatrimoni is a modern web application designed to help you track your personal net worth in real-time. It provides a comprehensive dashboard with charts and breakdowns of your financial status, including assets, debts, and cash flow.
@@ -112,6 +113,14 @@ To use the preview mode, you will need to create a dedicated user account in you
 3.  **Authorize the Preview User:**
     *   Go to your **Firestore Database**.
     *   In the `authorized_users` collection, add a new document with the email of your preview user.
+
+4.  **Authorize the Development Domain:**
+    *   **Go to the Firebase Console:** Open your project and navigate to the **Authentication** section.
+    *   **Go to the Settings Tab:** Click on the **Settings** tab.
+    *   **Add the Domain:** Under the "Authorized domains" section, click **Add domain**.
+    *   **Enter the Domain:** Enter the domain of your development environment. For example:
+        `9000-firebase-studio-1767299015901.cluster-fbfjltn375c6wqxlhoehbz44sk.cloudworkstations.dev`
+    *   **Click Add.**
 
 ### Configuring Preview Mode
 
