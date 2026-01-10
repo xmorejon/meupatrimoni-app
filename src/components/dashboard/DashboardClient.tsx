@@ -4,7 +4,7 @@
 import { useState, type FC } from 'react';
 import { useRouter } from 'next/navigation';
 import { Button } from '@/components/ui/button';
-import { ArrowRightLeft, RefreshCw } from 'lucide-react';
+import { ArrowRightLeft, Menu, RefreshCw } from 'lucide-react';
 import type { z } from 'zod';
 
 import { NetWorthChart } from './NetWorthChart';
@@ -25,8 +25,15 @@ import {
   DialogTitle,
   DialogTrigger,
 } from "@/components/ui/dialog";
+import {
+    DropdownMenu,
+    DropdownMenuContent,
+    DropdownMenuItem,
+    DropdownMenuTrigger,
+  } from "@/components/ui/dropdown-menu";
 import { getFunctions, httpsCallable } from 'firebase/functions';
 import { getApp } from 'firebase/app';
+import useMobile from '@/hooks/use-mobile';
 
 interface DashboardClientProps {
   data: DashboardData | null;
@@ -43,6 +50,7 @@ export const DashboardClient: FC<DashboardClientProps> = ({ data }) => {
   const { toast } = useToast();
   const [isCsvImporterOpen, setIsCsvImporterOpen] = useState(false);
   const [isRefreshing, setIsRefreshing] = useState(false);
+  const isMobile = useMobile();
 
   const handleEntry = async (values: EntryData, type: 'Bank' | 'Debt' | 'Asset') => {
     try {
@@ -70,7 +78,7 @@ export const DashboardClient: FC<DashboardClientProps> = ({ data }) => {
       toast({
         variant: "destructive",
         title: "Error",
-        description: `No s'ha pogut desar el ${type}. Si us plau, intenta-ho de nou.`,
+        description: `No s'ha pogut desar el ${type}. Si us plau, intenta-ho de nou.`
       })
     }
   };
@@ -99,13 +107,20 @@ export const DashboardClient: FC<DashboardClientProps> = ({ data }) => {
     }
   };
 
-  const renderImportButton = () => (
+  const renderImportButton = (asChild: boolean) => (
     <Dialog open={isCsvImporterOpen} onOpenChange={setIsCsvImporterOpen}>
-      <DialogTrigger asChild>
-        <Button variant="outline">
-          <ArrowRightLeft className="mr-2 h-4 w-4" />
-          Importar CSV
-        </Button>
+      <DialogTrigger asChild={asChild}>
+        {asChild ? (
+            <button className='relative flex cursor-default select-none items-center rounded-sm px-2 py-1.5 text-sm outline-none transition-colors focus:bg-accent focus:text-accent-foreground data-[disabled]:pointer-events-none data-[disabled]:opacity-50 w-full text-left'>
+                <ArrowRightLeft className="mr-2 h-4 w-4" />
+                Importar CSV
+            </button>
+        ) : (
+            <Button variant="outline">
+                <ArrowRightLeft className="mr-2 h-4 w-4" />
+                Importar CSV
+            </Button>
+        )}
       </DialogTrigger>
       <DialogContent>
         <DialogHeader>
@@ -116,6 +131,35 @@ export const DashboardClient: FC<DashboardClientProps> = ({ data }) => {
     </Dialog>
   );
 
+  const renderMenu = () => {
+    if (isMobile) {
+        return (
+            <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                    <Button variant="outline" size="icon">
+                        <Menu className="h-4 w-4" />
+                    </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end">
+                    <DropdownMenuItem asChild>
+                        <ConnectWithTrueLayer variant='ghost' />
+                    </DropdownMenuItem>
+                    <DropdownMenuItem asChild>
+                        {renderImportButton(true)}
+                    </DropdownMenuItem>
+                </DropdownMenuContent>
+            </DropdownMenu>
+        )
+    }
+
+    return (
+        <div className="flex items-center gap-2">
+            <ConnectWithTrueLayer variant="outline" />
+            {renderImportButton(false)}
+        </div>
+    )
+  }
+
 
   if (!data) {
     return (
@@ -123,7 +167,7 @@ export const DashboardClient: FC<DashboardClientProps> = ({ data }) => {
             <p className="mb-4">No hi ha dades per mostrar.</p>
             <div className="flex gap-2">
                 <ConnectWithTrueLayer />
-                {renderImportButton()}
+                {renderImportButton(false)}
             </div>
         </div>
     );
@@ -147,8 +191,7 @@ export const DashboardClient: FC<DashboardClientProps> = ({ data }) => {
                   )}
                   Actualitzar comptes
                 </Button>
-                <ConnectWithTrueLayer variant="outline" />
-                {renderImportButton()}
+                {renderMenu()}
             </div>
         </div>
 
