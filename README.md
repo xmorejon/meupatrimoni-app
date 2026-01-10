@@ -93,6 +93,50 @@ npm run dev
 
 Open [http://localhost:9002](http://localhost:9002) with your browser to see the result.
 
+## 👁️ Preview Mode
+
+This application includes a preview mode that allows you to test its functionality in a sandboxed environment without affecting your production data. This is particularly useful for testing new features or debugging issues.
+
+To use the preview mode, you will need to create a dedicated user account in your Firebase project and add its credentials to a local environment file.
+
+### Setting Up a Preview User
+
+1.  **Enable Email/Password Authentication:**
+    *   Go to your Firebase project's **Authentication** section.
+    *   In the **Sign-in method** tab, enable the **Email/Password** provider.
+
+2.  **Create a New User:**
+    *   In the **Users** tab, click **Add user**.
+    *   Enter an email and password for your preview user.
+
+3.  **Authorize the Preview User:**
+    *   Go to your **Firestore Database**.
+    *   In the `authorized_users` collection, add a new document with the email of your preview user.
+
+### Configuring Preview Mode
+
+1.  **Create a `.env.local` File:**
+    *   In the root of your project, create a new file named `.env.local`.
+
+2.  **Add Environment Variables:**
+    *   Add the following environment variables to the `.env.local` file, replacing the placeholder values with the credentials of your preview user:
+
+        ```
+        NEXT_PUBLIC_PREVIEW_MODE=true
+        NEXT_PUBLIC_PREVIEW_EMAIL=your-preview-email@example.com
+        NEXT_PUBLIC_PREVIEW_PASSWORD=your-preview-password
+        ```
+
+### Running in Preview Mode
+
+Once you have configured the `.env.local` file, you can run the application in preview mode:
+
+```bash
+npm run dev
+```
+
+The application will automatically sign in with your preview user, and you will be able to test its full functionality.
+
 ##  scripts
 
 - `dev`: Starts the Next.js development server.

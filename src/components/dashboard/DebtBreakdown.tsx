@@ -82,8 +82,8 @@ export const DebtBreakdown: FC<DebtBreakdownProps> = ({ debts, onEntry }) => {
           <TableHeader>
             <TableRow>
               <TableHead>{t.debtHeader}</TableHead>
-              <TableHead>{t.updateTypeHeader}</TableHead>
               <TableHead className="text-right">{t.balanceHeader}</TableHead>
+              <TableHead>{t.updateTypeHeader}</TableHead>
               <TableHead className="w-[80px] text-center">{tEntry.actionsHeader}</TableHead>
             </TableRow>
           </TableHeader>
@@ -92,7 +92,7 @@ export const DebtBreakdown: FC<DebtBreakdownProps> = ({ debts, onEntry }) => {
               <TableRow key={debt.id}>
                 <TableCell>
                   <div className="flex items-center gap-3">
-                    <div className="p-2 bg-muted rounded-md">
+                    <div className="p-2 bg-muted rounded-md flex-shrink-0">
                         {debt.providerId ? (
                             <img src={`/logos/${debt.providerId}.svg`} alt={debt.name} className="h-4 w-4" />
                         ) : (
@@ -105,13 +105,13 @@ export const DebtBreakdown: FC<DebtBreakdownProps> = ({ debts, onEntry }) => {
                     </div>
                   </div>
                 </TableCell>
+                <TableCell className="text-right font-mono text-foreground">
+                  {new Intl.NumberFormat(locale, { style: 'currency', currency }).format(debt.balance)}
+                </TableCell>
                 <TableCell>
                   <Badge variant={debt.truelayerId ? 'success' : 'secondary'}>
                     {debt.truelayerId ? t.automated : t.manual}
                   </Badge>
-                </TableCell>
-                <TableCell className="text-right font-mono text-foreground">
-                  {new Intl.NumberFormat(locale, { style: 'currency', currency }).format(debt.balance)}
                 </TableCell>
                 <TableCell className="text-center">
                     <EntryDialog

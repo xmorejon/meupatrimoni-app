@@ -71,8 +71,8 @@ export const BankBreakdown: FC<BankBreakdownProps> = ({ banks, onEntry }) => {
           <TableHeader>
             <TableRow>
               <TableHead>{t.bankHeader}</TableHead>
-              <TableHead>{t.updateTypeHeader}</TableHead>
               <TableHead className="text-right">{t.balanceHeader}</TableHead>
+              <TableHead>{t.updateTypeHeader}</TableHead>
               <TableHead className="w-[80px] text-center">{tEntry.actionsHeader}</TableHead>
             </TableRow>
           </TableHeader>
@@ -81,7 +81,7 @@ export const BankBreakdown: FC<BankBreakdownProps> = ({ banks, onEntry }) => {
               <TableRow key={bank.id}>
                 <TableCell>
                   <div className="flex items-center gap-3">
-                    <div className="p-2 bg-muted rounded-md">
+                    <div className="p-2 bg-muted rounded-md flex-shrink-0">
                         {bank.providerId ? (
                             <img src={`/logos/${bank.providerId}.svg`} alt={bank.name} className="h-4 w-4" />
                         ) : (
@@ -94,13 +94,13 @@ export const BankBreakdown: FC<BankBreakdownProps> = ({ banks, onEntry }) => {
                     </div>
                   </div>
                 </TableCell>
+                <TableCell className="text-right font-mono text-foreground">
+                  {new Intl.NumberFormat(locale, { style: 'currency', currency }).format(bank.balance)}
+                </TableCell>
                 <TableCell>
                   <Badge variant={bank.truelayerId ? 'success' : 'secondary'}>
                     {bank.truelayerId ? t.automated : t.manual}
                   </Badge>
-                </TableCell>
-                <TableCell className="text-right font-mono text-foreground">
-                  {new Intl.NumberFormat(locale, { style: 'currency', currency }).format(bank.balance)}
                 </TableCell>
                 <TableCell className="text-center">
                     <EntryDialog 

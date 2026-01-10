@@ -82,8 +82,8 @@ export const AssetBreakdown: FC<AssetBreakdownProps> = ({ assets, onEntry }) => 
           <TableHeader>
             <TableRow>
               <TableHead>{t.assetHeader}</TableHead>
-              <TableHead>{t.updateTypeHeader}</TableHead>
               <TableHead className="text-right">{t.valueHeader}</TableHead>
+              <TableHead>{t.updateTypeHeader}</TableHead>
               <TableHead className="w-[80px] text-center">{tEntry.actionsHeader}</TableHead>
             </TableRow>
           </TableHeader>
@@ -92,7 +92,7 @@ export const AssetBreakdown: FC<AssetBreakdownProps> = ({ assets, onEntry }) => 
               <TableRow key={asset.id}>
                 <TableCell>
                   <div className="flex items-center gap-3">
-                    <div className="p-2 bg-muted rounded-md">
+                    <div className="p-2 bg-muted rounded-md flex-shrink-0">
                         <AssetIcon type={asset.type} />
                     </div>
                     <div>
@@ -101,13 +101,13 @@ export const AssetBreakdown: FC<AssetBreakdownProps> = ({ assets, onEntry }) => 
                     </div>
                   </div>
                 </TableCell>
+                <TableCell className="text-right font-mono text-foreground">
+                  {new Intl.NumberFormat(locale, { style: 'currency', currency }).format(asset.value)}
+                </TableCell>
                 <TableCell>
                   <Badge variant={asset.truelayerId ? 'success' : 'secondary'}>
                     {asset.truelayerId ? t.automated : t.manual}
                   </Badge>
-                </TableCell>
-                <TableCell className="text-right font-mono text-foreground">
-                  {new Intl.NumberFormat(locale, { style: 'currency', currency }).format(asset.value)}
                 </TableCell>
                 <TableCell className="text-center">
                     <EntryDialog 
