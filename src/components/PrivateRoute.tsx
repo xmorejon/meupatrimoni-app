@@ -8,32 +8,22 @@ const PrivateRoute = ({ children }: { children: React.ReactNode }) => {
   const { user, loading } = useAuth();
   const router = useRouter();
 
-  // Log component rendering
-  console.log('[PrivateRoute] Component rendered. Loading:', loading, 'User exists:', !!user);
-
   useEffect(() => {
-    // Log useEffect hook execution
-    console.log('[PrivateRoute] useEffect triggered. Loading:', loading, 'User exists:', !!user);
-
-    // The original redirect logic is still commented out
-    // We are only logging to understand the flow
+    // If the auth state is not loading and there is no user,
+    // redirect to the login page.
     if (!loading && !user) {
-      console.log('[PrivateRoute] Redirect condition met. In a previous version, a redirect to /login would have happened here.');
+      router.push('/login');
     }
   }, [user, loading, router]);
 
-  if (loading) {
-    console.log('[PrivateRoute] Rendering loading state...');
+  // While loading, or if there is no user (before the redirect happens),
+  // show a loading indicator. This prevents a flash of the dashboard content.
+  if (loading || !user) {
     return <div>Loading...</div>;
   }
 
-  if (!user) {
-    console.log('[PrivateRoute] No user found. Rendering null as per design.');
-    return null;
-  }
-
-  console.log('[PrivateRoute] User is authenticated. Rendering children.');
-  return user ? <>{children}</> : null;
+  // If the user is authenticated, render the protected content.
+  return <>{children}</>;
 };
 
 export default PrivateRoute;
