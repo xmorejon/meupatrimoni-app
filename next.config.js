@@ -1,5 +1,6 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
+  output: "export",
   typescript: {
     ignoreBuildErrors: true,
   },
@@ -10,27 +11,27 @@ const nextConfig = {
     unoptimized: true,
     remotePatterns: [
       {
-        protocol: 'https',
-        hostname: 'placehold.co',
-        port: '',
-        pathname: '/**',
+        protocol: "https",
+        hostname: "placehold.co",
+        port: "",
+        pathname: "/**",
       },
       {
-        protocol: 'https',
-        hostname: 'images.unsplash.com',
-        port: '',
-        pathname: '/**',
+        protocol: "https",
+        hostname: "images.unsplash.com",
+        port: "",
+        pathname: "/**",
       },
       {
-        protocol: 'https',
-        hostname: 'picsum.photos',
-        port: '',
-        pathname: '/**',
+        protocol: "https",
+        hostname: "picsum.photos",
+        port: "",
+        pathname: "/**",
       },
     ],
   },
   allowedDevOrigins: [
-    'https://9000-firebase-studio-1767299015901.cluster-fbfjltn375c6wqxlhoehbz44sk.cloudworkstations.dev',
+    "https://9000-firebase-studio-1767299015901.cluster-fbfjltn375c6wqxlhoehbz44sk.cloudworkstations.dev",
   ],
 };
 
