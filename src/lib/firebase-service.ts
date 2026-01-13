@@ -612,3 +612,45 @@ export async function getDashboardData(): Promise<DashboardData> {
     assetBreakdown,
   };
 }
+
+export async function getItemHistory(
+  type: "Bank" | "Debt" | "Asset",
+  id: string
+): Promise<{ date: string; value: number }[]> {
+  let collectionName = "";
+  let idField = "";
+  let valueField = "";
+
+  switch (type) {
+    case "Bank":
+      collectionName = "balanceEntries";
+      idField = "bankId";
+      valueField = "balance";
+      break;
+    case "Debt":
+      collectionName = "debtEntries";
+      idField = "debtId";
+      valueField = "balance";
+      break;
+    case "Asset":
+      collectionName = "assetEntries";
+      idField = "assetId";
+      valueField = "value";
+      break;
+  }
+
+  const q = query(
+    collection(db, collectionName),
+    where(idField, "==", id),
+    orderBy("timestamp", "asc")
+  );
+  const snapshot = await getDocs(q);
+
+  return snapshot.docs.map((doc) => {
+    const data = doc.data();
+    return {
+      date: format(data.timestamp.toDate(), "dd/MM/yy"),
+      value: data[valueField],
+    };
+  });
+}

@@ -11,7 +11,7 @@ import {
 import type { Asset } from "@/lib/types";
 import { ca } from "date-fns/locale";
 import type { Locale } from "date-fns";
-import { Home, Car, Edit } from "lucide-react";
+import { Home, Car, Edit, LineChart } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { EntryDialog } from "./EntryDialog";
 import type { z } from "zod";
@@ -22,6 +22,7 @@ import { Badge } from "@/components/ui/badge";
 interface AssetBreakdownProps {
   assets: Asset[];
   onEntry: (values: z.infer<typeof assetSchema>, type: "Asset") => void;
+  onHistory: (item: Asset, type: "Asset") => void;
 }
 
 const localeMap: { [key: string]: Locale } = {
@@ -42,6 +43,7 @@ const AssetIcon = ({ type }: { type: Asset["type"] }) => {
 export const AssetBreakdown: FC<AssetBreakdownProps> = ({
   assets,
   onEntry,
+  onHistory,
 }) => {
   const t = {
     title: "Actius",
@@ -83,7 +85,9 @@ export const AssetBreakdown: FC<AssetBreakdownProps> = ({
         <CardTitle>{t.title}</CardTitle>
         <EntryDialog
           type="Asset"
-          onEntry={(values) => onEntry(values, "Asset")}
+          onEntry={(values) =>
+            onEntry(values as z.infer<typeof assetSchema>, "Asset")
+          }
           trigger={
             <Button variant="outline" size="sm">
               {t.addAsset}
@@ -135,10 +139,12 @@ export const AssetBreakdown: FC<AssetBreakdownProps> = ({
                     {asset.truelayerId ? t.automated : t.manual}
                   </Badge>
                 </TableCell>
-                <TableCell className="text-center">
+                <TableCell className="text-center flex items-center justify-center gap-2">
                   <EntryDialog
                     type="Asset"
-                    onEntry={(values) => onEntry(values, "Asset")}
+                    onEntry={(values) =>
+                      onEntry(values as z.infer<typeof assetSchema>, "Asset")
+                    }
                     item={asset}
                     trigger={
                       <Button variant="ghost" size="icon" className="h-8 w-8">
@@ -147,6 +153,14 @@ export const AssetBreakdown: FC<AssetBreakdownProps> = ({
                     }
                     translations={tEntry}
                   />
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    className="h-8 w-8"
+                    onClick={() => onHistory(asset, "Asset")}
+                  >
+                    <LineChart className="h-4 w-4" />
+                  </Button>
                 </TableCell>
               </TableRow>
             ))}

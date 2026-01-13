@@ -11,7 +11,7 @@ import {
 import type { Debt } from "@/lib/types";
 import { ca } from "date-fns/locale";
 import type { Locale } from "date-fns";
-import { CreditCard, Home, Edit } from "lucide-react";
+import { CreditCard, Home, Edit, LineChart } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { EntryDialog } from "./EntryDialog";
 import type { z } from "zod";
@@ -22,6 +22,7 @@ import { Badge } from "@/components/ui/badge";
 interface DebtBreakdownProps {
   debts: Debt[];
   onEntry: (values: z.infer<typeof bankDebtSchema>, type: "Debt") => void;
+  onHistory: (item: Debt, type: "Debt") => void;
 }
 
 const localeMap: { [key: string]: Locale } = {
@@ -39,7 +40,11 @@ const DebtIcon = ({ type }: { type: Debt["type"] }) => {
   }
 };
 
-export const DebtBreakdown: FC<DebtBreakdownProps> = ({ debts, onEntry }) => {
+export const DebtBreakdown: FC<DebtBreakdownProps> = ({
+  debts,
+  onEntry,
+  onHistory,
+}) => {
   const t = {
     title: "Deutes",
     addDebt: "Afegir Deute",
@@ -80,7 +85,9 @@ export const DebtBreakdown: FC<DebtBreakdownProps> = ({ debts, onEntry }) => {
         <CardTitle>{t.title}</CardTitle>
         <EntryDialog
           type="Debt"
-          onEntry={(values) => onEntry(values, "Debt")}
+          onEntry={(values) =>
+            onEntry(values as z.infer<typeof bankDebtSchema>, "Debt")
+          }
           trigger={
             <Button variant="outline" size="sm">
               {t.addDebt}
@@ -140,10 +147,12 @@ export const DebtBreakdown: FC<DebtBreakdownProps> = ({ debts, onEntry }) => {
                     {debt.truelayerId ? t.automated : t.manual}
                   </Badge>
                 </TableCell>
-                <TableCell className="text-center">
+                <TableCell className="text-center flex items-center justify-center gap-2">
                   <EntryDialog
                     type="Debt"
-                    onEntry={(values) => onEntry(values, "Debt")}
+                    onEntry={(values) =>
+                      onEntry(values as z.infer<typeof bankDebtSchema>, "Debt")
+                    }
                     item={debt}
                     trigger={
                       <Button variant="ghost" size="icon" className="h-8 w-8">
@@ -152,6 +161,14 @@ export const DebtBreakdown: FC<DebtBreakdownProps> = ({ debts, onEntry }) => {
                     }
                     translations={tEntry}
                   />
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    className="h-8 w-8"
+                    onClick={() => onHistory(debt, "Debt")}
+                  >
+                    <LineChart className="h-4 w-4" />
+                  </Button>
                 </TableCell>
               </TableRow>
             ))}

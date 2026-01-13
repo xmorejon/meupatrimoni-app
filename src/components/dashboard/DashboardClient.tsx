@@ -37,6 +37,7 @@ import {
 import { getFunctions, httpsCallable } from "firebase/functions";
 import { getApp } from "firebase/app";
 import useMobile from "@/hooks/use-mobile";
+import { ItemHistoryDialog } from "./ItemHistoryDialog";
 
 interface DashboardClientProps {
   data: DashboardData | null;
@@ -60,6 +61,11 @@ export const DashboardClient: FC<DashboardClientProps> = ({ data }) => {
   const [isCsvImporterOpen, setIsCsvImporterOpen] = useState(false);
   const [isRefreshing, setIsRefreshing] = useState(false);
   const isMobile = useMobile();
+  const [historyItem, setHistoryItem] = useState<{
+    id: string;
+    name: string;
+    type: "Bank" | "Debt" | "Asset";
+  } | null>(null);
 
   const handleEntry = async (
     values: EntryData,
@@ -127,6 +133,13 @@ export const DashboardClient: FC<DashboardClientProps> = ({ data }) => {
     } finally {
       setIsRefreshing(false);
     }
+  };
+
+  const handleHistory = (
+    item: { id: string; name: string },
+    type: "Bank" | "Debt" | "Asset"
+  ) => {
+    setHistoryItem({ id: item.id, name: item.name, type });
   };
 
   const renderImportButton = (asChild: boolean) => (
@@ -234,21 +247,30 @@ export const DashboardClient: FC<DashboardClientProps> = ({ data }) => {
           <BankBreakdown
             banks={bankBreakdown}
             onEntry={(values) => handleEntry(values, "Bank")}
+            onHistory={(item) => handleHistory(item, "Bank")}
           />
         </div>
         <div className="lg:col-span-1 flex flex-col gap-6">
           <DebtBreakdown
             debts={debtBreakdown}
             onEntry={(values) => handleEntry(values, "Debt")}
+            onHistory={(item) => handleHistory(item, "Debt")}
           />
         </div>
         <div className="lg:col-span-1 flex flex-col gap-6">
           <AssetBreakdown
             assets={assetBreakdown}
             onEntry={(values) => handleEntry(values, "Asset")}
+            onHistory={(item) => handleHistory(item, "Asset")}
           />
         </div>
       </div>
+
+      <ItemHistoryDialog
+        isOpen={!!historyItem}
+        onClose={() => setHistoryItem(null)}
+        item={historyItem}
+      />
     </div>
   );
 };

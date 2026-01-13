@@ -11,7 +11,7 @@ import {
 import type { Bank } from "@/lib/types";
 import { ca } from "date-fns/locale";
 import type { Locale } from "date-fns";
-import { Landmark, Edit } from "lucide-react";
+import { Landmark, Edit, LineChart } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { EntryDialog } from "./EntryDialog";
 import type { z } from "zod";
@@ -22,13 +22,18 @@ import { Badge } from "@/components/ui/badge";
 interface BankBreakdownProps {
   banks: Bank[];
   onEntry: (values: z.infer<typeof bankDebtSchema>, type: "Bank") => void;
+  onHistory: (item: Bank, type: "Bank") => void;
 }
 
 const localeMap: { [key: string]: Locale } = {
   "ca-ES": ca,
 };
 
-export const BankBreakdown: FC<BankBreakdownProps> = ({ banks, onEntry }) => {
+export const BankBreakdown: FC<BankBreakdownProps> = ({
+  banks,
+  onEntry,
+  onHistory,
+}) => {
   const t = {
     title: "Comptes Bancaris",
     addBank: "Afegir Compte",
@@ -69,7 +74,9 @@ export const BankBreakdown: FC<BankBreakdownProps> = ({ banks, onEntry }) => {
         <CardTitle>{t.title}</CardTitle>
         <EntryDialog
           type="Bank"
-          onEntry={(values) => onEntry(values, "Bank")}
+          onEntry={(values) =>
+            onEntry(values as z.infer<typeof bankDebtSchema>, "Bank")
+          }
           trigger={
             <Button variant="outline" size="sm">
               {t.addBank}
@@ -129,10 +136,12 @@ export const BankBreakdown: FC<BankBreakdownProps> = ({ banks, onEntry }) => {
                     {bank.truelayerId ? t.automated : t.manual}
                   </Badge>
                 </TableCell>
-                <TableCell className="text-center">
+                <TableCell className="text-center flex items-center justify-center gap-2">
                   <EntryDialog
                     type="Bank"
-                    onEntry={(values) => onEntry(values, "Bank")}
+                    onEntry={(values) =>
+                      onEntry(values as z.infer<typeof bankDebtSchema>, "Bank")
+                    }
                     item={bank}
                     trigger={
                       <Button variant="ghost" size="icon" className="h-8 w-8">
@@ -141,6 +150,14 @@ export const BankBreakdown: FC<BankBreakdownProps> = ({ banks, onEntry }) => {
                     }
                     translations={tEntry}
                   />
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    className="h-8 w-8"
+                    onClick={() => onHistory(bank, "Bank")}
+                  >
+                    <LineChart className="h-4 w-4" />
+                  </Button>
                 </TableCell>
               </TableRow>
             ))}
