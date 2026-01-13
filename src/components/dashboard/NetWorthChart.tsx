@@ -1,5 +1,3 @@
-"use client";
-
 import {
   Area,
   AreaChart,
@@ -10,7 +8,7 @@ import {
   YAxis,
   Dot,
 } from "recharts";
-import { useRef, useEffect } from "react";
+import { useRef, useEffect, useState, useMemo } from "react";
 
 import {
   Card,
@@ -75,10 +73,44 @@ const CustomizedDot = (props: any) => {
 };
 
 export function NetWorthChart({ data }: NetWorthChartProps) {
+  const [filter, setFilter] = useState<"3M" | "12M" | "ALL">("3M");
+
+  const filteredData = useMemo(() => {
+    if (!data) return [];
+    if (filter === "ALL") return data;
+
+    const now = new Date();
+    const cutoff = new Date(now);
+
+    if (filter === "3M") {
+      cutoff.setMonth(cutoff.getMonth() - 3);
+    } else if (filter === "12M") {
+      cutoff.setMonth(cutoff.getMonth() - 12);
+    }
+
+    // If the new date is not the same day of the month, it means the original
+    // month had more days than the new month. In this case, we go to the last
+    // day of the previous month.
+    if (cutoff.getDate() !== now.getDate()) {
+      cutoff.setDate(0);
+    }
+    cutoff.setHours(0, 0, 0, 0);
+
+    return data.filter((item) => {
+      const [day, month, year] = item.date.split("/").map(Number);
+      const itemDate = new Date(
+        year < 100 ? 2000 + year : year,
+        month - 1,
+        day
+      );
+      return itemDate >= cutoff;
+    });
+  }, [data, filter]);
+
   const scrollContainerRef = useRef<HTMLDivElement>(null);
   const itemWidth = 80;
   const minChartWidth = 500;
-  const calculatedWidth = data.length * itemWidth;
+  const calculatedWidth = filteredData.length * itemWidth;
   const chartWidth = Math.max(calculatedWidth, minChartWidth);
 
   useEffect(() => {
@@ -90,7 +122,7 @@ export function NetWorthChart({ data }: NetWorthChartProps) {
     }, 300);
 
     return () => clearTimeout(timer);
-  }, [data]);
+  }, [filteredData]);
 
   if (!data || data.length === 0) {
     return (
@@ -113,10 +145,58 @@ export function NetWorthChart({ data }: NetWorthChartProps) {
   return (
     <Card>
       <CardHeader>
-        <CardTitle>Patrimoni Net i Capital disponibe</CardTitle>
-        <CardDescription>
-          El teu patrimoni net i capital disponible al llarg del temps
-        </CardDescription>
+        <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+          <div>
+            <CardTitle>Patrimoni net i Capital disponible</CardTitle>
+            <CardDescription>
+              El teu patrimoni net i capital disponible al llarg del temps
+            </CardDescription>
+          </div>
+          <div className="flex items-center space-x-4">
+            <div className="flex items-center space-x-2">
+              <input
+                type="radio"
+                id="filter-3m"
+                name="chart-filter"
+                value="3M"
+                checked={filter === "3M"}
+                onChange={(e) => setFilter(e.target.value as any)}
+                className="cursor-pointer"
+              />
+              <label htmlFor="filter-3m" className="text-sm cursor-pointer">
+                3 Mesos
+              </label>
+            </div>
+            <div className="flex items-center space-x-2">
+              <input
+                type="radio"
+                id="filter-12m"
+                name="chart-filter"
+                value="12M"
+                checked={filter === "12M"}
+                onChange={(e) => setFilter(e.target.value as any)}
+                className="cursor-pointer"
+              />
+              <label htmlFor="filter-12m" className="text-sm cursor-pointer">
+                12 Mesos
+              </label>
+            </div>
+            <div className="flex items-center space-x-2">
+              <input
+                type="radio"
+                id="filter-all"
+                name="chart-filter"
+                value="ALL"
+                checked={filter === "ALL"}
+                onChange={(e) => setFilter(e.target.value as any)}
+                className="cursor-pointer"
+              />
+              <label htmlFor="filter-all" className="text-sm cursor-pointer">
+                Tot
+              </label>
+            </div>
+          </div>
+        </div>
       </CardHeader>
       <CardContent>
         <ChartContainer config={chartConfig} className="h-[320px] w-full">
@@ -125,7 +205,7 @@ export function NetWorthChart({ data }: NetWorthChartProps) {
             <div style={{ flex: "0 0 40px" }}>
               <ResponsiveContainer width="100%" height="100%">
                 <AreaChart
-                  data={data}
+                  data={filteredData}
                   syncId="syncChart"
                   margin={{ top: 10, right: 0, bottom: 20, left: 0 }}
                 >
@@ -160,7 +240,7 @@ export function NetWorthChart({ data }: NetWorthChartProps) {
               <div style={{ width: `${chartWidth}px`, height: "100%" }}>
                 <ResponsiveContainer width="100%" height="100%">
                   <AreaChart
-                    data={data}
+                    data={filteredData}
                     syncId="syncChart"
                     margin={{ top: 10, right: 10, bottom: 20, left: 10 }}
                   >
@@ -210,7 +290,7 @@ export function NetWorthChart({ data }: NetWorthChartProps) {
             <div style={{ flex: "0 0 40px" }}>
               <ResponsiveContainer width="100%" height="100%">
                 <AreaChart
-                  data={data}
+                  data={filteredData}
                   syncId="syncChart"
                   margin={{ top: 10, right: 0, bottom: 20, left: 0 }}
                 >
