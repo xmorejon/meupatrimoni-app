@@ -62,7 +62,7 @@ export const DashboardClient: FC<DashboardClientProps> = ({ data }) => {
     try {
       const action = values.id ? "actualitzat" : "afegit";
       // Create a payload that can be customized for each type.
-      const payload: { [key: string]: any } = { ...values };
+      const payload: any = { ...values };
 
       switch (type) {
         case "Bank":

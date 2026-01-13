@@ -189,6 +189,7 @@ export async function batchImport(
 
 async function getOrCreateEntry(
   collectionName: string,
+  idField: string,
   itemId: string,
   timestamp: Timestamp
 ) {
@@ -196,7 +197,7 @@ async function getOrCreateEntry(
   const endOfDate = endOfDay(timestamp.toDate());
   const q = query(
     collection(db, collectionName),
-    where("bankId", "==", itemId),
+    where(idField, "==", itemId),
     where("timestamp", ">=", startOfDate),
     where("timestamp", "<=", endOfDate)
   );
