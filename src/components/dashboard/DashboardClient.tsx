@@ -48,6 +48,12 @@ type EntryData = z.infer<typeof baseSchema> & {
   value?: number;
 };
 
+const typeTranslations = {
+  Bank: "Compte",
+  Debt: "Deute",
+  Asset: "Actiu",
+};
+
 export const DashboardClient: FC<DashboardClientProps> = ({ data }) => {
   const router = useRouter();
   const { toast } = useToast();
@@ -79,9 +85,10 @@ export const DashboardClient: FC<DashboardClientProps> = ({ data }) => {
           break;
       }
 
+      const translatedType = typeTranslations[type];
       toast({
         title: "Èxit",
-        description: `${type} '${values.name}' ${action} correctament.`,
+        description: `${translatedType} '${values.name}' ${action} correctament.`,
       });
       router.refresh();
     } catch (error) {
