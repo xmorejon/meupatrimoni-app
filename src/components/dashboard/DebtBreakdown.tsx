@@ -102,10 +102,10 @@ export const DebtBreakdown: FC<DebtBreakdownProps> = ({
             <TableRow>
               <TableHead>{t.debtHeader}</TableHead>
               <TableHead className="text-right">{t.balanceHeader}</TableHead>
-              <TableHead>{t.updateTypeHeader}</TableHead>
               <TableHead className="w-[80px] text-center">
                 {tEntry.actionsHeader}
               </TableHead>
+              <TableHead>{t.updateTypeHeader}</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
@@ -142,12 +142,15 @@ export const DebtBreakdown: FC<DebtBreakdownProps> = ({
                     currency,
                   }).format(debt.balance)}
                 </TableCell>
-                <TableCell>
-                  <Badge variant={debt.truelayerId ? "success" : "secondary"}>
-                    {debt.truelayerId ? t.automated : t.manual}
-                  </Badge>
-                </TableCell>
                 <TableCell className="text-center flex items-center justify-center gap-2">
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    className="h-8 w-8"
+                    onClick={() => onHistory(debt, "Debt")}
+                  >
+                    <LineChart className="h-4 w-4" />
+                  </Button>
                   <EntryDialog
                     type="Debt"
                     onEntry={(values) =>
@@ -161,14 +164,11 @@ export const DebtBreakdown: FC<DebtBreakdownProps> = ({
                     }
                     translations={tEntry}
                   />
-                  <Button
-                    variant="ghost"
-                    size="icon"
-                    className="h-8 w-8"
-                    onClick={() => onHistory(debt, "Debt")}
-                  >
-                    <LineChart className="h-4 w-4" />
-                  </Button>
+                </TableCell>
+                <TableCell>
+                  <Badge variant={debt.truelayerId ? "success" : "secondary"}>
+                    {debt.truelayerId ? t.automated : t.manual}
+                  </Badge>
                 </TableCell>
               </TableRow>
             ))}

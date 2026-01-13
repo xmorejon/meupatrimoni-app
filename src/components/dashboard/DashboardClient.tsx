@@ -37,7 +37,7 @@ import {
 import { getFunctions, httpsCallable } from "firebase/functions";
 import { getApp } from "firebase/app";
 import useMobile from "@/hooks/use-mobile";
-import { ItemHistoryDialog } from "./ItemHistoryDialog";
+import { ItemHistoryDialog } from "@/components/dashboard/ItemHistoryDialog";
 
 interface DashboardClientProps {
   data: DashboardData | null;

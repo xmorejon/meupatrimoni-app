@@ -102,10 +102,10 @@ export const AssetBreakdown: FC<AssetBreakdownProps> = ({
             <TableRow>
               <TableHead>{t.assetHeader}</TableHead>
               <TableHead className="text-right">{t.valueHeader}</TableHead>
-              <TableHead>{t.updateTypeHeader}</TableHead>
               <TableHead className="w-[80px] text-center">
                 {tEntry.actionsHeader}
               </TableHead>
+              <TableHead>{t.updateTypeHeader}</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
@@ -134,12 +134,15 @@ export const AssetBreakdown: FC<AssetBreakdownProps> = ({
                     currency,
                   }).format(asset.value)}
                 </TableCell>
-                <TableCell>
-                  <Badge variant={asset.truelayerId ? "success" : "secondary"}>
-                    {asset.truelayerId ? t.automated : t.manual}
-                  </Badge>
-                </TableCell>
                 <TableCell className="text-center flex items-center justify-center gap-2">
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    className="h-8 w-8"
+                    onClick={() => onHistory(asset, "Asset")}
+                  >
+                    <LineChart className="h-4 w-4" />
+                  </Button>
                   <EntryDialog
                     type="Asset"
                     onEntry={(values) =>
@@ -153,14 +156,11 @@ export const AssetBreakdown: FC<AssetBreakdownProps> = ({
                     }
                     translations={tEntry}
                   />
-                  <Button
-                    variant="ghost"
-                    size="icon"
-                    className="h-8 w-8"
-                    onClick={() => onHistory(asset, "Asset")}
-                  >
-                    <LineChart className="h-4 w-4" />
-                  </Button>
+                </TableCell>
+                <TableCell>
+                  <Badge variant={asset.truelayerId ? "success" : "secondary"}>
+                    {asset.truelayerId ? t.automated : t.manual}
+                  </Badge>
                 </TableCell>
               </TableRow>
             ))}
