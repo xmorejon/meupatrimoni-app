@@ -11,14 +11,6 @@ import {
   Dot,
 } from "recharts";
 import { useMemo, useRef, useEffect } from "react";
-
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
 import { ChartContainer, ChartTooltipContent } from "@/components/ui/chart";
 
 const yAxisFormatter = (value: number) => {
@@ -105,99 +97,82 @@ export function HistoryChart({ data }: HistoryChartProps) {
 
   if (!data || data.length === 0) {
     return (
-      <Card className="border-0 shadow-none">
-        <CardContent>
-          <div className="h-[350px] flex items-center justify-center">
-            <p>No hi ha prou dades per mostrar el gràfic.</p>
-          </div>
-        </CardContent>
-      </Card>
+      <div className="h-[350px] flex items-center justify-center">
+        <p>No hi ha prou dades per mostrar el gràfic.</p>
+      </div>
     );
   }
 
   return (
-    <Card className="border-0 shadow-none">
-      <CardHeader>
-        <CardDescription>Evolució històrica (últims 6 mesos)</CardDescription>
-      </CardHeader>
-      <CardContent>
-        <ChartContainer config={chartConfig} className="h-[320px] w-full">
-          <div style={{ display: "flex", height: "100%", width: "100%" }}>
-            <div style={{ flex: "0 0 40px" }}>
-              <ResponsiveContainer width="100%" height="100%">
-                <AreaChart
-                  data={filteredData}
-                  syncId="syncChartHist"
-                  margin={{ top: 10, right: 0, bottom: 20, left: 0 }}
-                >
-                  <YAxis
-                    yAxisId="left"
-                    tickFormatter={yAxisFormatter}
-                    stroke="#888888"
-                    axisLine={{ stroke: "var(--color-value)" }}
-                    tickLine={false}
-                    width={40}
-                  />
-                  <Tooltip content={() => null} cursor={false} />
-                  <Area
-                    yAxisId="left"
-                    dataKey="value"
-                    stroke="none"
-                    fill="none"
-                  />
-                </AreaChart>
-              </ResponsiveContainer>
-            </div>
-
-            <div
-              ref={scrollContainerRef}
-              style={{
-                flex: "1 1 auto",
-                overflowX: "auto",
-                overflowY: "hidden",
-              }}
+    <ChartContainer
+      config={chartConfig}
+      className="h-[320px] w-full min-w-0 max-w-full overflow-hidden"
+    >
+      <div className="relative h-full w-full">
+        <div className="absolute left-0 top-0 bottom-0 w-[64px]">
+          <ResponsiveContainer width="100%" height="100%">
+            <AreaChart
+              data={filteredData}
+              syncId="syncChartHist"
+              margin={{ top: 10, right: 0, bottom: 20, left: 0 }}
             >
-              <div style={{ width: `${chartWidth}px`, height: "100%" }}>
-                <ResponsiveContainer width="100%" height="100%">
-                  <AreaChart
-                    data={filteredData}
-                    syncId="syncChartHist"
-                    margin={{ top: 10, right: 10, bottom: 20, left: 10 }}
-                  >
-                    <CartesianGrid strokeDasharray="3 3" vertical={false} />
-                    <XAxis
-                      dataKey="date"
-                      stroke="#888888"
-                      tickLine={false}
-                      axisLine={false}
-                      tickMargin={8}
+              <YAxis
+                yAxisId="left"
+                tickFormatter={yAxisFormatter}
+                stroke="#888888"
+                axisLine={false}
+                tickLine={false}
+                width={40}
+              />
+              <Tooltip content={() => null} cursor={false} />
+              <Area yAxisId="left" dataKey="value" stroke="none" fill="none" />
+            </AreaChart>
+          </ResponsiveContainer>
+        </div>
+
+        <div
+          ref={scrollContainerRef}
+          className="absolute left-[64px] top-0 bottom-0 right-0 overflow-x-auto overflow-y-hidden"
+        >
+          <div style={{ width: `${chartWidth}px`, height: "100%" }}>
+            <ResponsiveContainer width="100%" height="100%">
+              <AreaChart
+                data={filteredData}
+                syncId="syncChartHist"
+                margin={{ top: 10, right: 10, bottom: 20, left: 10 }}
+              >
+                <CartesianGrid strokeDasharray="3 3" vertical={false} />
+                <XAxis
+                  dataKey="date"
+                  stroke="#888888"
+                  tickLine={false}
+                  axisLine={false}
+                  tickMargin={8}
+                />
+                <Tooltip
+                  cursor={true}
+                  content={
+                    <ChartTooltipContent
+                      formatter={tooltipFormatter}
+                      indicator="dot"
                     />
-                    <Tooltip
-                      cursor={true}
-                      content={
-                        <ChartTooltipContent
-                          formatter={tooltipFormatter}
-                          indicator="dot"
-                        />
-                      }
-                    />
-                    <YAxis yAxisId="left" hide={true} />
-                    <Area
-                      yAxisId="left"
-                      dataKey="value"
-                      type="linear"
-                      fill="var(--color-value)"
-                      fillOpacity={0.4}
-                      stroke="var(--color-value)"
-                      dot={<CustomizedDot />}
-                    />
-                  </AreaChart>
-                </ResponsiveContainer>
-              </div>
-            </div>
+                  }
+                />
+                <YAxis yAxisId="left" hide={true} />
+                <Area
+                  yAxisId="left"
+                  dataKey="value"
+                  type="linear"
+                  fill="var(--color-value)"
+                  fillOpacity={0.4}
+                  stroke="var(--color-value)"
+                  dot={<CustomizedDot />}
+                />
+              </AreaChart>
+            </ResponsiveContainer>
           </div>
-        </ChartContainer>
-      </CardContent>
-    </Card>
+        </div>
+      </div>
+    </ChartContainer>
   );
 }

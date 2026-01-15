@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import {
   Dialog,
   DialogContent,
+  DialogDescription,
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
@@ -49,16 +50,21 @@ export function ItemHistoryDialog({
 
   return (
     <Dialog open={isOpen} onOpenChange={(open) => !open && onClose()}>
-      <DialogContent className="sm:max-w-[800px]">
+      <DialogContent className="w-full sm:max-w-[90vw]">
         <DialogHeader>
           <DialogTitle>Històric: {item?.name}</DialogTitle>
+          <DialogDescription>
+            Evolució històrica (últims 6 mesos)
+          </DialogDescription>
         </DialogHeader>
         {loading ? (
           <div className="h-[350px] flex items-center justify-center">
             <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
           </div>
         ) : (
-          <HistoryChart data={data} />
+          <div className="-mx-6 -mb-6 mt-4">
+            <HistoryChart data={data} />
+          </div>
         )}
       </DialogContent>
     </Dialog>
