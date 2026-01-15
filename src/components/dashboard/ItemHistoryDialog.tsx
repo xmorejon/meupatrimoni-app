@@ -50,7 +50,7 @@ export function ItemHistoryDialog({
 
   return (
     <Dialog open={isOpen} onOpenChange={(open) => !open && onClose()}>
-      <DialogContent className="w-full sm:max-w-[90vw]">
+      <DialogContent className="w-full sm:max-w-[90vw] max-h-[90vh] overflow-hidden">
         <DialogHeader>
           <DialogTitle>Històric: {item?.name}</DialogTitle>
           <DialogDescription>
@@ -63,7 +63,7 @@ export function ItemHistoryDialog({
           </div>
         ) : (
           <div className="mt-4 w-full overflow-hidden">
-            <HistoryChart data={data} />
+            <HistoryChart data={data} itemId={item?.id} />
           </div>
         )}
       </DialogContent>

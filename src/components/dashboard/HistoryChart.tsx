@@ -10,8 +10,18 @@ import {
   YAxis,
   Dot,
 } from "recharts";
-import { useMemo, useRef, useEffect } from "react";
+import { useMemo, useRef, useEffect, useState } from "react";
 import { ChartContainer, ChartTooltipContent } from "@/components/ui/chart";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
+import { getFirestore, doc, onSnapshot } from "firebase/firestore";
+import { getApp } from "firebase/app";
 
 const yAxisFormatter = (value: number) => {
   if (Math.abs(value) >= 1000000) {
@@ -43,6 +53,7 @@ const chartConfig = {
 
 interface HistoryChartProps {
   data: { date: string; value: number }[];
+  itemId?: string;
 }
 
 const CustomizedDot = (props: any) => {
@@ -52,7 +63,34 @@ const CustomizedDot = (props: any) => {
   );
 };
 
-export function HistoryChart({ data }: HistoryChartProps) {
+export function HistoryChart({ data, itemId }: HistoryChartProps) {
+  const [movements, setMovements] = useState<any[]>([]);
+
+  useEffect(() => {
+    if (!itemId) {
+      setMovements([]);
+      return;
+    }
+
+    try {
+      const app = getApp();
+      const db = getFirestore(app);
+      const unsub = onSnapshot(
+        doc(db, "bankMovements", itemId),
+        (docSnapshot) => {
+          if (docSnapshot.exists()) {
+            setMovements(docSnapshot.data().movements || []);
+          } else {
+            setMovements([]);
+          }
+        }
+      );
+      return () => unsub();
+    } catch (error) {
+      console.error("Error connecting to Firestore:", error);
+    }
+  }, [itemId]);
+
   const filteredData = useMemo(() => {
     if (!data) return [];
 
@@ -104,75 +142,115 @@ export function HistoryChart({ data }: HistoryChartProps) {
   }
 
   return (
-    <ChartContainer
-      config={chartConfig}
-      className="h-[320px] w-full overflow-hidden"
-    >
-      <div className="flex h-full w-full">
-        {/* Fixed Y-axis */}
-        <div className="w-[64px] flex-shrink-0">
-          <ResponsiveContainer width="100%" height="100%">
-            <AreaChart
-              data={filteredData}
-              syncId="syncChartHist"
-              margin={{ top: 10, right: 0, bottom: 50, left: 0 }}
-            >
-              <YAxis
-                yAxisId="left"
-                tickFormatter={yAxisFormatter}
-                axisLine={false}
-                tickLine={false}
-                width={40}
-              />
-              <Tooltip content={() => null} cursor={false} />
-              <Area yAxisId="left" dataKey="value" stroke="none" fill="none" />
-            </AreaChart>
-          </ResponsiveContainer>
-        </div>
-
-        {/* Scrollable chart */}
-        <div
-          ref={scrollContainerRef}
-          className="flex-1 overflow-x-auto overflow-y-hidden"
-        >
-          <div style={{ width: chartWidth, height: "100%" }} className="h-full">
+    <div className="space-y-6">
+      <ChartContainer
+        config={chartConfig}
+        className="h-[320px] w-full overflow-hidden"
+      >
+        <div className="flex felx-col h-full space-y-6">
+          {/* Fixed Y-axis */}
+          <div className="w-[64px] flex-shrink-0">
             <ResponsiveContainer width="100%" height="100%">
               <AreaChart
                 data={filteredData}
                 syncId="syncChartHist"
-                margin={{ top: 10, right: 10, bottom: 20, left: 10 }}
+                margin={{ top: 10, right: 0, bottom: 50, left: 0 }}
               >
-                <CartesianGrid strokeDasharray="3 3" vertical={false} />
-                <XAxis
-                  dataKey="date"
-                  tickLine={false}
+                <YAxis
+                  yAxisId="left"
+                  tickFormatter={yAxisFormatter}
                   axisLine={false}
-                  tickMargin={8}
+                  tickLine={false}
+                  width={40}
                 />
-                <Tooltip
-                  cursor
-                  content={
-                    <ChartTooltipContent
-                      formatter={tooltipFormatter}
-                      indicator="dot"
-                    />
-                  }
-                />
-                <YAxis yAxisId="left" hide />
+                <Tooltip content={() => null} cursor={false} />
                 <Area
                   yAxisId="left"
                   dataKey="value"
-                  type="linear"
-                  fill="var(--color-value)"
-                  fillOpacity={0.4}
-                  stroke="var(--color-value)"
-                  dot={<CustomizedDot />}
+                  stroke="none"
+                  fill="none"
                 />
               </AreaChart>
             </ResponsiveContainer>
           </div>
+
+          {/* Scrollable chart */}
+          <div
+            ref={scrollContainerRef}
+            className="flex-1 overflow-x-auto overflow-y-hidden"
+          >
+            <div
+              style={{ width: chartWidth, height: "100%" }}
+              className="h-full"
+            >
+              <ResponsiveContainer width="100%" height="100%">
+                <AreaChart
+                  data={filteredData}
+                  syncId="syncChartHist"
+                  margin={{ top: 10, right: 10, bottom: 20, left: 10 }}
+                >
+                  <CartesianGrid strokeDasharray="3 3" vertical={false} />
+                  <XAxis
+                    dataKey="date"
+                    tickLine={false}
+                    axisLine={false}
+                    tickMargin={8}
+                  />
+                  <Tooltip
+                    cursor
+                    content={
+                      <ChartTooltipContent
+                        formatter={tooltipFormatter}
+                        indicator="dot"
+                      />
+                    }
+                  />
+                  <YAxis yAxisId="left" hide />
+                  <Area
+                    yAxisId="left"
+                    dataKey="value"
+                    type="linear"
+                    fill="var(--color-value)"
+                    fillOpacity={0.4}
+                    stroke="var(--color-value)"
+                    dot={<CustomizedDot />}
+                  />
+                </AreaChart>
+              </ResponsiveContainer>
+            </div>
+          </div>
         </div>
-      </div>
-    </ChartContainer>
+      </ChartContainer>
+
+      {movements.length > 0 && (
+        <div className="flex-1 overflow-auto border rounded-md">
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead>Data</TableHead>
+                <TableHead>Descripció</TableHead>
+                <TableHead className="text-right">Import</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {movements.map((movement, index) => (
+                <TableRow key={index}>
+                  <TableCell>
+                    {new Date(movement.timestamp).toLocaleDateString("ca-ES")}
+                  </TableCell>
+                  <TableCell>{movement.description}</TableCell>
+                  <TableCell className="text-right">
+                    {new Intl.NumberFormat("ca-ES", {
+                      style: "currency",
+                      currency: movement.currency || "EUR",
+                    }).format(movement.amount)}
+                  </TableCell>
+                </TableRow>
+              ))}
+            </TableBody>
+          </Table>
+        </div>
+      )}
+    </div>
   );
 }

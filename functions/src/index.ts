@@ -161,6 +161,30 @@ export const handleTrueLayerCallback = regionalFunctions
           continue; // Skip accounts where balance couldn't be fetched
         }
 
+        let last20Movements: any[] = [];
+        try {
+          const transactionsResponse = await axios.get(
+            `${truelayerApiBaseUrl}/data/v1/accounts/${account.account_id}/transactions`,
+            {
+              headers: { Authorization: `Bearer ${access_token}` },
+            }
+          );
+          if (transactionsResponse.data.results) {
+            const movements = transactionsResponse.data.results;
+            movements.sort(
+              (a: any, b: any) =>
+                new Date(b.timestamp).getTime() -
+                new Date(a.timestamp).getTime()
+            );
+            last20Movements = movements.slice(0, 20);
+          }
+        } catch (txError) {
+          functions.logger.warn(
+            `Could not fetch transactions for account ${account.account_id}.`,
+            txError
+          );
+        }
+
         const tokenExpiresAt = admin.firestore.Timestamp.fromMillis(
           now.toMillis() + expires_in * 1000
         );
@@ -211,6 +235,21 @@ export const handleTrueLayerCallback = regionalFunctions
             { merge: true }
           );
 
+          if (last20Movements.length > 0) {
+            const movementsRef = db
+              .collection("bankMovements")
+              .doc(account.account_id);
+            batch.set(
+              movementsRef,
+              {
+                bankId: account.account_id,
+                movements: last20Movements,
+                lastUpdated: now,
+              },
+              { merge: true }
+            );
+          }
+
           newlyImportedAccountsForClient.push({
             ...bankData,
             lastUpdated: new Date().toISOString(),
@@ -257,6 +296,21 @@ export const handleTrueLayerCallback = regionalFunctions
             },
             { merge: true }
           );
+
+          if (last20Movements.length > 0) {
+            const movementsRef = db
+              .collection("bankMovements")
+              .doc(account.account_id);
+            batch.set(
+              movementsRef,
+              {
+                bankId: account.account_id,
+                movements: last20Movements,
+                lastUpdated: now,
+              },
+              { merge: true }
+            );
+          }
 
           newlyImportedAccountsForClient.push({
             ...debtData,
@@ -387,6 +441,43 @@ export const refreshTruelayerData = regionalFunctions
           const now = admin.firestore.Timestamp.now();
 
           batch.update(doc.ref, { balance: newBalance, lastUpdated: now });
+
+          try {
+            const transactionsResponse = await axios.get(
+              `${truelayerApiBaseUrl}/data/v1/accounts/${account.id}/transactions`,
+              {
+                headers: { Authorization: `Bearer ${accessToken}` },
+              }
+            );
+
+            if (transactionsResponse.data.results) {
+              const movements = transactionsResponse.data.results;
+              movements.sort(
+                (a: any, b: any) =>
+                  new Date(b.timestamp).getTime() -
+                  new Date(a.timestamp).getTime()
+              );
+              const last20Movements = movements.slice(0, 20);
+
+              const movementsRef = db
+                .collection("bankMovements")
+                .doc(account.id);
+              batch.set(
+                movementsRef,
+                {
+                  bankId: account.id,
+                  movements: last20Movements,
+                  lastUpdated: now,
+                },
+                { merge: true }
+              );
+            }
+          } catch (txError) {
+            functions.logger.error(
+              `Error fetching transactions for ${account.name}:`,
+              txError
+            );
+          }
 
           if (doc.ref.parent.id === "banks") {
             const balanceEntryRef = await getOrCreateEntry(

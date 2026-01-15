@@ -1,6 +1,6 @@
 #UX/UI
 
-- Refresh after Truelayer update
+- Refresh after Truelayer update (a vegades funciona)
 
 #Functional
 
