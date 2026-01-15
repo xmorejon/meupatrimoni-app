@@ -221,9 +221,11 @@ export function HistoryChart({ data, itemId }: HistoryChartProps) {
           </div>
         </div>
       </ChartContainer>
-      <span className="text-sm leading-none p-0 m-0 text-gray-400">
-        Últims 20 moviments:
-      </span>
+      {movements.length > 0 && (
+        <span className="text-sm leading-none p-0 m-0 text-gray-400">
+          Últims 20 moviments:
+        </span>
+      )}
       {movements.length > 0 && (
         <div className="flex-1 h-full max-h-[80vh] overflow-auto border rounded-md">
           <Table>
