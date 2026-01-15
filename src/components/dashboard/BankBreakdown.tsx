@@ -68,6 +68,11 @@ export const BankBreakdown: FC<BankBreakdownProps> = ({
   const currentLocale = localeMap[locale as keyof typeof localeMap] || ca;
   const updatedTranslations = { updated: "Actualitzat fa {time}" };
 
+  // Sort banks by name in reverse order
+  const sortedBanks = [...banks].sort((a, b) =>
+    b.name.localeCompare(a.name, locale ?? "ca-ES", { sensitivity: "base" })
+  );
+
   return (
     <Card className="shadow-lg h-full flex flex-col">
       <CardHeader className="flex flex-row items-center justify-between">
@@ -98,7 +103,7 @@ export const BankBreakdown: FC<BankBreakdownProps> = ({
             </TableRow>
           </TableHeader>
           <TableBody>
-            {banks.map((bank) => (
+            {sortedBanks.map((bank) => (
               <TableRow key={bank.id}>
                 <TableCell>
                   <div className="flex items-center gap-3">
