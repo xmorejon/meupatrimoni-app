@@ -142,12 +142,12 @@ export function HistoryChart({ data, itemId }: HistoryChartProps) {
   }
 
   return (
-    <div className="space-y-6">
+    <div className="flex flex-col min-h-0 space-y-6 overflow-hidden">
       <ChartContainer
         config={chartConfig}
-        className="h-[320px] w-full overflow-hidden"
+        className="h-[220px] w-full overflow-hidden"
       >
-        <div className="flex felx-col h-full space-y-6">
+        <div className="flex flex-col h-full space-y-6">
           {/* Fixed Y-axis */}
           <div className="w-[64px] flex-shrink-0">
             <ResponsiveContainer width="100%" height="100%">
@@ -221,9 +221,10 @@ export function HistoryChart({ data, itemId }: HistoryChartProps) {
           </div>
         </div>
       </ChartContainer>
-
+      <br></br>
+      <div>Últims 20 moviments:</div>
       {movements.length > 0 && (
-        <div className="flex-1 overflow-auto border rounded-md">
+        <div className="flex-1 h-full max-h-[80vh] overflow-auto border rounded-md">
           <Table>
             <TableHeader>
               <TableRow>

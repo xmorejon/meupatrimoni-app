@@ -50,19 +50,17 @@ export function ItemHistoryDialog({
 
   return (
     <Dialog open={isOpen} onOpenChange={(open) => !open && onClose()}>
-      <DialogContent className="w-full sm:max-w-[90vw] max-h-[90vh] overflow-hidden">
+      <DialogContent className="w-full sm:max-w-[95vw] max-h-[95vh] flex flex-col overflow-hidden">
         <DialogHeader>
-          <DialogTitle>Històric: {item?.name}</DialogTitle>
-          <DialogDescription>
-            Evolució històrica (últims 6 mesos)
-          </DialogDescription>
+          <DialogTitle>Evolució: {item?.name}</DialogTitle>
+          <DialogDescription>Progressió (últims 6 mesos)</DialogDescription>
         </DialogHeader>
         {loading ? (
           <div className="h-[350px] flex items-center justify-center">
             <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
           </div>
         ) : (
-          <div className="mt-4 w-full overflow-hidden">
+          <div className="w-full flex-1 overflow-hidden min-h-0">
             <HistoryChart data={data} itemId={item?.id} />
           </div>
         )}
