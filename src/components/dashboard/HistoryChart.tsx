@@ -147,9 +147,9 @@ export function HistoryChart({ data, itemId }: HistoryChartProps) {
         config={chartConfig}
         className="h-[220px] w-full overflow-hidden"
       >
-        <div className="flex flex-col h-full space-y-6">
+        <div className="flex h-full min-h-0">
           {/* Fixed Y-axis */}
-          <div className="w-[64px] flex-shrink-0">
+          <div className="w-[64px] flex-shrink-0 h-full">
             <ResponsiveContainer width="100%" height="100%">
               <AreaChart
                 data={filteredData}
@@ -177,7 +177,7 @@ export function HistoryChart({ data, itemId }: HistoryChartProps) {
           {/* Scrollable chart */}
           <div
             ref={scrollContainerRef}
-            className="flex-1 overflow-x-auto overflow-y-hidden"
+            className="flex-1 overflow-x-auto overflow-y-hidden h-full min-h-0"
           >
             <div
               style={{ width: chartWidth, height: "100%" }}
@@ -221,8 +221,9 @@ export function HistoryChart({ data, itemId }: HistoryChartProps) {
           </div>
         </div>
       </ChartContainer>
-      <br></br>
-      <div>Últims 20 moviments:</div>
+      <span className="text-sm leading-none p-0 m-0 text-gray-400">
+        Últims 20 moviments:
+      </span>
       {movements.length > 0 && (
         <div className="flex-1 h-full max-h-[80vh] overflow-auto border rounded-md">
           <Table>
