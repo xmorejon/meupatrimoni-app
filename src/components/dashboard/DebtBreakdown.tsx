@@ -51,7 +51,7 @@ export const DebtBreakdown: FC<DebtBreakdownProps> = ({
     debtHeader: "Deute",
     balanceHeader: "Saldo",
     updateTypeHeader: "Tipus d'Actualització",
-    automated: "Automatitzat",
+    automated: "Auto",
     manual: "Manual",
   };
   const debtType = t.debtHeader;
@@ -113,7 +113,10 @@ export const DebtBreakdown: FC<DebtBreakdownProps> = ({
               <TableRow key={debt.id}>
                 <TableCell>
                   <div className="flex items-center gap-3">
-                    <div className="p-2 bg-muted rounded-md flex-shrink-0">
+                    <div
+                      className="p-2 bg-muted rounded-md flex-shrink-0 cursor-pointer"
+                      onClick={() => onHistory(debt, "Debt")}
+                    >
                       {debt.providerId ? (
                         <img
                           src={`/logos/${debt.providerId}.svg`}
@@ -142,7 +145,7 @@ export const DebtBreakdown: FC<DebtBreakdownProps> = ({
                     currency,
                   }).format(debt.balance)}
                 </TableCell>
-                <TableCell className="text-center flex items-center justify-center gap-2">
+                <TableCell className="text-justify items-baseline justify-self-auto">
                   <Button
                     variant="ghost"
                     size="icon"

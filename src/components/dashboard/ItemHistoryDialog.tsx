@@ -50,7 +50,7 @@ export function ItemHistoryDialog({
 
   return (
     <Dialog open={isOpen} onOpenChange={(open) => !open && onClose()}>
-      <DialogContent className="w-full sm:max-w-[90vw] max-h-[90vh] min-h-0 flex flex-col overflow-hidden">
+      <DialogContent className="p-3 w-full sm:max-w-[90vw] max-h-[90vh] min-h-0 flex flex-col overflow-hidden">
         <DialogHeader>
           <DialogTitle>Evolució: {item?.name}</DialogTitle>
           <DialogDescription>Progressió (últims 6 mesos)</DialogDescription>

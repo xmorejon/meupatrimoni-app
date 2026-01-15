@@ -51,7 +51,7 @@ export const AssetBreakdown: FC<AssetBreakdownProps> = ({
     assetHeader: "Actiu",
     valueHeader: "Valor",
     updateTypeHeader: "Tipus d'Actualització",
-    automated: "Automatitzat",
+    automated: "Auto",
     manual: "Manual",
   };
   const assetType = t.assetHeader;
@@ -113,7 +113,10 @@ export const AssetBreakdown: FC<AssetBreakdownProps> = ({
               <TableRow key={asset.id}>
                 <TableCell>
                   <div className="flex items-center gap-3">
-                    <div className="p-2 bg-muted rounded-md flex-shrink-0">
+                    <div
+                      className="p-2 bg-muted rounded-md flex-shrink-0 cursor-pointer"
+                      onClick={() => onHistory(asset, "Asset")}
+                    >
                       <AssetIcon type={asset.type} />
                     </div>
                     <div>
@@ -134,7 +137,7 @@ export const AssetBreakdown: FC<AssetBreakdownProps> = ({
                     currency,
                   }).format(asset.value)}
                 </TableCell>
-                <TableCell className="text-center flex items-center justify-center gap-2">
+                <TableCell className="text-justify items-baseline justify-self-auto">
                   <Button
                     variant="ghost"
                     size="icon"

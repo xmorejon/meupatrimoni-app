@@ -149,12 +149,12 @@ export function HistoryChart({ data, itemId }: HistoryChartProps) {
       >
         <div className="flex h-full min-h-0">
           {/* Fixed Y-axis */}
-          <div className="w-[64px] flex-shrink-0 h-full">
+          <div className="w-[42px] flex-shrink-0 h-full">
             <ResponsiveContainer width="100%" height="100%">
               <AreaChart
                 data={filteredData}
                 syncId="syncChartHist"
-                margin={{ top: 10, right: 0, bottom: 50, left: 0 }}
+                margin={{ top: 0, right: 0, bottom: 50, left: 0 }}
               >
                 <YAxis
                   yAxisId="left"
@@ -187,7 +187,7 @@ export function HistoryChart({ data, itemId }: HistoryChartProps) {
                 <AreaChart
                   data={filteredData}
                   syncId="syncChartHist"
-                  margin={{ top: 10, right: 10, bottom: 20, left: 10 }}
+                  margin={{ top: 10, right: 0, bottom: 5, left: 0 }}
                 >
                   <CartesianGrid strokeDasharray="3 3" vertical={false} />
                   <XAxis

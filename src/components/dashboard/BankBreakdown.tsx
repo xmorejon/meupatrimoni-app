@@ -40,7 +40,7 @@ export const BankBreakdown: FC<BankBreakdownProps> = ({
     bankHeader: "Compte",
     balanceHeader: "Saldo",
     updateTypeHeader: "Tipus d'Actualització",
-    automated: "Automatitzat",
+    automated: "Auto",
     manual: "Manual",
   };
   const bankType = t.bankHeader;
@@ -107,7 +107,10 @@ export const BankBreakdown: FC<BankBreakdownProps> = ({
               <TableRow key={bank.id}>
                 <TableCell>
                   <div className="flex items-center gap-3">
-                    <div className="p-2 bg-muted rounded-md flex-shrink-0">
+                    <div
+                      className="p-2 bg-muted rounded-md flex-shrink-0 cursor-pointer"
+                      onClick={() => onHistory(bank, "Bank")}
+                    >
                       {bank.providerId ? (
                         <img
                           src={`/logos/${bank.providerId}.svg`}
@@ -136,7 +139,7 @@ export const BankBreakdown: FC<BankBreakdownProps> = ({
                     currency,
                   }).format(bank.balance)}
                 </TableCell>
-                <TableCell className="text-center flex items-center justify-center gap-2">
+                <TableCell className="text-justify items-baseline justify-self-auto">
                   <Button
                     variant="ghost"
                     size="icon"
