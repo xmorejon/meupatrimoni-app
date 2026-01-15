@@ -79,7 +79,7 @@ export function HistoryChart({ data }: HistoryChartProps) {
   }, [data]);
 
   const scrollContainerRef = useRef<HTMLDivElement>(null);
-  const itemWidth = 80;
+  const itemWidth = 70;
   const minChartWidth = 300;
   const calculatedWidth = filteredData.length * itemWidth;
   const chartWidth = Math.max(calculatedWidth, minChartWidth);
@@ -106,20 +106,20 @@ export function HistoryChart({ data }: HistoryChartProps) {
   return (
     <ChartContainer
       config={chartConfig}
-      className="h-[320px] w-full min-w-0 max-w-full overflow-hidden"
+      className="h-[320px] w-full overflow-hidden"
     >
-      <div className="relative h-full w-full">
-        <div className="absolute left-0 top-0 bottom-0 w-[64px]">
+      <div className="flex h-full w-full">
+        {/* Fixed Y-axis */}
+        <div className="w-[64px] flex-shrink-0">
           <ResponsiveContainer width="100%" height="100%">
             <AreaChart
               data={filteredData}
               syncId="syncChartHist"
-              margin={{ top: 10, right: 0, bottom: 20, left: 0 }}
+              margin={{ top: 10, right: 0, bottom: 50, left: 0 }}
             >
               <YAxis
                 yAxisId="left"
                 tickFormatter={yAxisFormatter}
-                stroke="#888888"
                 axisLine={false}
                 tickLine={false}
                 width={40}
@@ -130,11 +130,12 @@ export function HistoryChart({ data }: HistoryChartProps) {
           </ResponsiveContainer>
         </div>
 
+        {/* Scrollable chart */}
         <div
           ref={scrollContainerRef}
-          className="absolute left-[64px] top-0 bottom-0 right-0 overflow-x-auto overflow-y-hidden"
+          className="flex-1 overflow-x-auto overflow-y-hidden"
         >
-          <div style={{ width: `${chartWidth}px`, height: "100%" }}>
+          <div style={{ width: chartWidth, height: "100%" }} className="h-full">
             <ResponsiveContainer width="100%" height="100%">
               <AreaChart
                 data={filteredData}
@@ -144,13 +145,12 @@ export function HistoryChart({ data }: HistoryChartProps) {
                 <CartesianGrid strokeDasharray="3 3" vertical={false} />
                 <XAxis
                   dataKey="date"
-                  stroke="#888888"
                   tickLine={false}
                   axisLine={false}
                   tickMargin={8}
                 />
                 <Tooltip
-                  cursor={true}
+                  cursor
                   content={
                     <ChartTooltipContent
                       formatter={tooltipFormatter}
@@ -158,7 +158,7 @@ export function HistoryChart({ data }: HistoryChartProps) {
                     />
                   }
                 />
-                <YAxis yAxisId="left" hide={true} />
+                <YAxis yAxisId="left" hide />
                 <Area
                   yAxisId="left"
                   dataKey="value"
