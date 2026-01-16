@@ -221,8 +221,12 @@ export const DashboardClient: FC<DashboardClientProps> = ({ data }) => {
     <div className="flex flex-col gap-6">
       <div className="flex justify-between items-center">
         <div className="flex items-center gap-3">
-          <img src="/logos/piggy-bank-512.png" alt="Patrimoni Familiar" className="h-8 w-8" />
-          <h1 className="text-2xl font-semibold">Patrimoni Familiar</h1>
+          <img
+            src="/logos/piggy-bank-512.png"
+            alt="Patrimoni Familiar"
+            className="h-8 w-8"
+          />
+          <h1 className="text-xl font-semibold">Patrimoni</h1>
         </div>
         <div className="flex items-center gap-2">
           <Button onClick={handleRefresh} disabled={isRefreshing}>
@@ -231,7 +235,7 @@ export const DashboardClient: FC<DashboardClientProps> = ({ data }) => {
             ) : (
               <RefreshCw className="mr-2 h-4 w-4" />
             )}
-            Actualitzar comptes
+            Act. comptes
           </Button>
           {renderMenu()}
         </div>
