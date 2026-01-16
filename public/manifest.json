@@ -1,0 +1,21 @@
+{
+  "name": "Meu Patrimoni",
+  "short_name": "MeuPatrimoni",
+  "description": "Aconsegueix una visió clara del teu patrimoni net. Fes un seguiment de comptes, inversions i deutes en un sol lloc.",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#384453",
+  "theme_color": "#384453",
+  "icons": [
+    {
+      "src": "/logos/icon-192.svg",
+      "sizes": "192x192",
+      "type": "image/svg+xml"
+    },
+    {
+      "src": "/logos/icon-512.svg",
+      "sizes": "512x512",
+      "type": "image/svg+xml"
+    }
+  ]
+}

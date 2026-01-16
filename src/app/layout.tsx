@@ -2,6 +2,7 @@ import type { Metadata } from 'next';
 import '@/app/globals.css';
 import { Toaster } from "@/components/ui/toaster";
 import { AuthProvider } from "@/context/AuthContext";
+import ServiceWorkerRegistrar from '@/components/ServiceWorkerRegistrar';
 
 export const metadata: Metadata = {
   title: 'MeuPatrimoni',
@@ -16,6 +17,8 @@ export default function RootLayout({
   return (
     <html lang="ca" className="dark">
       <head>
+        <meta name="theme-color" content="#000000" />
+        <link rel="manifest" href="/manifest.json" />
         <link rel="preconnect" href="https://fonts.googleapis.com" />
         <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="" />
         <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
@@ -25,6 +28,7 @@ export default function RootLayout({
           {children}
         </AuthProvider>
         <Toaster />
+        <ServiceWorkerRegistrar />
       </body>
     </html>
   );
