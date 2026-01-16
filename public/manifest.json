@@ -8,14 +8,14 @@
   "theme_color": "#384453",
   "icons": [
     {
-      "src": "/logos/icon-192.svg",
+      "src": "/logos/piggy-bank-192.png",
       "sizes": "192x192",
-      "type": "image/svg+xml"
+      "type": "image/png"
     },
     {
-      "src": "/logos/icon-512.svg",
+      "src": "/logos/piggy-bank-512.png",
       "sizes": "512x512",
-      "type": "image/svg+xml"
+      "type": "image/png"
     }
   ]
 }
