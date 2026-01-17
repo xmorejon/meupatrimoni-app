@@ -53,6 +53,7 @@ export const DebtBreakdown: FC<DebtBreakdownProps> = ({
     updateTypeHeader: "Tipus d'Actualització",
     automated: "Auto",
     manual: "Manual",
+    email: "Email",
   };
   const debtType = t.debtHeader;
   const tEntry = {
@@ -169,8 +170,19 @@ export const DebtBreakdown: FC<DebtBreakdownProps> = ({
                   />
                 </TableCell>
                 <TableCell>
-                  <Badge variant={debt.truelayerId ? "success" : "secondary"}>
-                    {debt.truelayerId ? t.automated : t.manual}
+                  <Badge
+                    variant={debt.truelayerId ? "success" : "secondary"}
+                    className={
+                      (debt as any).emailAutomated && !debt.truelayerId
+                        ? "bg-orange-100 text-orange-800 hover:bg-orange-100 border-orange-200"
+                        : ""
+                    }
+                  >
+                    {debt.truelayerId
+                      ? t.automated
+                      : (debt as any).emailAutomated
+                        ? t.email
+                        : t.manual}
                   </Badge>
                 </TableCell>
               </TableRow>

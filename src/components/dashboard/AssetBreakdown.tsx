@@ -53,6 +53,7 @@ export const AssetBreakdown: FC<AssetBreakdownProps> = ({
     updateTypeHeader: "Tipus d'Actualització",
     automated: "Auto",
     manual: "Manual",
+    email: "Email",
   };
   const assetType = t.assetHeader;
   const tEntry = {
@@ -161,8 +162,19 @@ export const AssetBreakdown: FC<AssetBreakdownProps> = ({
                   />
                 </TableCell>
                 <TableCell>
-                  <Badge variant={asset.truelayerId ? "success" : "secondary"}>
-                    {asset.truelayerId ? t.automated : t.manual}
+                  <Badge
+                    variant={asset.truelayerId ? "success" : "secondary"}
+                    className={
+                      (asset as any).emailAutomated && !asset.truelayerId
+                        ? "bg-orange-100 text-orange-800 hover:bg-orange-100 border-orange-200"
+                        : ""
+                    }
+                  >
+                    {asset.truelayerId
+                      ? t.automated
+                      : (asset as any).emailAutomated
+                        ? t.email
+                        : t.manual}
                   </Badge>
                 </TableCell>
               </TableRow>

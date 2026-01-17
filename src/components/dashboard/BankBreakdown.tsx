@@ -42,6 +42,7 @@ export const BankBreakdown: FC<BankBreakdownProps> = ({
     updateTypeHeader: "Tipus d'Actualització",
     automated: "Auto",
     manual: "Manual",
+    email: "Email",
   };
   const bankType = t.bankHeader;
   const tEntry = {
@@ -163,8 +164,19 @@ export const BankBreakdown: FC<BankBreakdownProps> = ({
                   />
                 </TableCell>
                 <TableCell>
-                  <Badge variant={bank.truelayerId ? "success" : "secondary"}>
-                    {bank.truelayerId ? t.automated : t.manual}
+                  <Badge
+                    variant={bank.truelayerId ? "success" : "secondary"}
+                    className={
+                      (bank as any).emailAutomated && !bank.truelayerId
+                        ? "bg-orange-100 text-orange-800 hover:bg-orange-100 border-orange-200"
+                        : ""
+                    }
+                  >
+                    {bank.truelayerId
+                      ? t.automated
+                      : (bank as any).emailAutomated
+                        ? t.email
+                        : t.manual}
                   </Badge>
                 </TableCell>
               </TableRow>
