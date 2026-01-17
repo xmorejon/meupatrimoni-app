@@ -12,14 +12,14 @@ const db = admin.firestore();
 
 // Configuration
 interface BankRule {
-  debtId: string;
+  cardIdentifier: string;
   query: string;
   amountRegex: RegExp;
 }
 
 const BANK_RULES: BankRule[] = [
   {
-    debtId: "1767359789602", // Replace with the ID of the debt document for card 4830
+    cardIdentifier: "4830",
     query:
       'from:SantanderInforma@emailing.bancosantander-mail.es is:unread "4830"',
     amountRegex: /pagament de\s+(\d+[.,]\d{2})\s+EUR/i,
@@ -45,8 +45,25 @@ async function processBankEmails() {
 
   let importedCount = 0;
 
+  // Fetch all debts to link cards dynamically
+  const debtsSnapshot = await db.collection("debts").get();
+
   try {
     for (const rule of BANK_RULES) {
+      // Find the debt where name contains the identifier
+      const debtDoc = debtsSnapshot.docs.find((doc) => {
+        const data = doc.data();
+        return data.name && data.name.includes(rule.cardIdentifier);
+      });
+
+      if (!debtDoc) {
+        console.log(
+          `No debt found with name containing "${rule.cardIdentifier}". Skipping rule.`
+        );
+        continue;
+      }
+      const debtId = debtDoc.id;
+
       // 1. Search for unread emails using the rule's query
       const listResponse = await gmail.users.messages.list({
         userId: "me",
@@ -57,12 +74,12 @@ async function processBankEmails() {
       const messages = listResponse.data.messages;
 
       if (!messages || messages.length === 0) {
-        console.log(`No new emails found for rule: ${rule.debtId}`);
+        console.log(`No new emails found for rule: ${rule.cardIdentifier}`);
         continue;
       }
 
       console.log(
-        `Found ${messages.length} new emails for rule: ${rule.debtId}`
+        `Found ${messages.length} new emails for rule: ${rule.cardIdentifier}`
       );
 
       for (const msg of messages) {
@@ -96,17 +113,23 @@ async function processBankEmails() {
 
           // 4. Differential Update
           await db.runTransaction(async (transaction) => {
-            const lastEntryQuery = db
+            // Fetch all entries for this debt to find the latest one
+            // (Avoids creating a composite index for where+orderBy)
+            const historyQuery = db
               .collection("debtEntries")
-              .where("debtId", "==", rule.debtId)
-              .orderBy("timestamp", "desc")
-              .limit(1);
+              .where("debtId", "==", debtId);
 
-            const lastEntrySnapshot = await transaction.get(lastEntryQuery);
+            const historySnapshot = await transaction.get(historyQuery);
 
             let currentBalance = 0;
-            if (!lastEntrySnapshot.empty) {
-              currentBalance = lastEntrySnapshot.docs[0].data().value;
+            if (!historySnapshot.empty) {
+              // Sort in memory: newest first
+              const docs = historySnapshot.docs.sort((a, b) => {
+                const timeA = a.data().timestamp?.toMillis() || 0;
+                const timeB = b.data().timestamp?.toMillis() || 0;
+                return timeB - timeA;
+              });
+              currentBalance = docs[0].data().value;
             }
 
             const newBalance = currentBalance + expenseAmount;
@@ -114,7 +137,7 @@ async function processBankEmails() {
 
             const newEntryRef = db.collection("debtEntries").doc();
             transaction.set(newEntryRef, {
-              debtId: rule.debtId,
+              debtId: debtId,
               value: newBalance,
               timestamp: timestamp,
               isAutoImport: true,
@@ -122,7 +145,7 @@ async function processBankEmails() {
 
             const transactionRef = db.collection("transactions").doc();
             transaction.set(transactionRef, {
-              debtId: rule.debtId,
+              debtId: debtId,
               amount: expenseAmount,
               description: description,
               date: timestamp,
