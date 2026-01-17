@@ -115,7 +115,9 @@ export const DebtBreakdown: FC<DebtBreakdownProps> = ({
                 <TableCell>
                   <div className="flex items-center gap-3">
                     <div
-                      className="p-2 bg-muted rounded-md flex-shrink-0 cursor-pointer"
+                      className={`p-2 rounded-md flex-shrink-0 cursor-pointer ${
+                        debt.providerId ? "bg-white" : "bg-muted"
+                      }`}
                       onClick={() => onHistory(debt, "Debt")}
                     >
                       {debt.providerId ? (

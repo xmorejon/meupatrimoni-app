@@ -1,7 +1,7 @@
 #UX/UI
 
 - Refresh after Truelayer update (a vegades funciona)
-- logos with clear background.
+- OK - logos with clear background.
 
 #Functional
 
