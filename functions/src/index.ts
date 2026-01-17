@@ -532,3 +532,4 @@ export const refreshTruelayerData = regionalFunctions
   });
 
 export * from "./csv";
+export * from "./bankImporter";

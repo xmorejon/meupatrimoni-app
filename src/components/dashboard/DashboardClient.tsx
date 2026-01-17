@@ -116,19 +116,41 @@ export const DashboardClient: FC<DashboardClientProps> = ({ data }) => {
       "refreshTruelayerData"
     );
     try {
-      const result = await refreshTruelayerData();
       toast({
-        title: "Èxit",
-        description: (result.data as any).message,
+        title: "Actualitzant...",
+        description:
+          "S'estan actualitzant els comptes automàtics i important emails.",
+      });
+
+      const checkBankEmails = httpsCallable(functions, "checkBankEmails");
+
+      const [truelayerResult, emailResult] = await Promise.all([
+        refreshTruelayerData(),
+        checkBankEmails(),
+      ]);
+
+      const truelayerMessage =
+        (truelayerResult.data as any)?.message ||
+        "Comptes automàtics actualitzats.";
+      const emailCount = (emailResult.data as any)?.count;
+      const emailMessage =
+        emailCount > 0
+          ? `${emailCount} emails importats.`
+          : "Cap email nou per importar.";
+
+      toast({
+        title: "Actualització completada",
+        description: `${truelayerMessage} ${emailMessage}`,
       });
       router.refresh();
-    } catch (error) {
+    } catch (error: any) {
       console.error("Error refreshing accounts:", error);
       toast({
         variant: "destructive",
         title: "Error",
-        description:
-          "No s'ha pogut actualitzar els comptes. Si us plau, intenta-ho de nou.",
+        description: `No s'ha pogut actualitzar: ${
+          error.message || "Error desconegut."
+        }`,
       });
     } finally {
       setIsRefreshing(false);
