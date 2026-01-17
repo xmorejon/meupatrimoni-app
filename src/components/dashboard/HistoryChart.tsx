@@ -141,94 +141,96 @@ export function HistoryChart({ data, itemId, itemType }: HistoryChartProps) {
     return () => clearTimeout(timer);
   }, [filteredData]);
 
-  if (!data || data.length === 0) {
-    return (
-      <div className="h-[350px] flex items-center justify-center">
-        <p>No hi ha prou dades per mostrar el gràfic.</p>
-      </div>
-    );
-  }
+  const hasData = data && data.length > 0;
 
   return (
     <div className="flex flex-col min-h-0 space-y-6 overflow-hidden">
-      <ChartContainer
-        config={chartConfig}
-        className="h-[220px] w-full overflow-hidden"
-      >
-        <div className="flex h-full min-h-0">
-          {/* Fixed Y-axis */}
-          <div className="w-[42px] flex-shrink-0 h-full">
-            <ResponsiveContainer width="100%" height="100%">
-              <AreaChart
-                data={filteredData}
-                syncId="syncChartHist"
-                margin={{ top: 0, right: 0, bottom: 50, left: 0 }}
-              >
-                <YAxis
-                  yAxisId="left"
-                  tickFormatter={yAxisFormatter}
-                  axisLine={false}
-                  tickLine={false}
-                  width={40}
-                />
-                <Tooltip content={() => null} cursor={false} />
-                <Area
-                  yAxisId="left"
-                  dataKey="value"
-                  stroke="none"
-                  fill="none"
-                />
-              </AreaChart>
-            </ResponsiveContainer>
-          </div>
-
-          {/* Scrollable chart */}
-          <div
-            ref={scrollContainerRef}
-            className="flex-1 overflow-x-auto overflow-y-hidden h-full min-h-0"
-          >
-            <div
-              style={{ width: chartWidth, height: "100%" }}
-              className="h-full"
-            >
+      {hasData ? (
+        <ChartContainer
+          config={chartConfig}
+          className="h-[220px] w-full overflow-hidden"
+        >
+          <div className="flex h-full min-h-0">
+            {/* Fixed Y-axis */}
+            <div className="w-[42px] flex-shrink-0 h-full">
               <ResponsiveContainer width="100%" height="100%">
                 <AreaChart
                   data={filteredData}
                   syncId="syncChartHist"
-                  margin={{ top: 10, right: 0, bottom: 5, left: 0 }}
+                  margin={{ top: 0, right: 0, bottom: 50, left: 0 }}
                 >
-                  <CartesianGrid strokeDasharray="3 3" vertical={false} />
-                  <XAxis
-                    dataKey="date"
-                    tickLine={false}
+                  <YAxis
+                    yAxisId="left"
+                    tickFormatter={yAxisFormatter}
                     axisLine={false}
-                    tickMargin={8}
+                    tickLine={false}
+                    width={40}
                   />
-                  <Tooltip
-                    cursor
-                    content={
-                      <ChartTooltipContent
-                        formatter={tooltipFormatter}
-                        indicator="dot"
-                      />
-                    }
-                  />
-                  <YAxis yAxisId="left" hide />
+                  <Tooltip content={() => null} cursor={false} />
                   <Area
                     yAxisId="left"
                     dataKey="value"
-                    type="linear"
-                    fill="var(--color-value)"
-                    fillOpacity={0.4}
-                    stroke="var(--color-value)"
-                    dot={<CustomizedDot />}
+                    stroke="none"
+                    fill="none"
                   />
                 </AreaChart>
               </ResponsiveContainer>
             </div>
+
+            {/* Scrollable chart */}
+            <div
+              ref={scrollContainerRef}
+              className="flex-1 overflow-x-auto overflow-y-hidden h-full min-h-0"
+            >
+              <div
+                style={{ width: chartWidth, height: "100%" }}
+                className="h-full"
+              >
+                <ResponsiveContainer width="100%" height="100%">
+                  <AreaChart
+                    data={filteredData}
+                    syncId="syncChartHist"
+                    margin={{ top: 10, right: 0, bottom: 5, left: 0 }}
+                  >
+                    <CartesianGrid strokeDasharray="3 3" vertical={false} />
+                    <XAxis
+                      dataKey="date"
+                      tickLine={false}
+                      axisLine={false}
+                      tickMargin={8}
+                    />
+                    <Tooltip
+                      cursor
+                      content={
+                        <ChartTooltipContent
+                          formatter={tooltipFormatter}
+                          indicator="dot"
+                        />
+                      }
+                    />
+                    <YAxis yAxisId="left" hide />
+                    <Area
+                      yAxisId="left"
+                      dataKey="value"
+                      type="linear"
+                      fill="var(--color-value)"
+                      fillOpacity={0.4}
+                      stroke="var(--color-value)"
+                      dot={<CustomizedDot />}
+                    />
+                  </AreaChart>
+                </ResponsiveContainer>
+              </div>
+            </div>
           </div>
+        </ChartContainer>
+      ) : (
+        <div className="h-[220px] flex items-center justify-center border rounded-md bg-muted/10">
+          <p className="text-muted-foreground">
+            No hi ha prou dades per mostrar el gràfic.
+          </p>
         </div>
-      </ChartContainer>
+      )}
       {movements.length > 0 && (
         <span className="text-sm leading-none p-0 m-0 text-gray-400">
           Últims 20 moviments:
