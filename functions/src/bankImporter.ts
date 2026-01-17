@@ -11,7 +11,20 @@ if (!admin.apps.length) {
 const db = admin.firestore();
 
 // Configuration
-const BANK_DEBT_ID = "CREDIT_CARD_ID_IN_FIRESTORE"; // The ID of your credit card doc in 'debts' collection
+interface BankRule {
+  debtId: string;
+  query: string;
+  amountRegex: RegExp;
+}
+
+const BANK_RULES: BankRule[] = [
+  {
+    debtId: "1767359789602", // Replace with the ID of the debt document for card 4830
+    query:
+      'from:SantanderInforma@emailing.bancosantander-mail.es is:unread "4830"',
+    amountRegex: /pagament de\s+(\d+[.,]\d{2})\s+EUR/i,
+  },
+];
 
 /**
  * Shared logic to check Gmail for bank emails.
@@ -33,101 +46,104 @@ async function processBankEmails() {
   let importedCount = 0;
 
   try {
-    // 1. Search for unread emails
-    // Modify 'q' to match your bank's sender and subject
-    const listResponse = await gmail.users.messages.list({
-      userId: "me",
-      q: "from:notifications@bank.com is:unread",
-      maxResults: 10,
-    });
-
-    const messages = listResponse.data.messages;
-
-    if (!messages || messages.length === 0) {
-      console.log("No new bank emails found.");
-      return { success: true, count: 0, message: "No new bank emails found." };
-    }
-
-    console.log(`Found ${messages.length} new emails.`);
-
-    for (const msg of messages) {
-      if (!msg.id) continue;
-
-      // 2. Fetch email details
-      const messageResponse = await gmail.users.messages.get({
+    for (const rule of BANK_RULES) {
+      // 1. Search for unread emails using the rule's query
+      const listResponse = await gmail.users.messages.list({
         userId: "me",
-        id: msg.id,
-        format: "full",
+        q: rule.query,
+        maxResults: 10,
       });
 
-      const payload = messageResponse.data.payload;
-      if (!payload) continue;
+      const messages = listResponse.data.messages;
 
-      const subjectHeader = payload.headers?.find((h) => h.name === "Subject");
-      const subject = subjectHeader ? subjectHeader.value : "No Subject";
-      const snippet = messageResponse.data.snippet || "";
-
-      console.log(`Processing: ${subject}`);
-
-      // 3. Parse Transaction Data (Regex Example)
-      // Using snippet is usually enough for transaction alerts
-      const amountRegex = /Purchase of\s+(\d+[.,]\d{2})\s+EUR/i;
-      const match = snippet.match(amountRegex);
-
-      if (match) {
-        const amountString = match[1].replace(",", ".");
-        const expenseAmount = parseFloat(amountString);
-        const description = `Imported: ${subject}`;
-
-        // 4. Differential Update
-        await db.runTransaction(async (transaction) => {
-          const lastEntryQuery = db
-            .collection("debtEntries")
-            .where("debtId", "==", BANK_DEBT_ID)
-            .orderBy("timestamp", "desc")
-            .limit(1);
-
-          const lastEntrySnapshot = await transaction.get(lastEntryQuery);
-
-          let currentBalance = 0;
-          if (!lastEntrySnapshot.empty) {
-            currentBalance = lastEntrySnapshot.docs[0].data().value;
-          }
-
-          const newBalance = currentBalance + expenseAmount;
-          const timestamp = admin.firestore.Timestamp.now();
-
-          const newEntryRef = db.collection("debtEntries").doc();
-          transaction.set(newEntryRef, {
-            debtId: rule.debtId,
-            value: newBalance,
-            timestamp: timestamp,
-            isAutoImport: true,
-          });
-
-          const transactionRef = db.collection("transactions").doc();
-          transaction.set(transactionRef, {
-            debtId: rule.debtId,
-            amount: expenseAmount,
-            description: description,
-            date: timestamp,
-            rawEmailText: snippet,
-          });
-        });
-        console.log(`Imported transaction: ${expenseAmount}`);
-        importedCount++;
-      } else {
-        console.log(`Skipped: Regex did not match for ${msg.id}`);
+      if (!messages || messages.length === 0) {
+        console.log(`No new emails found for rule: ${rule.debtId}`);
+        continue;
       }
 
-      // 5. Mark as Read
-      await gmail.users.messages.modify({
-        userId: "me",
-        id: msg.id,
-        requestBody: {
-          removeLabelIds: ["UNREAD"],
-        },
-      });
+      console.log(
+        `Found ${messages.length} new emails for rule: ${rule.debtId}`
+      );
+
+      for (const msg of messages) {
+        if (!msg.id) continue;
+
+        // 2. Fetch email details
+        const messageResponse = await gmail.users.messages.get({
+          userId: "me",
+          id: msg.id,
+          format: "full",
+        });
+
+        const payload = messageResponse.data.payload;
+        if (!payload) continue;
+
+        const subjectHeader = payload.headers?.find(
+          (h) => h.name === "Subject"
+        );
+        const subject = subjectHeader ? subjectHeader.value : "No Subject";
+        const snippet = messageResponse.data.snippet || "";
+
+        console.log(`Processing: ${subject}`);
+
+        // 3. Parse Transaction Data using the rule's regex
+        const match = snippet.match(rule.amountRegex);
+
+        if (match) {
+          const amountString = match[1].replace(",", ".");
+          const expenseAmount = parseFloat(amountString);
+          const description = `Imported: ${subject}`;
+
+          // 4. Differential Update
+          await db.runTransaction(async (transaction) => {
+            const lastEntryQuery = db
+              .collection("debtEntries")
+              .where("debtId", "==", rule.debtId)
+              .orderBy("timestamp", "desc")
+              .limit(1);
+
+            const lastEntrySnapshot = await transaction.get(lastEntryQuery);
+
+            let currentBalance = 0;
+            if (!lastEntrySnapshot.empty) {
+              currentBalance = lastEntrySnapshot.docs[0].data().value;
+            }
+
+            const newBalance = currentBalance + expenseAmount;
+            const timestamp = admin.firestore.Timestamp.now();
+
+            const newEntryRef = db.collection("debtEntries").doc();
+            transaction.set(newEntryRef, {
+              debtId: rule.debtId,
+              value: newBalance,
+              timestamp: timestamp,
+              isAutoImport: true,
+            });
+
+            const transactionRef = db.collection("transactions").doc();
+            transaction.set(transactionRef, {
+              debtId: rule.debtId,
+              amount: expenseAmount,
+              description: description,
+              date: timestamp,
+              rawEmailText: snippet,
+            });
+          });
+          console.log(`Imported transaction: ${expenseAmount}`);
+          importedCount++;
+        } else {
+          console.log(`Skipped: Regex did not match for ${msg.id}`);
+        }
+
+        // 5. Mark as Read
+        await gmail.users.messages.modify({
+          userId: "me",
+          id: msg.id,
+          requestBody: {
+            removeLabelIds: ["UNREAD"],
+          },
+        });
+      }
     }
 
     if (importedCount === 0) {
@@ -139,8 +155,14 @@ async function processBankEmails() {
       count: importedCount,
       message: `Imported ${importedCount} transactions.`,
     };
-  } catch (error) {
+  } catch (error: any) {
     console.error("Error processing Gmail:", error);
+    if (error.message?.includes("Gmail API has not been used")) {
+      throw new HttpsError(
+        "failed-precondition",
+        "Gmail API is not enabled. Please enable it in the Google Cloud Console."
+      );
+    }
     throw error;
   }
 }
@@ -165,6 +187,7 @@ export const checkBankEmailsScheduled = onSchedule(
 export const checkBankEmails = onCall(
   {
     region: "europe-west1",
+    cors: true,
     secrets: ["GMAIL_CLIENT_ID", "GMAIL_CLIENT_SECRET", "GMAIL_REFRESH_TOKEN"],
   },
   async (request) => {
