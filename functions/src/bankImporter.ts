@@ -124,6 +124,12 @@ async function processBankEmails() {
         const payload = messageResponse.data.payload;
         if (!payload) continue;
 
+        const internalDateStr = messageResponse.data.internalDate;
+        const emailDate = internalDateStr
+          ? new Date(parseInt(internalDateStr, 10))
+          : new Date();
+        const emailIsoString = emailDate.toISOString();
+
         const subjectHeader = payload.headers?.find(
           (h) => h.name === "Subject"
         );
@@ -161,7 +167,7 @@ async function processBankEmails() {
             : `Imported: ${subject}`;
 
           // 4. Differential Update
-          await db.runTransaction(async (transaction) => {
+          const wasImported = await db.runTransaction(async (transaction) => {
             const debtRef = db.collection("debts").doc(debtId);
             const movementsRef = db.collection("debtMovements").doc(debtId);
 
@@ -173,34 +179,38 @@ async function processBankEmails() {
               throw new Error(`Debt document ${debtId} does not exist.`);
             }
 
-            const currentBalance = debtSnapshot.data()?.balance || 0;
-            const newBalance =
-              Math.round((currentBalance + expenseAmount) * 100) / 100;
-            const timestamp = admin.firestore.Timestamp.now();
-
             let movements = [];
             if (movementsDoc.exists) {
               movements = movementsDoc.data()?.movements || [];
             }
+
+            // Avoid duplicates: Check if transaction_id already exists
+            const existingIndex = movements.findIndex(
+              (m: any) => m.transaction_id === `email-${msg.id}`
+            );
+
+            if (existingIndex !== -1) {
+              return false; // Skip this transaction
+            }
+
+            const currentBalance = debtSnapshot.data()?.balance || 0;
+            const newBalance =
+              Math.round((currentBalance + expenseAmount) * 100) / 100;
+            const timestamp = admin.firestore.Timestamp.now();
 
             const newMovement = {
               transaction_id: `email-${msg.id}`,
               amount: -expenseAmount, // Negative to indicate spending
               currency: "EUR",
               description: description,
-              timestamp: timestamp.toDate().toISOString(),
+              timestamp: emailIsoString,
               transaction_type: "CREDIT",
               meta: {
                 transaction_type: "CREDIT",
-                timestamp: timestamp.toDate().toISOString(),
+                timestamp: emailIsoString,
                 transaction_category: "PURCHASE",
               },
             };
-
-            // Avoid duplicates
-            const existingIndex = movements.findIndex(
-              (m: any) => m.transaction_id === newMovement.transaction_id
-            );
 
             // WRITES
             // 1) Update the balance in the debts collection
@@ -221,32 +231,34 @@ async function processBankEmails() {
             });
 
             // 3) Update debtMovements with last 20 transactions
-            if (existingIndex === -1) {
-              movements.push(newMovement);
-              // Sort descending by timestamp
-              movements.sort(
-                (a: any, b: any) =>
-                  new Date(b.timestamp).getTime() -
-                  new Date(a.timestamp).getTime()
-              );
-              // Limit to 20
-              if (movements.length > 20) {
-                movements = movements.slice(0, 20);
-              }
-
-              transaction.set(
-                movementsRef,
-                {
-                  debtId: debtId,
-                  movements: movements,
-                  lastUpdated: timestamp,
-                },
-                { merge: true }
-              );
+            movements.push(newMovement);
+            // Sort descending by timestamp
+            movements.sort(
+              (a: any, b: any) =>
+                new Date(b.timestamp).getTime() -
+                new Date(a.timestamp).getTime()
+            );
+            // Limit to 20
+            if (movements.length > 20) {
+              movements = movements.slice(0, 20);
             }
+
+            transaction.set(
+              movementsRef,
+              {
+                debtId: debtId,
+                movements: movements,
+                lastUpdated: timestamp,
+              },
+              { merge: true }
+            );
+            return true;
           });
-          console.log(`Imported transaction: ${expenseAmount}`);
-          importedCount++;
+
+          if (wasImported) {
+            console.log(`Imported transaction: ${expenseAmount}`);
+            importedCount++;
+          }
         } else {
           console.log(`Skipped: Regex did not match for ${msg.id}`);
         }
