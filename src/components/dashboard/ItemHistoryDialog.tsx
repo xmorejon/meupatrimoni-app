@@ -61,7 +61,7 @@ export function ItemHistoryDialog({
           </div>
         ) : (
           <div className="w-full flex-1 overflow-hidden min-h-0">
-            <HistoryChart data={data} itemId={item?.id} />
+            <HistoryChart data={data} itemId={item?.id} itemType={item?.type} />
           </div>
         )}
       </DialogContent>

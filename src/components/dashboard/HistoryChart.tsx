@@ -54,6 +54,7 @@ const chartConfig = {
 interface HistoryChartProps {
   data: { date: string; value: number }[];
   itemId?: string;
+  itemType?: "Bank" | "Debt" | "Asset";
 }
 
 const CustomizedDot = (props: any) => {
@@ -63,20 +64,27 @@ const CustomizedDot = (props: any) => {
   );
 };
 
-export function HistoryChart({ data, itemId }: HistoryChartProps) {
+export function HistoryChart({ data, itemId, itemType }: HistoryChartProps) {
   const [movements, setMovements] = useState<any[]>([]);
 
   useEffect(() => {
-    if (!itemId) {
+    if (!itemId || !itemType) {
       setMovements([]);
       return;
+    }
+
+    let collectionName = "bankMovements";
+    if (itemType === "Debt") {
+      collectionName = "debtMovements";
+    } else if (itemType === "Asset") {
+      collectionName = "assetMovements";
     }
 
     try {
       const app = getApp();
       const db = getFirestore(app);
       const unsub = onSnapshot(
-        doc(db, "bankMovements", itemId),
+        doc(db, collectionName, itemId),
         (docSnapshot) => {
           if (docSnapshot.exists()) {
             setMovements(docSnapshot.data().movements || []);
@@ -89,7 +97,7 @@ export function HistoryChart({ data, itemId }: HistoryChartProps) {
     } catch (error) {
       console.error("Error connecting to Firestore:", error);
     }
-  }, [itemId]);
+  }, [itemId, itemType]);
 
   const filteredData = useMemo(() => {
     if (!data) return [];

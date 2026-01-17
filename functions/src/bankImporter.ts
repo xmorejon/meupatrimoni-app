@@ -26,6 +26,32 @@ const BANK_RULES: BankRule[] = [
   },
 ];
 
+function getEmailBody(payload: any): string {
+  if (!payload) return "";
+
+  if (payload.parts) {
+    for (const part of payload.parts) {
+      if (part.mimeType === "text/plain" && part.body?.data) {
+        return Buffer.from(
+          part.body.data.replace(/-/g, "+").replace(/_/g, "/"),
+          "base64"
+        ).toString("utf-8");
+      }
+      if (part.parts) {
+        const body = getEmailBody(part);
+        if (body) return body;
+      }
+    }
+  }
+  if (payload.body?.data) {
+    return Buffer.from(
+      payload.body.data.replace(/-/g, "+").replace(/_/g, "/"),
+      "base64"
+    ).toString("utf-8");
+  }
+  return "";
+}
+
 /**
  * Shared logic to check Gmail for bank emails.
  */
@@ -63,6 +89,9 @@ async function processBankEmails() {
         continue;
       }
       const debtId = debtDoc.id;
+      const debtData = debtDoc.data();
+      const debtName = debtData.name;
+      const debtType = debtData.type || "Credit Card";
 
       // 1. Search for unread emails using the rule's query
       const listResponse = await gmail.users.messages.list({
@@ -100,57 +129,121 @@ async function processBankEmails() {
         );
         const subject = subjectHeader ? subjectHeader.value : "No Subject";
         const snippet = messageResponse.data.snippet || "";
+        const fullBody = getEmailBody(payload);
+        const textToSearch = fullBody || snippet;
 
         console.log(`Processing: ${subject}`);
 
         // 3. Parse Transaction Data using the rule's regex
-        const match = snippet.match(rule.amountRegex);
+        const match = textToSearch.match(rule.amountRegex);
 
         if (match) {
           const amountString = match[1].replace(",", ".");
           const expenseAmount = parseFloat(amountString);
-          const description = `Imported: ${subject}`;
+
+          let merchant = "";
+          // Capture text after "<cardIdentifier> en " until the first dot
+          const merchantRegex = new RegExp(
+            `${rule.cardIdentifier}\\s+en\\s+([^.]+)`,
+            "i"
+          );
+          const merchantMatch = textToSearch.match(merchantRegex);
+          if (merchantMatch && merchantMatch[1]) {
+            merchant = merchantMatch[1].trim();
+          } else {
+            console.log(
+              `Merchant regex failed. Text length: ${textToSearch.length}. Snippet: "${snippet}"`
+            );
+          }
+
+          const description = merchant
+            ? `${subject}: ${merchant}`
+            : `Imported: ${subject}`;
 
           // 4. Differential Update
           await db.runTransaction(async (transaction) => {
-            // Fetch all entries for this debt to find the latest one
-            // (Avoids creating a composite index for where+orderBy)
-            const historyQuery = db
-              .collection("debtEntries")
-              .where("debtId", "==", debtId);
+            const debtRef = db.collection("debts").doc(debtId);
+            const movementsRef = db.collection("debtMovements").doc(debtId);
 
-            const historySnapshot = await transaction.get(historyQuery);
+            // READS: Must be performed before any writes
+            const debtSnapshot = await transaction.get(debtRef);
+            const movementsDoc = await transaction.get(movementsRef);
 
-            let currentBalance = 0;
-            if (!historySnapshot.empty) {
-              // Sort in memory: newest first
-              const docs = historySnapshot.docs.sort((a, b) => {
-                const timeA = a.data().timestamp?.toMillis() || 0;
-                const timeB = b.data().timestamp?.toMillis() || 0;
-                return timeB - timeA;
-              });
-              currentBalance = docs[0].data().value;
+            if (!debtSnapshot.exists) {
+              throw new Error(`Debt document ${debtId} does not exist.`);
             }
 
-            const newBalance = currentBalance + expenseAmount;
+            const currentBalance = debtSnapshot.data()?.balance || 0;
+            const newBalance =
+              Math.round((currentBalance + expenseAmount) * 100) / 100;
             const timestamp = admin.firestore.Timestamp.now();
 
+            let movements = [];
+            if (movementsDoc.exists) {
+              movements = movementsDoc.data()?.movements || [];
+            }
+
+            const newMovement = {
+              transaction_id: `email-${msg.id}`,
+              amount: -expenseAmount, // Negative to indicate spending
+              currency: "EUR",
+              description: description,
+              timestamp: timestamp.toDate().toISOString(),
+              transaction_type: "CREDIT",
+              meta: {
+                transaction_type: "CREDIT",
+                timestamp: timestamp.toDate().toISOString(),
+                transaction_category: "PURCHASE",
+              },
+            };
+
+            // Avoid duplicates
+            const existingIndex = movements.findIndex(
+              (m: any) => m.transaction_id === newMovement.transaction_id
+            );
+
+            // WRITES
+            // 1) Update the balance in the debts collection
+            transaction.update(debtRef, {
+              balance: newBalance,
+              lastUpdated: timestamp,
+            });
+
+            // 2) Upsert an entry in the debtEntries collection
             const newEntryRef = db.collection("debtEntries").doc();
             transaction.set(newEntryRef, {
               debtId: debtId,
-              value: newBalance,
+              balance: newBalance,
+              name: debtName,
+              type: debtType,
               timestamp: timestamp,
               isAutoImport: true,
             });
 
-            const transactionRef = db.collection("transactions").doc();
-            transaction.set(transactionRef, {
-              debtId: debtId,
-              amount: expenseAmount,
-              description: description,
-              date: timestamp,
-              rawEmailText: snippet,
-            });
+            // 3) Update debtMovements with last 20 transactions
+            if (existingIndex === -1) {
+              movements.push(newMovement);
+              // Sort descending by timestamp
+              movements.sort(
+                (a: any, b: any) =>
+                  new Date(b.timestamp).getTime() -
+                  new Date(a.timestamp).getTime()
+              );
+              // Limit to 20
+              if (movements.length > 20) {
+                movements = movements.slice(0, 20);
+              }
+
+              transaction.set(
+                movementsRef,
+                {
+                  debtId: debtId,
+                  movements: movements,
+                  lastUpdated: timestamp,
+                },
+                { merge: true }
+              );
+            }
           });
           console.log(`Imported transaction: ${expenseAmount}`);
           importedCount++;
