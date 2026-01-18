@@ -2,6 +2,7 @@ import { onSchedule } from "firebase-functions/v2/scheduler";
 import { onCall, HttpsError } from "firebase-functions/v2/https";
 import * as admin from "firebase-admin";
 import { google } from "googleapis";
+import { startOfDay, endOfDay } from "date-fns";
 
 // Ensure admin is initialized
 if (!admin.apps.length) {
@@ -15,14 +16,26 @@ interface BankRule {
   cardIdentifier: string;
   query: string;
   amountRegex: RegExp;
+  merchantRegex: RegExp;
+  operation: string;
 }
 
 const BANK_RULES: BankRule[] = [
   {
     cardIdentifier: "4830",
     query:
-      'from:SantanderInforma@emailing.bancosantander-mail.es is:unread "4830"',
+      'from:SantanderInforma@emailing.bancosantander-mail.es is:unread "4830" -subject:"Compres"',
     amountRegex: /pagament de\s+(\d+[.,]\d{2})\s+EUR/i,
+    merchantRegex: /4830\s+en\s+([^.]+)/i,
+    operation: 'Compres',
+  },
+  {
+    cardIdentifier: "4830",
+    query:
+      'from:SantanderInforma@emailing.bancosantander-mail.es is:unread "4830" subject:"Compres (petició d\'autorització)"',
+    amountRegex: /retenció de\s+(\d+[.,]\d{2})\s+EUR/i,
+    merchantRegex: /per part de\s+(.+?)\s+amb la targeta/i,
+    operation: 'Online',
   },
 ];
 
@@ -34,7 +47,7 @@ function getEmailBody(payload: any): string {
       if (part.mimeType === "text/plain" && part.body?.data) {
         return Buffer.from(
           part.body.data.replace(/-/g, "+").replace(/_/g, "/"),
-          "base64"
+          "base64",
         ).toString("utf-8");
       }
       if (part.parts) {
@@ -46,7 +59,7 @@ function getEmailBody(payload: any): string {
   if (payload.body?.data) {
     return Buffer.from(
       payload.body.data.replace(/-/g, "+").replace(/_/g, "/"),
-      "base64"
+      "base64",
     ).toString("utf-8");
   }
   return "";
@@ -84,7 +97,7 @@ async function processBankEmails() {
 
       if (!debtDoc) {
         console.log(
-          `No debt found with name containing "${rule.cardIdentifier}". Skipping rule.`
+          `No debt found with name containing "${rule.cardIdentifier}". Skipping rule.`,
         );
         continue;
       }
@@ -108,7 +121,7 @@ async function processBankEmails() {
       }
 
       console.log(
-        `Found ${messages.length} new emails for rule: ${rule.cardIdentifier}`
+        `Found ${messages.length} new emails for rule: ${rule.cardIdentifier}`,
       );
 
       for (const msg of messages) {
@@ -131,7 +144,7 @@ async function processBankEmails() {
         const emailIsoString = emailDate.toISOString();
 
         const subjectHeader = payload.headers?.find(
-          (h) => h.name === "Subject"
+          (h) => h.name === "Subject",
         );
         const subject = subjectHeader ? subjectHeader.value : "No Subject";
         const snippet = messageResponse.data.snippet || "";
@@ -148,32 +161,39 @@ async function processBankEmails() {
           const expenseAmount = parseFloat(amountString);
 
           let merchant = "";
-          // Capture text after "<cardIdentifier> en " until the first dot
-          const merchantRegex = new RegExp(
-            `${rule.cardIdentifier}\\s+en\\s+([^.]+)`,
-            "i"
-          );
-          const merchantMatch = textToSearch.match(merchantRegex);
+          const merchantMatch = textToSearch.match(rule.merchantRegex);
           if (merchantMatch && merchantMatch[1]) {
             merchant = merchantMatch[1].trim();
           } else {
             console.log(
-              `Merchant regex failed. Text length: ${textToSearch.length}. Snippet: "${snippet}"`
+              `Merchant regex failed. Text length: ${textToSearch.length}. Snippet: "${snippet}"`,
             );
           }
 
           const description = merchant
-            ? `${subject}: ${merchant}`
-            : `Imported: ${subject}`;
+            ? `${rule.operation}: ${merchant}`
+            : `Imported: ${rule.operation}`;
 
           // 4. Differential Update
           const wasImported = await db.runTransaction(async (transaction) => {
             const debtRef = db.collection("debts").doc(debtId);
             const movementsRef = db.collection("debtMovements").doc(debtId);
+            const timestamp = admin.firestore.Timestamp.now();
 
             // READS: Must be performed before any writes
             const debtSnapshot = await transaction.get(debtRef);
             const movementsDoc = await transaction.get(movementsRef);
+
+            // Check for existing entry for today
+            const start = startOfDay(timestamp.toDate());
+            const end = endOfDay(timestamp.toDate());
+            const entryQuery = db
+              .collection("debtEntries")
+              .where("debtId", "==", debtId)
+              .where("timestamp", ">=", start)
+              .where("timestamp", "<=", end)
+              .limit(1);
+            const entrySnapshot = await transaction.get(entryQuery);
 
             if (!debtSnapshot.exists) {
               throw new Error(`Debt document ${debtId} does not exist.`);
@@ -186,7 +206,7 @@ async function processBankEmails() {
 
             // Avoid duplicates: Check if transaction_id already exists
             const existingIndex = movements.findIndex(
-              (m: any) => m.transaction_id === `email-${msg.id}`
+              (m: any) => m.transaction_id === `email-${msg.id}`,
             );
 
             if (existingIndex !== -1) {
@@ -196,7 +216,6 @@ async function processBankEmails() {
             const currentBalance = debtSnapshot.data()?.balance || 0;
             const newBalance =
               Math.round((currentBalance + expenseAmount) * 100) / 100;
-            const timestamp = admin.firestore.Timestamp.now();
 
             const newMovement = {
               transaction_id: `email-${msg.id}`,
@@ -220,7 +239,12 @@ async function processBankEmails() {
             });
 
             // 2) Upsert an entry in the debtEntries collection
-            const newEntryRef = db.collection("debtEntries").doc();
+            let newEntryRef;
+            if (!entrySnapshot.empty) {
+              newEntryRef = entrySnapshot.docs[0].ref;
+            } else {
+              newEntryRef = db.collection("debtEntries").doc();
+            }
             transaction.set(newEntryRef, {
               debtId: debtId,
               balance: newBalance,
@@ -236,7 +260,7 @@ async function processBankEmails() {
             movements.sort(
               (a: any, b: any) =>
                 new Date(b.timestamp).getTime() -
-                new Date(a.timestamp).getTime()
+                new Date(a.timestamp).getTime(),
             );
             // Limit to 20
             if (movements.length > 20) {
@@ -250,7 +274,7 @@ async function processBankEmails() {
                 movements: movements,
                 lastUpdated: timestamp,
               },
-              { merge: true }
+              { merge: true },
             );
             return true;
           });
@@ -288,7 +312,7 @@ async function processBankEmails() {
     if (error.message?.includes("Gmail API has not been used")) {
       throw new HttpsError(
         "failed-precondition",
-        "Gmail API is not enabled. Please enable it in the Google Cloud Console."
+        "Gmail API is not enabled. Please enable it in the Google Cloud Console.",
       );
     }
     throw error;
@@ -306,7 +330,7 @@ export const checkBankEmailsScheduled = onSchedule(
   },
   async (event) => {
     await processBankEmails();
-  }
+  },
 );
 
 /**
@@ -322,7 +346,7 @@ export const checkBankEmails = onCall(
     if (!request.auth) {
       throw new HttpsError(
         "unauthenticated",
-        "The function must be called while authenticated."
+        "The function must be called while authenticated.",
       );
     }
     try {
@@ -331,8 +355,8 @@ export const checkBankEmails = onCall(
       throw new HttpsError(
         "internal",
         "Error processing Gmail emails.",
-        error as any
+        error as any,
       );
     }
-  }
+  },
 );
