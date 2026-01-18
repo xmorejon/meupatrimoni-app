@@ -132,7 +132,7 @@ export function HistoryChart({ data, itemId, itemType }: HistoryChartProps) {
   }, [data]);
 
   const scrollContainerRef = useRef<HTMLDivElement>(null);
-  const itemWidth = 70;
+  const itemWidth = 50;
   const minChartWidth = 300;
   const calculatedWidth = filteredData.length * itemWidth;
   const chartWidth = Math.max(calculatedWidth, minChartWidth);
@@ -223,7 +223,7 @@ export function HistoryChart({ data, itemId, itemType }: HistoryChartProps) {
                       fill="var(--color-value)"
                       fillOpacity={0.4}
                       stroke="var(--color-value)"
-                      dot={<CustomizedDot />}
+                      //dot={<CustomizedDot />}
                     />
                   </AreaChart>
                 </ResponsiveContainer>

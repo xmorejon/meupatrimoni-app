@@ -101,14 +101,14 @@ export function NetWorthChart({ data }: NetWorthChartProps) {
       const itemDate = new Date(
         year < 100 ? 2000 + year : year,
         month - 1,
-        day
+        day,
       );
       return itemDate >= cutoff;
     });
   }, [data, filter]);
 
   const scrollContainerRef = useRef<HTMLDivElement>(null);
-  const itemWidth = 80;
+  const itemWidth = 20;
   const minChartWidth = 500;
   const calculatedWidth = filteredData.length * itemWidth;
   const chartWidth = Math.max(calculatedWidth, minChartWidth);
@@ -270,7 +270,7 @@ export function NetWorthChart({ data }: NetWorthChartProps) {
                       fill="var(--color-netWorth)"
                       fillOpacity={0.4}
                       stroke="var(--color-netWorth)"
-                      dot={<CustomizedDot />}
+                      //dot={<CustomizedDot />}
                     />
                     <Area
                       yAxisId="right"
@@ -279,7 +279,7 @@ export function NetWorthChart({ data }: NetWorthChartProps) {
                       fill="var(--color-cashFlow)"
                       fillOpacity={0.4}
                       stroke="var(--color-cashFlow)"
-                      dot={<CustomizedDot />}
+                      //dot={<CustomizedDot />}
                     />
                   </AreaChart>
                 </ResponsiveContainer>
