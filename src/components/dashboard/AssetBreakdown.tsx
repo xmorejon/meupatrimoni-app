@@ -82,7 +82,7 @@ export const AssetBreakdown: FC<AssetBreakdownProps> = ({
 
   return (
     <Card className="shadow-lg h-full flex flex-col">
-      <CardHeader className="flex flex-row items-center justify-between">
+      <CardHeader className="flex flex-row items-center justify-between px-2">
         <CardTitle>{t.title}</CardTitle>
         <EntryDialog
           type="Asset"
@@ -97,7 +97,7 @@ export const AssetBreakdown: FC<AssetBreakdownProps> = ({
           translations={tEntry}
         />
       </CardHeader>
-      <CardContent className="flex-grow">
+      <CardContent className="flex-grow px-2">
         <Table>
           <TableHeader>
             <TableRow>

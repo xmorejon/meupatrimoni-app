@@ -71,12 +71,12 @@ export const BankBreakdown: FC<BankBreakdownProps> = ({
 
   // Sort banks by name in reverse order
   const sortedBanks = [...banks].sort((a, b) =>
-    b.name.localeCompare(a.name, locale ?? "ca-ES", { sensitivity: "base" })
+    b.name.localeCompare(a.name, locale ?? "ca-ES", { sensitivity: "base" }),
   );
 
   return (
     <Card className="shadow-lg h-full flex flex-col">
-      <CardHeader className="flex flex-row items-center justify-between">
+      <CardHeader className="flex flex-row items-center justify-between px-2">
         <CardTitle>{t.title}</CardTitle>
         <EntryDialog
           type="Bank"
@@ -91,7 +91,7 @@ export const BankBreakdown: FC<BankBreakdownProps> = ({
           translations={tEntry}
         />
       </CardHeader>
-      <CardContent className="flex-grow">
+      <CardContent className="flex-grow px-2">
         <Table>
           <TableHeader>
             <TableRow>

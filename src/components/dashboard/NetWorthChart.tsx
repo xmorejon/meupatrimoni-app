@@ -127,13 +127,13 @@ export function NetWorthChart({ data }: NetWorthChartProps) {
   if (!data || data.length === 0) {
     return (
       <Card>
-        <CardHeader>
+        <CardHeader className="px-2">
           <CardTitle>Patrimoni Net i Capital disponible</CardTitle>
           <CardDescription>
             El teu patrimoni net i capital disponible al llarg del temps
           </CardDescription>
         </CardHeader>
-        <CardContent>
+        <CardContent className="px-2">
           <div className="h-[350px] flex items-center justify-center">
             <p>No hi ha prou dades per mostrar el gràfic.</p>
           </div>
@@ -144,7 +144,7 @@ export function NetWorthChart({ data }: NetWorthChartProps) {
 
   return (
     <Card>
-      <CardHeader>
+      <CardHeader className="px-2 pb-0">
         <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
           <div>
             <CardTitle>Patrimoni net i Capital disponible</CardTitle>
@@ -198,7 +198,7 @@ export function NetWorthChart({ data }: NetWorthChartProps) {
           </div>
         </div>
       </CardHeader>
-      <CardContent>
+      <CardContent className="px-2">
         <ChartContainer config={chartConfig} className="h-[320px] w-full">
           <div style={{ display: "flex", height: "100%", width: "100%" }}>
             {/* Left Y-Axis Chart */}

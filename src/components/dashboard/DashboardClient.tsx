@@ -69,7 +69,7 @@ export const DashboardClient: FC<DashboardClientProps> = ({ data }) => {
 
   const handleEntry = async (
     values: EntryData,
-    type: "Bank" | "Debt" | "Asset"
+    type: "Bank" | "Debt" | "Asset",
   ) => {
     try {
       const action = values.id ? "actualitzat" : "afegit";
@@ -113,7 +113,7 @@ export const DashboardClient: FC<DashboardClientProps> = ({ data }) => {
     const functions = getFunctions(app, "europe-west1");
     const refreshTruelayerData = httpsCallable(
       functions,
-      "refreshTruelayerData"
+      "refreshTruelayerData",
     );
     try {
       toast({
@@ -159,7 +159,7 @@ export const DashboardClient: FC<DashboardClientProps> = ({ data }) => {
 
   const handleHistory = (
     item: { id: string; name: string },
-    type: "Bank" | "Debt" | "Asset"
+    type: "Bank" | "Debt" | "Asset",
   ) => {
     setHistoryItem({ id: item.id, name: item.name, type });
   };
@@ -240,7 +240,7 @@ export const DashboardClient: FC<DashboardClientProps> = ({ data }) => {
   } = data;
 
   return (
-    <div className="flex flex-col gap-6">
+    <div className="flex flex-col gap-3">
       <div className="flex justify-between items-center">
         <div className="flex items-center gap-3">
           <img
@@ -271,22 +271,22 @@ export const DashboardClient: FC<DashboardClientProps> = ({ data }) => {
 
       <NetWorthChart data={historicalData} />
 
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        <div className="lg:col-span-1 flex flex-col gap-6">
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-3">
+        <div className="lg:col-span-1 flex flex-col gap-3">
           <BankBreakdown
             banks={bankBreakdown}
             onEntry={(values) => handleEntry(values, "Bank")}
             onHistory={(item) => handleHistory(item, "Bank")}
           />
         </div>
-        <div className="lg:col-span-1 flex flex-col gap-6">
+        <div className="lg:col-span-1 flex flex-col gap-3">
           <DebtBreakdown
             debts={debtBreakdown}
             onEntry={(values) => handleEntry(values, "Debt")}
             onHistory={(item) => handleHistory(item, "Debt")}
           />
         </div>
-        <div className="lg:col-span-1 flex flex-col gap-6">
+        <div className="lg:col-span-1 flex flex-col gap-3">
           <AssetBreakdown
             assets={assetBreakdown}
             onEntry={(values) => handleEntry(values, "Asset")}
