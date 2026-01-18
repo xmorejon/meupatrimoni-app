@@ -91,7 +91,7 @@ export function HistoryChart({ data, itemId, itemType }: HistoryChartProps) {
           } else {
             setMovements([]);
           }
-        }
+        },
       );
       return () => unsub();
     } catch (error) {
@@ -101,6 +101,13 @@ export function HistoryChart({ data, itemId, itemType }: HistoryChartProps) {
 
   const filteredData = useMemo(() => {
     if (!data) return [];
+
+    // Deduplicate data: keep only the last entry for each date
+    const uniqueDataMap = new Map<string, { date: string; value: number }>();
+    data.forEach((item) => {
+      uniqueDataMap.set(item.date, item);
+    });
+    const uniqueData = Array.from(uniqueDataMap.values());
 
     const now = new Date();
     const cutoff = new Date(now);
@@ -113,12 +120,12 @@ export function HistoryChart({ data, itemId, itemType }: HistoryChartProps) {
     }
     cutoff.setHours(0, 0, 0, 0);
 
-    return data.filter((item) => {
+    return uniqueData.filter((item) => {
       const [day, month, year] = item.date.split("/").map(Number);
       const itemDate = new Date(
         year < 100 ? 2000 + year : year,
         month - 1,
-        day
+        day,
       );
       return itemDate >= cutoff;
     });

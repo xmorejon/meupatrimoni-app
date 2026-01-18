@@ -4,7 +4,9 @@ import axios from "axios";
 import { URLSearchParams } from "url";
 import { startOfDay, endOfDay } from "date-fns";
 
-admin.initializeApp();
+if (!admin.apps.length) {
+  admin.initializeApp();
+}
 const db = admin.firestore();
 
 const secrets = ["TRUELAYER_CLIENT_ID", "TRUELAYER_CLIENT_SECRET"];
@@ -14,6 +16,7 @@ const regionalFunctions = functions.region("europe-west1");
 const truelayerAuthBaseUrl = "https://auth.truelayer.com";
 const truelayerApiBaseUrl = "https://api.truelayer.com";
 const redirectUri = "https://meupatrimoni-app.web.app/callback.html";
+//const redirectUri = "https://meupatrimoni-app.firebaseapp.com/callback.html";
 
 const mapAccountType = (truelayerType: string): string => {
   const type = truelayerType.toUpperCase();
@@ -32,7 +35,7 @@ async function getOrCreateEntry(
   collectionName: string,
   itemIdField: string,
   itemId: string,
-  timestamp: admin.firestore.Timestamp
+  timestamp: admin.firestore.Timestamp,
 ) {
   const start = startOfDay(timestamp.toDate());
   const end = endOfDay(timestamp.toDate());
@@ -56,7 +59,7 @@ export const getTrueLayerAuthLink = regionalFunctions
     if (!clientId) {
       throw new functions.https.HttpsError(
         "internal",
-        "Server configuration error: missing secrets."
+        "Server configuration error: missing secrets.",
       );
     }
 
@@ -65,12 +68,12 @@ export const getTrueLayerAuthLink = regionalFunctions
     authUrl.searchParams.set("client_id", clientId);
     authUrl.searchParams.set(
       "scope",
-      "info accounts balance cards transactions direct_debits standing_orders offline_access"
+      "info accounts balance cards transactions direct_debits standing_orders offline_access",
     );
     authUrl.searchParams.set("redirect_uri", redirectUri);
     authUrl.searchParams.set(
       "providers",
-      "es-ob-revolut es-xs2a-santander es-xs2a-ing"
+      "es-ob-revolut es-xs2a-santander es-xs2a-ing",
     );
     functions.logger.info("Generated TrueLayer Auth URL:", authUrl.toString());
     return { authUrl: authUrl.toString() };
@@ -82,7 +85,7 @@ export const handleTrueLayerCallback = regionalFunctions
     if (!data.code) {
       throw new functions.https.HttpsError(
         "invalid-argument",
-        'The function must be called with a "code".'
+        'The function must be called with a "code".',
       );
     }
 
@@ -91,7 +94,7 @@ export const handleTrueLayerCallback = regionalFunctions
     if (!clientId || !clientSecret) {
       throw new functions.https.HttpsError(
         "internal",
-        "Server configuration error: missing secrets."
+        "Server configuration error: missing secrets.",
       );
     }
 
@@ -108,14 +111,14 @@ export const handleTrueLayerCallback = regionalFunctions
         tokenParams,
         {
           headers: { "Content-Type": "application/x-www-form-urlencoded" },
-        }
+        },
       );
 
       const { access_token, refresh_token, expires_in } = tokenResponse.data;
       if (!access_token) {
         throw new functions.https.HttpsError(
           "internal",
-          "Could not retrieve user access token from TrueLayer."
+          "Could not retrieve user access token from TrueLayer.",
         );
       }
 
@@ -123,12 +126,12 @@ export const handleTrueLayerCallback = regionalFunctions
         `${truelayerApiBaseUrl}/data/v1/accounts`,
         {
           headers: { Authorization: `Bearer ${access_token}` },
-        }
+        },
       );
 
       const accounts = accountsResponse.data.results;
       functions.logger.info(
-        `Fetched ${accounts.length} raw accounts from TrueLayer.`
+        `Fetched ${accounts.length} raw accounts from TrueLayer.`,
       );
 
       const batch = db.batch();
@@ -142,7 +145,7 @@ export const handleTrueLayerCallback = regionalFunctions
             `${truelayerApiBaseUrl}/data/v1/accounts/${account.account_id}/balance`,
             {
               headers: { Authorization: `Bearer ${access_token}` },
-            }
+            },
           );
           if (
             balanceResponse.data.results &&
@@ -153,7 +156,7 @@ export const handleTrueLayerCallback = regionalFunctions
         } catch (balanceError) {
           functions.logger.warn(
             `Could not fetch balance for account ${account.account_id}.`,
-            balanceError
+            balanceError,
           );
         }
 
@@ -167,26 +170,26 @@ export const handleTrueLayerCallback = regionalFunctions
             `${truelayerApiBaseUrl}/data/v1/accounts/${account.account_id}/transactions`,
             {
               headers: { Authorization: `Bearer ${access_token}` },
-            }
+            },
           );
           if (transactionsResponse.data.results) {
             const movements = transactionsResponse.data.results;
             movements.sort(
               (a: any, b: any) =>
                 new Date(b.timestamp).getTime() -
-                new Date(a.timestamp).getTime()
+                new Date(a.timestamp).getTime(),
             );
             last20Movements = movements.slice(0, 20);
           }
         } catch (txError) {
           functions.logger.warn(
             `Could not fetch transactions for account ${account.account_id}.`,
-            txError
+            txError,
           );
         }
 
         const tokenExpiresAt = admin.firestore.Timestamp.fromMillis(
-          now.toMillis() + expires_in * 1000
+          now.toMillis() + expires_in * 1000,
         );
 
         if (
@@ -222,7 +225,7 @@ export const handleTrueLayerCallback = regionalFunctions
             "balanceEntries",
             "bankId",
             bankRef.id,
-            now
+            now,
           );
           batch.set(
             balanceEntryRef,
@@ -232,7 +235,7 @@ export const handleTrueLayerCallback = regionalFunctions
               bankId: bankRef.id,
               bank: bankName,
             },
-            { merge: true }
+            { merge: true },
           );
 
           if (last20Movements.length > 0) {
@@ -246,7 +249,7 @@ export const handleTrueLayerCallback = regionalFunctions
                 movements: last20Movements,
                 lastUpdated: now,
               },
-              { merge: true }
+              { merge: true },
             );
           }
 
@@ -284,7 +287,7 @@ export const handleTrueLayerCallback = regionalFunctions
             "debtEntries",
             "debtId",
             debtRef.id,
-            now
+            now,
           );
           batch.set(
             debtEntryRef,
@@ -294,7 +297,7 @@ export const handleTrueLayerCallback = regionalFunctions
               debtId: debtRef.id,
               debtName: debtName,
             },
-            { merge: true }
+            { merge: true },
           );
 
           if (last20Movements.length > 0) {
@@ -308,7 +311,7 @@ export const handleTrueLayerCallback = regionalFunctions
                 movements: last20Movements,
                 lastUpdated: now,
               },
-              { merge: true }
+              { merge: true },
             );
           }
 
@@ -322,7 +325,7 @@ export const handleTrueLayerCallback = regionalFunctions
 
       await batch.commit();
       functions.logger.info(
-        `Successfully committed ${newlyImportedAccountsForClient.length} accounts to Firestore.`
+        `Successfully committed ${newlyImportedAccountsForClient.length} accounts to Firestore.`,
       );
 
       return {
@@ -335,18 +338,18 @@ export const handleTrueLayerCallback = regionalFunctions
       if (axios.isAxiosError(error) && error.response) {
         functions.logger.error(
           "TrueLayer API error response:",
-          JSON.stringify(error.response.data)
+          JSON.stringify(error.response.data),
         );
         throw new functions.https.HttpsError(
           "internal",
           "Failed to communicate with TrueLayer API.",
-          error.response.data
+          error.response.data,
         );
       }
       throw new functions.https.HttpsError(
         "internal",
         "An unknown error occurred.",
-        { message: (error as Error).message }
+        { message: (error as Error).message },
       );
     }
   });
@@ -359,7 +362,7 @@ export const refreshTruelayerData = regionalFunctions
     if (!clientId || !clientSecret) {
       throw new functions.https.HttpsError(
         "internal",
-        "Server configuration error: missing secrets."
+        "Server configuration error: missing secrets.",
       );
     }
 
@@ -389,7 +392,7 @@ export const refreshTruelayerData = regionalFunctions
 
       if (tokenExpiresAt.toMillis() < Date.now()) {
         functions.logger.info(
-          `Token for ${account.name} is expired. Refreshing...`
+          `Token for ${account.name} is expired. Refreshing...`,
         );
         const tokenParams = new URLSearchParams();
         tokenParams.append("grant_type", "refresh_token");
@@ -403,12 +406,12 @@ export const refreshTruelayerData = regionalFunctions
             tokenParams,
             {
               headers: { "Content-Type": "application/x-www-form-urlencoded" },
-            }
+            },
           );
           accessToken = tokenResponse.data.access_token;
           refreshToken = tokenResponse.data.refresh_token;
           tokenExpiresAt = admin.firestore.Timestamp.fromMillis(
-            Date.now() + tokenResponse.data.expires_in * 1000
+            Date.now() + tokenResponse.data.expires_in * 1000,
           );
 
           batch.update(doc.ref, {
@@ -419,7 +422,7 @@ export const refreshTruelayerData = regionalFunctions
         } catch (error) {
           functions.logger.error(
             `Error al refrescar el token per a ${account.name}:`,
-            error
+            error,
           );
           continue; // Skip to the next account
         }
@@ -430,7 +433,7 @@ export const refreshTruelayerData = regionalFunctions
           `${truelayerApiBaseUrl}/data/v1/accounts/${account.id}/balance`,
           {
             headers: { Authorization: `Bearer ${accessToken}` },
-          }
+          },
         );
 
         if (
@@ -447,7 +450,7 @@ export const refreshTruelayerData = regionalFunctions
               `${truelayerApiBaseUrl}/data/v1/accounts/${account.id}/transactions`,
               {
                 headers: { Authorization: `Bearer ${accessToken}` },
-              }
+              },
             );
 
             if (transactionsResponse.data.results) {
@@ -455,7 +458,7 @@ export const refreshTruelayerData = regionalFunctions
               movements.sort(
                 (a: any, b: any) =>
                   new Date(b.timestamp).getTime() -
-                  new Date(a.timestamp).getTime()
+                  new Date(a.timestamp).getTime(),
               );
               const last20Movements = movements.slice(0, 20);
 
@@ -469,13 +472,13 @@ export const refreshTruelayerData = regionalFunctions
                   movements: last20Movements,
                   lastUpdated: now,
                 },
-                { merge: true }
+                { merge: true },
               );
             }
           } catch (txError) {
             functions.logger.error(
               `Error fetching transactions for ${account.name}:`,
-              txError
+              txError,
             );
           }
 
@@ -484,7 +487,7 @@ export const refreshTruelayerData = regionalFunctions
               "balanceEntries",
               "bankId",
               doc.id,
-              now
+              now,
             );
             batch.set(
               balanceEntryRef,
@@ -494,14 +497,14 @@ export const refreshTruelayerData = regionalFunctions
                 bankId: doc.id,
                 bank: account.name,
               },
-              { merge: true }
+              { merge: true },
             );
           } else if (doc.ref.parent.id === "debts") {
             const debtEntryRef = await getOrCreateEntry(
               "debtEntries",
               "debtId",
               doc.id,
-              now
+              now,
             );
             batch.set(
               debtEntryRef,
@@ -511,7 +514,7 @@ export const refreshTruelayerData = regionalFunctions
                 debtId: doc.id,
                 debtName: account.name,
               },
-              { merge: true }
+              { merge: true },
             );
           }
           refreshedAccounts++;
@@ -519,7 +522,7 @@ export const refreshTruelayerData = regionalFunctions
       } catch (error) {
         functions.logger.error(
           `Error obtenint el balanç per a ${account.name}:`,
-          error
+          error,
         );
       }
     }

@@ -5,6 +5,7 @@
 
 #Functional
 
+- check that in debtEntries (email import) there is only the last entry per day!
 - Afegir hipoteca automáticament
 - OK - Afegir Credit Card dés de email. (idempotence controled)
 - Check Authentication in other mobiles! CRITICAL
