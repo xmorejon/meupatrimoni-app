@@ -24,10 +24,10 @@ const BANK_RULES: BankRule[] = [
   {
     cardIdentifier: "4830",
     query:
-      'from:SantanderInforma@emailing.bancosantander-mail.es is:unread "4830" -subject:"Compres"',
+      'from:SantanderInforma@emailing.bancosantander-mail.es is:unread "4830" subject:"Compres" -subject:"petició"',
     amountRegex: /pagament de\s+(\d+[.,]\d{2})\s+EUR/i,
     merchantRegex: /4830\s+en\s+([^.]+)/i,
-    operation: 'Compres',
+    operation: "Compres",
   },
   {
     cardIdentifier: "4830",
@@ -35,7 +35,7 @@ const BANK_RULES: BankRule[] = [
       'from:SantanderInforma@emailing.bancosantander-mail.es is:unread "4830" subject:"Compres (petició d\'autorització)"',
     amountRegex: /retenció de\s+(\d+[.,]\d{2})\s+EUR/i,
     merchantRegex: /per part de\s+(.+?)\s+amb la targeta/i,
-    operation: 'Online',
+    operation: "Online",
   },
 ];
 
