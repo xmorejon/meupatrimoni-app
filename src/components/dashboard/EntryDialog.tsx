@@ -33,6 +33,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import type { Entry } from "@/lib/types";
+import { Loader2 } from "lucide-react";
 
 // Base schema for common fields
 export const baseSchema = z.object({
@@ -71,12 +72,12 @@ const typeTranslations: { [key: string]: string } = {
 };
 
 const reverseTypeTranslations: { [key: string]: string } = Object.fromEntries(
-  Object.entries(typeTranslations).map(([key, value]) => [value, key])
+  Object.entries(typeTranslations).map(([key, value]) => [value, key]),
 );
 
 interface EntryDialogProps {
   type: "Bank" | "Debt" | "Asset";
-  onEntry: (values: FormValues) => void;
+  onEntry: (values: FormValues) => Promise<void> | void;
   trigger: ReactNode;
   item?: Entry;
   translations: any;
@@ -139,14 +140,18 @@ export const EntryDialog: FC<EntryDialogProps> = ({
     defaultValues: getDefaults(),
   });
 
-  function onSubmit(values: FormValues) {
+  async function onSubmit(values: FormValues) {
     const submissionValues: FormValues = {
       ...values,
       type: reverseTypeTranslations[values.type!] || values.type!,
     };
-    onEntry(submissionValues);
-    form.reset();
-    setOpen(false);
+    try {
+      await onEntry(submissionValues);
+      form.reset();
+      setOpen(false);
+    } catch (error) {
+      // Error is handled by the parent component (DashboardClient)
+    }
   }
 
   const getPlaceholder = (type: "Bank" | "Debt" | "Asset") => {
@@ -202,7 +207,7 @@ export const EntryDialog: FC<EntryDialogProps> = ({
                   <FormLabel>
                     {translations.valueLabel.replace(
                       "{valueFieldLabel}",
-                      valueFieldLabel[type]
+                      valueFieldLabel[type],
                     )}
                   </FormLabel>
                   <FormControl>
@@ -249,7 +254,12 @@ export const EntryDialog: FC<EntryDialogProps> = ({
               )}
             />
             <DialogFooter>
-              <Button type="submit">{translations.saveButton}</Button>
+              <Button type="submit" disabled={form.formState.isSubmitting}>
+                {form.formState.isSubmitting && (
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                )}
+                {translations.saveButton}
+              </Button>
             </DialogFooter>
           </form>
         </Form>

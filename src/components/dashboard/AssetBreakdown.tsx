@@ -21,7 +21,10 @@ import { Badge } from "@/components/ui/badge";
 
 interface AssetBreakdownProps {
   assets: Asset[];
-  onEntry: (values: z.infer<typeof assetSchema>, type: "Asset") => void;
+  onEntry: (
+    values: z.infer<typeof assetSchema>,
+    type: "Asset",
+  ) => Promise<void> | void;
   onHistory: (item: Asset, type: "Asset") => void;
 }
 

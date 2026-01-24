@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, type FC } from "react";
+import { useState, useEffect, type FC } from "react";
 import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { ArrowRightLeft, Menu, RefreshCw } from "lucide-react";
@@ -60,6 +60,11 @@ export const DashboardClient: FC<DashboardClientProps> = ({ data }) => {
   const { toast } = useToast();
   const [isCsvImporterOpen, setIsCsvImporterOpen] = useState(false);
   const [isRefreshing, setIsRefreshing] = useState(false);
+  const [localData, setLocalData] = useState<DashboardData | null>(data);
+
+  useEffect(() => {
+    setLocalData(data);
+  }, [data]);
   const isMobile = useMobile();
   const [historyItem, setHistoryItem] = useState<{
     id: string;
@@ -91,6 +96,54 @@ export const DashboardClient: FC<DashboardClientProps> = ({ data }) => {
           break;
       }
 
+      // Manually update local state to reflect changes immediately (Optimistic UI)
+      if (localData && values.id) {
+        const newData = { ...localData };
+        const now = new Date();
+
+        if (type === "Bank") {
+          const list = [...(newData.bankBreakdown || [])];
+          const index = list.findIndex((i) => i.id === values.id);
+          if (index !== -1) {
+            list[index] = {
+              ...list[index],
+              name: values.name,
+              type: values.type as any,
+              balance: values.balance ?? 0,
+              lastUpdated: now,
+            };
+            newData.bankBreakdown = list;
+          }
+        } else if (type === "Debt") {
+          const list = [...(newData.debtBreakdown || [])];
+          const index = list.findIndex((i) => i.id === values.id);
+          if (index !== -1) {
+            list[index] = {
+              ...list[index],
+              name: values.name,
+              type: values.type as any,
+              balance: values.balance ?? 0,
+              lastUpdated: now,
+            };
+            newData.debtBreakdown = list;
+          }
+        } else if (type === "Asset") {
+          const list = [...(newData.assetBreakdown || [])];
+          const index = list.findIndex((i) => i.id === values.id);
+          if (index !== -1) {
+            list[index] = {
+              ...list[index],
+              name: values.name,
+              type: values.type as any,
+              value: values.value ?? 0,
+              lastUpdated: now,
+            };
+            newData.assetBreakdown = list;
+          }
+        }
+        setLocalData(newData);
+      }
+
       const translatedType = typeTranslations[type];
       toast({
         title: "Èxit",
@@ -104,6 +157,7 @@ export const DashboardClient: FC<DashboardClientProps> = ({ data }) => {
         title: "Error",
         description: `No s'ha pogut desar el ${type}. Si us plau, intenta-ho de nou.`,
       });
+      throw error;
     }
   };
 
@@ -166,7 +220,7 @@ export const DashboardClient: FC<DashboardClientProps> = ({ data }) => {
 
   const renderImportButton = (asChild: boolean) => (
     <Dialog open={isCsvImporterOpen} onOpenChange={setIsCsvImporterOpen}>
-      <DialogTrigger asChild={asChild}>
+      <DialogTrigger asChild>
         {asChild ? (
           <button className="relative flex cursor-default select-none items-center rounded-sm px-2 py-1.5 text-sm outline-none transition-colors focus:bg-accent focus:text-accent-foreground data-[disabled]:pointer-events-none data-[disabled]:opacity-50 w-full text-left">
             <ArrowRightLeft className="mr-2 h-4 w-4" />
@@ -217,7 +271,7 @@ export const DashboardClient: FC<DashboardClientProps> = ({ data }) => {
     );
   };
 
-  if (!data) {
+  if (!localData) {
     return (
       <div className="flex flex-col items-center justify-center h-full">
         <p className="mb-4">No hi ha dades per mostrar.</p>
@@ -237,7 +291,7 @@ export const DashboardClient: FC<DashboardClientProps> = ({ data }) => {
     bankBreakdown,
     debtBreakdown,
     assetBreakdown,
-  } = data;
+  } = localData;
 
   return (
     <div className="flex flex-col gap-3">

@@ -21,7 +21,10 @@ import { Badge } from "@/components/ui/badge";
 
 interface DebtBreakdownProps {
   debts: Debt[];
-  onEntry: (values: z.infer<typeof bankDebtSchema>, type: "Debt") => void;
+  onEntry: (
+    values: z.infer<typeof bankDebtSchema>,
+    type: "Debt",
+  ) => Promise<void> | void;
   onHistory: (item: Debt, type: "Debt") => void;
 }
 
