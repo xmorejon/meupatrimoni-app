@@ -1,4 +1,4 @@
-import type { Timestamp } from 'firebase/firestore';
+import type { Timestamp } from "firebase/firestore";
 
 export interface BalanceEntry {
   id: string;
@@ -12,17 +12,18 @@ export interface Bank {
   id: string;
   name: string;
   balance: number;
+  type: "Current Account" | "Investment Account";
   lastUpdated: Date | Timestamp;
   truelayerId?: string;
   providerId?: string;
 }
 
 export interface Debt {
-  id:string;
+  id: string;
   debtId?: string;
   name: string;
   balance: number;
-  type: 'Credit Card' | 'Mortgage' | 'Personnel Credit';
+  type: "Credit Card" | "Mortgage" | "Personnel Credit";
   lastUpdated: Date | Timestamp;
   truelayerId?: string;
   providerId?: string;
@@ -33,7 +34,7 @@ export interface Asset {
   assetId?: string;
   name: string;
   value: number;
-  type: 'House' | 'Car';
+  type: "House" | "Car";
   lastUpdated: Date | Timestamp;
   truelayerId?: string;
 }
