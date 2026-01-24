@@ -196,7 +196,8 @@ export const DashboardClient: FC<DashboardClientProps> = ({ data }) => {
         title: "Actualització completada",
         description: `${truelayerMessage} ${emailMessage}`,
       });
-      router.refresh();
+      await new Promise((resolve) => setTimeout(resolve, 2500));
+      window.location.reload();
     } catch (error: any) {
       console.error("Error refreshing accounts:", error);
       toast({
