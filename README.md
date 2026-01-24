@@ -1,4 +1,3 @@
-
 # MeuPatrimoni - Net Worth Tracker
 
 MeuPatrimoni is a modern web application designed to help you track your personal net worth in real-time. It provides a comprehensive dashboard with charts and breakdowns of your financial status, including assets, debts, and cash flow.
@@ -35,12 +34,14 @@ Follow these instructions to get a copy of the project up and running on your lo
 ### Installation & Setup
 
 1. **Clone the repository:**
+
    ```bash
    git clone https://github.com/your-username/meupatrimoni-app.git
    cd meupatrimoni-app
    ```
 
 2. **Install dependencies:**
+
    ```bash
    npm install
    ```
@@ -62,27 +63,26 @@ To ensure the CSV import functionality works correctly, you must create the foll
 
 1.  **Go to the Firestore Indexes Page:** Navigate to the "Indexes" tab in your Firestore database.
 2.  **Create Three Separate Indexes:** Create a new index for each of the following configurations:
+    - **Index 1 (for Banks):**
+      - **Collection ID:** `balanceEntries`
+      - **Fields to index:**
+        1.  `bankId` -> `Ascending`
+        2.  `timestamp` -> `Ascending`
+      - **Query scope:** `Collection`
 
-    *   **Index 1 (for Banks):**
-        *   **Collection ID:** `balanceEntries`
-        *   **Fields to index:**
-            1.  `bankId` -> `Ascending`
-            2.  `timestamp` -> `Ascending`
-        *   **Query scope:** `Collection`
+    - **Index 2 (for Debts):**
+      - **Collection ID:** `debtEntries`
+      - **Fields to index:**
+        1.  `debtId` -> `Ascending`
+        2.  `timestamp` -> `Ascending`
+      - **Query scope:** `Collection`
 
-    *   **Index 2 (for Debts):**
-        *   **Collection ID:** `debtEntries`
-        *   **Fields to index:**
-            1.  `debtId` -> `Ascending`
-            2.  `timestamp` -> `Ascending`
-        *   **Query scope:** `Collection`
-
-    *   **Index 3 (for Assets):**
-        *   **Collection ID:** `assetEntries`
-        *   **Fields to index:**
-            1.  `assetId` -> `Ascending`
-            2.  `timestamp` -> `Ascending`
-        *   **Query scope:** `Collection`
+    - **Index 3 (for Assets):**
+      - **Collection ID:** `assetEntries`
+      - **Fields to index:**
+        1.  `assetId` -> `Ascending`
+        2.  `timestamp` -> `Ascending`
+      - **Query scope:** `Collection`
 
 ### Running the Development Server
 
@@ -103,38 +103,38 @@ To use the preview mode, you will need to create a dedicated user account in you
 ### Setting Up a Preview User
 
 1.  **Enable Email/Password Authentication:**
-    *   Go to your Firebase project's **Authentication** section.
-    *   In the **Sign-in method** tab, enable the **Email/Password** provider.
+    - Go to your Firebase project's **Authentication** section.
+    - In the **Sign-in method** tab, enable the **Email/Password** provider.
 
 2.  **Create a New User:**
-    *   In the **Users** tab, click **Add user**.
-    *   Enter an email and password for your preview user.
+    - In the **Users** tab, click **Add user**.
+    - Enter an email and password for your preview user.
 
 3.  **Authorize the Preview User:**
-    *   Go to your **Firestore Database**.
-    *   In the `authorized_users` collection, add a new document with the email of your preview user.
+    - Go to your **Firestore Database**.
+    - In the `authorized_users` collection, add a new document with the email of your preview user.
 
 4.  **Authorize the Development Domain:**
-    *   **Go to the Firebase Console:** Open your project and navigate to the **Authentication** section.
-    *   **Go to the Settings Tab:** Click on the **Settings** tab.
-    *   **Add the Domain:** Under the "Authorized domains" section, click **Add domain**.
-    *   **Enter the Domain:** Enter the domain of your development environment. For example:
-        `9000-firebase-studio-1767299015901.cluster-fbfjltn375c6wqxlhoehbz44sk.cloudworkstations.dev`
-    *   **Click Add.**
+    - **Go to the Firebase Console:** Open your project and navigate to the **Authentication** section.
+    - **Go to the Settings Tab:** Click on the **Settings** tab.
+    - **Add the Domain:** Under the "Authorized domains" section, click **Add domain**.
+    - **Enter the Domain:** Enter the domain of your development environment. For example:
+      `9000-firebase-studio-1767299015901.cluster-fbfjltn375c6wqxlhoehbz44sk.cloudworkstations.dev`
+    - **Click Add.**
 
 ### Configuring Preview Mode
 
 1.  **Create a `.env.local` File:**
-    *   In the root of your project, create a new file named `.env.local`.
+    - In the root of your project, create a new file named `.env.local`.
 
 2.  **Add Environment Variables:**
-    *   Add the following environment variables to the `.env.local` file, replacing the placeholder values with the credentials of your preview user:
+    - Add the following environment variables to the `.env.local` file, replacing the placeholder values with the credentials of your preview user:
 
-        ```
-        NEXT_PUBLIC_PREVIEW_MODE=true
-        NEXT_PUBLIC_PREVIEW_EMAIL=your-preview-email@example.com
-        NEXT_PUBLIC_PREVIEW_PASSWORD=your-preview-password
-        ```
+      ```
+      NEXT_PUBLIC_PREVIEW_MODE=true
+      NEXT_PUBLIC_PREVIEW_EMAIL=your-preview-email@example.com
+      NEXT_PUBLIC_PREVIEW_PASSWORD=your-preview-password
+      ```
 
 ### Running in Preview Mode
 
@@ -146,7 +146,7 @@ npm run dev
 
 The application will automatically sign in with your preview user, and you will be able to test its full functionality.
 
-##  scripts
+## scripts
 
 - `dev`: Starts the Next.js development server.
 - `build`: Creates a production build of the application.
@@ -159,6 +159,10 @@ This application is configured for easy deployment with **Firebase App Hosting**
 
 To deploy your application, run the following command and follow the prompts:
 
-```bash
-firebase deploy
-```
+Hosting:
+"npm run build" in the root path
+"firebase deploy --only hosting" in the root path
+
+Functions:
+"npm run build" in the functions folder
+"firebase deploy --only functions" in the root path
