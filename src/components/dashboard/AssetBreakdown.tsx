@@ -53,7 +53,7 @@ export const AssetBreakdown: FC<AssetBreakdownProps> = ({
     addAsset: "Afegir Actiu",
     assetHeader: "Actiu",
     valueHeader: "Valor",
-    updateTypeHeader: "Tipus d'Actualització",
+    updateTypeHeader: "Mode",
     automated: "Auto",
     manual: "Manual",
     email: "Email",
@@ -76,7 +76,7 @@ export const AssetBreakdown: FC<AssetBreakdownProps> = ({
     assetNamePlaceholder: "Ex: Casa Principal",
     valuePlaceholder: "€1,234.56",
     selectTypePlaceholder: `Selecciona un tipus de ${assetType.toLowerCase()}`,
-    actionsHeader: "Accions",
+    actionsHeader: "Acció",
   };
   const locale = "ca-ES";
   const currency = "EUR";

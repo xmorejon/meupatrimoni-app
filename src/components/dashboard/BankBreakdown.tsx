@@ -42,7 +42,7 @@ export const BankBreakdown: FC<BankBreakdownProps> = ({
     addBank: "Afegir Compte",
     bankHeader: "Compte",
     balanceHeader: "Saldo",
-    updateTypeHeader: "Tipus d'Actualització",
+    updateTypeHeader: "Mode",
     automated: "Auto",
     manual: "Manual",
     email: "Email",
@@ -65,7 +65,7 @@ export const BankBreakdown: FC<BankBreakdownProps> = ({
     assetNamePlaceholder: "Ex: Casa Principal",
     valuePlaceholder: "€1,234.56",
     selectTypePlaceholder: `Selecciona un tipus de ${bankType.toLowerCase()}`,
-    actionsHeader: "Accions",
+    actionsHeader: "Acció",
   };
   const locale = "ca-ES";
   const currency = "EUR";

@@ -53,7 +53,7 @@ export const DebtBreakdown: FC<DebtBreakdownProps> = ({
     addDebt: "Afegir Deute",
     debtHeader: "Deute",
     balanceHeader: "Saldo",
-    updateTypeHeader: "Tipus d'Actualització",
+    updateTypeHeader: "Mode",
     automated: "Auto",
     manual: "Manual",
     email: "Email",
@@ -76,7 +76,7 @@ export const DebtBreakdown: FC<DebtBreakdownProps> = ({
     assetNamePlaceholder: "Ex: Casa Principal",
     valuePlaceholder: "€1,234.56",
     selectTypePlaceholder: `Selecciona un tipus de ${debtType.toLowerCase()}`,
-    actionsHeader: "Accions",
+    actionsHeader: "Acció",
   };
   const locale = "ca-ES";
   const currency = "EUR";
