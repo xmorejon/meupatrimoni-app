@@ -1,12 +1,13 @@
 #UX/UI
 
+- X Axis not from 0
 - OK - Refresh after Truelayer update (a vegades funciona)
 - OK - Refresh actualitzacií manual (mai funciona)
 - OK - logos with clear background.
 
 #Functional
 
-- Check Authentication in other mobiles! **\*** CRITICAL
+- OK - Check Authentication in other mobiles! (Fixed: Preview Mode was enabled in prod build)
 - Afegir hipoteca automáticament
 
 - OK (not tested) - check that in debtEntries (email import) there is only the last entry per day!

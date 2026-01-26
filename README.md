@@ -160,6 +160,9 @@ This application is configured for easy deployment with **Firebase App Hosting**
 To deploy your application, run the following command and follow the prompts:
 
 Hosting:
+
+> **⚠️ Important:** Ensure `NEXT_PUBLIC_PREVIEW_MODE` is set to `false` in your `.env.local` file before building, or the deployed version will bypass authentication.
+
 "npm run build" in the root path
 "firebase deploy --only hosting" in the root path
 

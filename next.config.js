@@ -1,3 +1,5 @@
+const { PHASE_PRODUCTION_BUILD } = require("next/constants");
+
 /** @type {import('next').NextConfig} */
 const nextConfig = {
   output: "export",
@@ -35,4 +37,10 @@ const nextConfig = {
   ],
 };
 
-module.exports = nextConfig;
+module.exports = (phase) => {
+  if (phase === PHASE_PRODUCTION_BUILD) {
+    process.env.NEXT_PUBLIC_PREVIEW_MODE = "false";
+  }
+
+  return nextConfig;
+};
