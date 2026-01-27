@@ -1,15 +1,15 @@
-'use client';
+"use client";
 
 import { useEffect, useState } from "react";
 import { getDashboardData } from "@/lib/firebase-service";
 import { DashboardClient } from "@/components/dashboard/DashboardClient";
-import { Patrimony } from "@/models/patrimony";
+
 import PrivateRoute from "@/components/PrivateRoute";
 import { useAuth } from "@/context/AuthContext";
 
 export default function Home() {
   const { user, loading: authLoading } = useAuth();
-  const [data, setData] = useState<Patrimony[] | null>(null);
+  const [data, setData] = useState<any>(null);
   const [error, setError] = useState<string | null>(null);
   const [isFetching, setIsFetching] = useState(false);
 
