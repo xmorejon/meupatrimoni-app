@@ -150,6 +150,19 @@ export function HistoryChart({ data, itemId, itemType }: HistoryChartProps) {
 
   const hasData = data && data.length > 0;
 
+  const calculateDomain = ([dataMin, dataMax]: [number, number]): [
+    number,
+    number,
+  ] => {
+    const range = dataMax - dataMin;
+    const buffer = range * 0.02; // 2% buffer
+    if (range === 0) {
+      const padding = Math.abs(dataMin * 0.02) || 10;
+      return [dataMin - padding, dataMax + padding];
+    }
+    return [dataMin - buffer, dataMax + buffer];
+  };
+
   return (
     <div className="flex flex-col min-h-0 space-y-6 overflow-hidden">
       {hasData ? (
@@ -172,6 +185,7 @@ export function HistoryChart({ data, itemId, itemType }: HistoryChartProps) {
                     axisLine={false}
                     tickLine={false}
                     width={40}
+                    domain={calculateDomain}
                   />
                   <Tooltip content={() => null} cursor={false} />
                   <Area
@@ -215,7 +229,7 @@ export function HistoryChart({ data, itemId, itemType }: HistoryChartProps) {
                         />
                       }
                     />
-                    <YAxis yAxisId="left" hide />
+                    <YAxis yAxisId="left" hide domain={calculateDomain} />
                     <Area
                       yAxisId="left"
                       dataKey="value"
