@@ -1,6 +1,13 @@
 const CACHE_NAME = "meu-patrimoni-cache-v3";
 const urlsToCache = ["/", "/manifest.json"];
 
+// Chunk files should never be cached since they are content-hashed
+const CHUNK_FILE_PATTERNS = [/_next\/static\/chunks\//, /\.js$/];
+
+const isChunkFile = (url) => {
+  return CHUNK_FILE_PATTERNS.some((pattern) => pattern.test(url));
+};
+
 self.addEventListener("install", (event) => {
   event.waitUntil(
     caches.open(CACHE_NAME).then((cache) => {
@@ -11,6 +18,12 @@ self.addEventListener("install", (event) => {
 });
 
 self.addEventListener("fetch", (event) => {
+  // Don't cache chunk files - always fetch fresh
+  if (isChunkFile(event.request.url)) {
+    event.respondWith(fetch(event.request));
+    return;
+  }
+
   event.respondWith(
     caches.match(event.request).then((response) => {
       if (response) {
