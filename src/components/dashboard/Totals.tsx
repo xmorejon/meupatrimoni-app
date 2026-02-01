@@ -6,12 +6,14 @@ interface TotalsProps {
   totalNetWorth: number;
   netWorthChange: number;
   currentCashFlow: number;
+  cashFlowChange: number;
 }
 
 export const Totals: FC<TotalsProps> = ({
   totalNetWorth,
   netWorthChange,
   currentCashFlow,
+  cashFlowChange,
 }) => {
   const netWorthChangePercentage =
     totalNetWorth > 0
@@ -62,8 +64,22 @@ export const Totals: FC<TotalsProps> = ({
               currency: "EUR",
             }).format(currentCashFlow)}
           </div>
-          <p className="text-xs text-muted-foreground">
-            +€2,350 en ingressos aquest mes
+          <p className="text-xs text-muted-foreground flex items-center">
+            {cashFlowChange >= 0 ? (
+              <ArrowUp className="h-4 w-4 text-green-500" />
+            ) : (
+              <ArrowDown className="h-4 w-4 text-red-500" />
+            )}
+            <span
+              className={`${cashFlowChange >= 0 ? "text-green-500" : "text-red-500"} font-semibold ml-1`}
+            >
+              {new Intl.NumberFormat("ca-ES", {
+                style: "currency",
+                currency: "EUR",
+                signDisplay: "always",
+              }).format(cashFlowChange)}
+            </span>
+            <span className="ml-2">vs el mes passat</span>
           </p>
         </CardContent>
       </Card>

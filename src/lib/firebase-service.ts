@@ -45,7 +45,7 @@ const parseDate = (dateString: string): Date | null => {
   return new Date(
     parseInt(year, 10),
     parseInt(month, 10) - 1,
-    parseInt(day, 10)
+    parseInt(day, 10),
   );
 };
 
@@ -77,7 +77,7 @@ export async function getBankBreakdown(): Promise<Bank[]> {
   const banksCol = collection(db, "banks");
   const snapshot = await getDocs(banksCol);
   return snapshot.docs.map((d) =>
-    convertTimestamps<Bank>({ id: d.id, ...d.data() })
+    convertTimestamps<Bank>({ id: d.id, ...d.data() }),
   );
 }
 
@@ -85,7 +85,7 @@ export async function getDebtBreakdown(): Promise<Debt[]> {
   const debtsCol = collection(db, "debts");
   const snapshot = await getDocs(debtsCol);
   return snapshot.docs.map((d) =>
-    convertTimestamps<Debt>({ id: d.id, ...d.data() })
+    convertTimestamps<Debt>({ id: d.id, ...d.data() }),
   );
 }
 
@@ -93,7 +93,7 @@ export async function getAssetBreakdown(): Promise<Asset[]> {
   const assetsCol = collection(db, "assets");
   const snapshot = await getDocs(assetsCol);
   return snapshot.docs.map((d) =>
-    convertTimestamps<Asset>({ id: d.id, ...d.data() })
+    convertTimestamps<Asset>({ id: d.id, ...d.data() }),
   );
 }
 
@@ -102,7 +102,7 @@ async function getBalanceEntries(): Promise<BalanceEntry[]> {
   const q = query(entriesCol, orderBy("timestamp", "asc"));
   const snapshot = await getDocs(q);
   return snapshot.docs.map((d) =>
-    convertTimestamps<BalanceEntry>({ id: d.id, ...d.data() })
+    convertTimestamps<BalanceEntry>({ id: d.id, ...d.data() }),
   );
 }
 
@@ -116,7 +116,7 @@ async function getDebtEntries(): Promise<
     convertTimestamps<Debt & { timestamp: Date; debtId: string }>({
       id: d.id,
       ...d.data(),
-    })
+    }),
   );
 }
 
@@ -130,14 +130,14 @@ async function getAssetEntries(): Promise<
     convertTimestamps<Asset & { timestamp: Date; assetId: string }>({
       id: d.id,
       ...d.data(),
-    })
+    }),
   );
 }
 
 export async function batchImport(
   data: any[],
   importType: "Bank" | "Debt" | "Asset",
-  entityId: string
+  entityId: string,
 ): Promise<void> {
   const collectionName = importType.toLowerCase() + "s";
   const entityRef = doc(db, collectionName, entityId);
@@ -153,10 +153,10 @@ export async function batchImport(
     .map((row) => {
       const keys = Object.keys(row);
       const dateKey = keys.find(
-        (k) => k.toLowerCase() === "date" || k.toLowerCase() === "timestamp"
+        (k) => k.toLowerCase() === "date" || k.toLowerCase() === "timestamp",
       );
       const valueKey = keys.find(
-        (k) => k.toLowerCase() === "value" || k.toLowerCase() === "balance"
+        (k) => k.toLowerCase() === "value" || k.toLowerCase() === "balance",
       );
 
       if (!dateKey || !valueKey) {
@@ -191,7 +191,7 @@ async function getOrCreateEntry(
   collectionName: string,
   idField: string,
   itemId: string,
-  timestamp: Timestamp
+  timestamp: Timestamp,
 ) {
   const startOfDate = startOfDay(timestamp.toDate());
   const endOfDate = endOfDay(timestamp.toDate());
@@ -199,7 +199,7 @@ async function getOrCreateEntry(
     collection(db, collectionName),
     where(idField, "==", itemId),
     where("timestamp", ">=", startOfDate),
-    where("timestamp", "<=", endOfDate)
+    where("timestamp", "<=", endOfDate),
   );
   const querySnapshot = await getDocs(q);
   if (!querySnapshot.empty) {
@@ -215,7 +215,7 @@ export async function batchImportEntries(
   entries: (
     | { timestamp: Date; value: number; balance?: undefined }
     | { timestamp: Date; balance: number; value?: undefined }
-  )[]
+  )[],
 ): Promise<void> {
   if (entries.length === 0) return;
 
@@ -268,7 +268,7 @@ export async function batchImportEntries(
   });
 
   const latestEntry = entries.reduce((latest, current) =>
-    current.timestamp > latest.timestamp ? current : latest
+    current.timestamp > latest.timestamp ? current : latest,
   );
 
   const itemDoc = await getDoc(itemRef);
@@ -296,7 +296,7 @@ export async function batchImportEntries(
 }
 
 export async function addOrUpdateBank(
-  bankData: Partial<Bank> & { name: string; balance: number }
+  bankData: Partial<Bank> & { name: string; balance: number },
 ): Promise<void> {
   const now = Timestamp.now();
   const batch = writeBatch(db);
@@ -312,7 +312,7 @@ export async function addOrUpdateBank(
     "balanceEntries",
     "bankId",
     bankRef.id,
-    now
+    now,
   );
   batch.set(
     balanceEntryRef,
@@ -322,7 +322,7 @@ export async function addOrUpdateBank(
       balance: newBankData.balance,
       timestamp: now,
     },
-    { merge: true }
+    { merge: true },
   );
 
   await batch.commit();
@@ -333,7 +333,7 @@ export async function addOrUpdateDebt(
     name: string;
     balance: number;
     type: Debt["type"];
-  }
+  },
 ): Promise<void> {
   const { id, ...payload } = debtData;
   const now = Timestamp.now();
@@ -348,7 +348,7 @@ export async function addOrUpdateDebt(
     "debtEntries",
     "debtId",
     debtRef.id,
-    now
+    now,
   );
   batch.set(
     debtEntryRef,
@@ -357,7 +357,7 @@ export async function addOrUpdateDebt(
       debtId: debtRef.id,
       timestamp: now,
     },
-    { merge: true }
+    { merge: true },
   );
 
   await batch.commit();
@@ -368,7 +368,7 @@ export async function addOrUpdateAsset(
     name: string;
     value: number;
     type: Asset["type"];
-  }
+  },
 ): Promise<void> {
   const { id, ...payload } = assetData;
   const now = Timestamp.now();
@@ -383,7 +383,7 @@ export async function addOrUpdateAsset(
     "assetEntries",
     "assetId",
     assetRef.id,
-    now
+    now,
   );
   batch.set(
     assetEntryRef,
@@ -392,7 +392,7 @@ export async function addOrUpdateAsset(
       assetId: assetRef.id,
       timestamp: now,
     },
-    { merge: true }
+    { merge: true },
   );
 
   await batch.commit();
@@ -451,7 +451,7 @@ export async function getDashboardData(): Promise<DashboardData> {
     .filter((t) => !isNaN(t));
 
   const entryDates = new Set(
-    allEntries.map((e) => format(startOfDay(e.timestamp as Date), "dd/MM/yy"))
+    allEntries.map((e) => format(startOfDay(e.timestamp as Date), "dd/MM/yy")),
   );
 
   const startDate =
@@ -497,19 +497,19 @@ export async function getDashboardData(): Promise<DashboardData> {
   for (const key in groupedBalanceEntries) {
     groupedBalanceEntries[key].sort(
       (a, b) =>
-        (b.timestamp as Date).getTime() - (a.timestamp as Date).getTime()
+        (b.timestamp as Date).getTime() - (a.timestamp as Date).getTime(),
     );
   }
   for (const key in groupedDebtEntries) {
     groupedDebtEntries[key].sort(
       (a, b) =>
-        (b.timestamp as Date).getTime() - (a.timestamp as Date).getTime()
+        (b.timestamp as Date).getTime() - (a.timestamp as Date).getTime(),
     );
   }
   for (const key in groupedAssetEntries) {
     groupedAssetEntries[key].sort(
       (a, b) =>
-        (b.timestamp as Date).getTime() - (a.timestamp as Date).getTime()
+        (b.timestamp as Date).getTime() - (a.timestamp as Date).getTime(),
     );
   }
 
@@ -532,7 +532,7 @@ export async function getDashboardData(): Promise<DashboardData> {
     for (const bank of bankBreakdown) {
       const bankEntries = groupedBalanceEntries[bank.id] || [];
       const latestEntry = bankEntries.find(
-        (e) => (e.timestamp as Date) <= endOfDate
+        (e) => (e.timestamp as Date) <= endOfDate,
       );
       if (latestEntry) {
         financialAssetsAtDate += latestEntry.balance;
@@ -543,7 +543,7 @@ export async function getDashboardData(): Promise<DashboardData> {
     for (const asset of assetBreakdown) {
       const assetEntries = groupedAssetEntries[asset.id] || [];
       const latestEntry = assetEntries.find(
-        (e) => (e.timestamp as Date) <= endOfDate
+        (e) => (e.timestamp as Date) <= endOfDate,
       );
       if (latestEntry) {
         physicalAssetsAtDate += latestEntry.value;
@@ -554,7 +554,7 @@ export async function getDashboardData(): Promise<DashboardData> {
     for (const debt of debtBreakdown) {
       const debtEntries = groupedDebtEntries[debt.id] || [];
       const latestEntry = debtEntries.find(
-        (e) => (e.timestamp as Date) <= endOfDate
+        (e) => (e.timestamp as Date) <= endOfDate,
       );
       if (latestEntry) {
         debtsAtDate += latestEntry.balance;
@@ -566,7 +566,7 @@ export async function getDashboardData(): Promise<DashboardData> {
       if (debt.type === "Credit Card") {
         const debtEntries = groupedDebtEntries[debt.id] || [];
         const latestEntry = debtEntries.find(
-          (e) => (e.timestamp as Date) <= endOfDate
+          (e) => (e.timestamp as Date) <= endOfDate,
         );
         if (latestEntry) {
           creditCardDebtAtDate += latestEntry.balance;
@@ -586,26 +586,41 @@ export async function getDashboardData(): Promise<DashboardData> {
     };
   });
 
-  const yesterdayData = historicalData.find(
-    (d) => d.date === format(endOfYesterday(), "dd/MM/yy")
-  );
-  const yesterdayNetWorth =
-    yesterdayData?.netWorth ??
-    (historicalData.length > 1
-      ? historicalData[historicalData.length - 2].netWorth
-      : 0);
-
   const todayNetWorth =
     historicalData.length > 0
       ? historicalData[historicalData.length - 1].netWorth
       : 0;
 
-  const netWorthChange = todayNetWorth - yesterdayNetWorth;
+  const daysAgo = 30;
+  const pastIndex = historicalData.length - 1 - daysAgo;
+  const pastNetWorth =
+    pastIndex >= 0
+      ? historicalData[pastIndex].netWorth
+      : historicalData.length > 0
+        ? historicalData[0].netWorth
+        : 0;
+
+  const netWorthChange = todayNetWorth - pastNetWorth;
+
+  const todayCashFlow =
+    historicalData.length > 0
+      ? historicalData[historicalData.length - 1].cashFlow
+      : 0;
+
+  const pastCashFlow =
+    pastIndex >= 0
+      ? historicalData[pastIndex].cashFlow
+      : historicalData.length > 0
+        ? historicalData[0].cashFlow
+        : 0;
+
+  const cashFlowChange = todayCashFlow - pastCashFlow;
 
   return {
     totalNetWorth,
     netWorthChange,
     currentCashFlow,
+    cashFlowChange,
     historicalData,
     bankBreakdown,
     debtBreakdown,
@@ -615,7 +630,7 @@ export async function getDashboardData(): Promise<DashboardData> {
 
 export async function getItemHistory(
   type: "Bank" | "Debt" | "Asset",
-  id: string
+  id: string,
 ): Promise<{ date: string; value: number }[]> {
   let collectionName = "";
   let idField = "";
@@ -642,7 +657,7 @@ export async function getItemHistory(
   const q = query(
     collection(db, collectionName),
     where(idField, "==", id),
-    orderBy("timestamp", "asc")
+    orderBy("timestamp", "asc"),
   );
   const snapshot = await getDocs(q);
 

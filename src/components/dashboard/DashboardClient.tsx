@@ -288,6 +288,7 @@ export const DashboardClient: FC<DashboardClientProps> = ({ data }) => {
     totalNetWorth,
     netWorthChange,
     currentCashFlow,
+    cashFlowChange,
     historicalData,
     bankBreakdown,
     debtBreakdown,
@@ -322,6 +323,7 @@ export const DashboardClient: FC<DashboardClientProps> = ({ data }) => {
         totalNetWorth={totalNetWorth}
         netWorthChange={netWorthChange}
         currentCashFlow={currentCashFlow}
+        cashFlowChange={cashFlowChange}
       />
 
       <NetWorthChart data={historicalData} />
