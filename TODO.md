@@ -14,3 +14,5 @@
 - OK - Afegir Credit Card dés de email. (idempotence controled)
 - OK - Installed as an APP PWA
 - OK - Bank Detail Modal with last 10 transactions. Limit 20?
+
+#Maintenance
