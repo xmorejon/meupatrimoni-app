@@ -398,7 +398,7 @@ export async function addOrUpdateAsset(
   await batch.commit();
 }
 
-export async function getDashboardData(): Promise<DashboardData> {
+export async function getDashboardData(uid: string): Promise<DashboardData> {
   const [
     bankBreakdown,
     debtBreakdown,
