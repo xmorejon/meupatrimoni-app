@@ -1,6 +1,6 @@
 #UX/UI
 
-- X Axis not from 0
+- OK X Axis not from 0
 - OK - Refresh after Truelayer update (a vegades funciona)
 - OK - Refresh actualitzacií manual (mai funciona)
 - OK - logos with clear background.
