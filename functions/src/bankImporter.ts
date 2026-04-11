@@ -33,7 +33,7 @@ const BANK_RULES: BankRule[] = [
     cardIdentifier: "4830",
     query:
       'from:SantanderInforma@emailing.bancosantander-mail.es is:unread "4830" subject:"Compres (petició d\'autorització)"',
-    amountRegex: /retenció de\s+(\d+[.,]\d{2})\s+EUR/i,
+    amountRegex: /una\s+retenci(?:o|ó)n? de\s+(\d+[.,]\d{2})\s+EUR/i,
     merchantRegex: /per part de\s+(.+?)\s+amb la targeta/i,
     operation: "Online",
   },
@@ -49,9 +49,25 @@ const BANK_RULES: BankRule[] = [
     cardIdentifier: "1031",
     query:
       'from:SantanderInforma@emailing.bancosantander-mail.es is:unread "1031" subject:"Compras (petición de autorización)"',
-    amountRegex: /retención de\s+(\d+[.,]\d{2})\s+EUR/i,
+    amountRegex: /una\s+retenci(?:o|ó)n? de\s+(\d+[.,]\d{2})\s+EUR/i,
     merchantRegex: /por parte de\s+(.+?)\s+con la targeta/i,
     operation: "Online",
+  },
+  {
+    cardIdentifier: "1031",
+    query:
+      'from:SantanderInforma@emailing.bancosantander-mail.es is:unread "1031" subject:"Dinero de tarjeta retenido"',
+    amountRegex: /una\s+retenci(?:o|ó)n? de\s+(\d+[.,]\d{2})\s+EUR/i,
+    merchantRegex: /(?:de que|que)\s+(.+?)\s+ha realizado/i,
+    operation: "Retención",
+  },
+  {
+    cardIdentifier: "4830",
+    query:
+      "from:SantanderInforma@emailing.bancosantander-mail.es is:unread \"4830\" subject:\"S'han retingut diners de la targeta\"",
+    amountRegex: /una\s+retenci(?:o|ó)n? de\s+(\d+[.,]\d{2})\s+EUR/i,
+    merchantRegex: /t'informem que\s+(.+?)\s+ha efectuat/i,
+    operation: "Retenció",
   },
 ];
 
@@ -160,29 +176,36 @@ async function processBankEmails() {
         const emailIsoString = emailDate.toISOString();
 
         const subjectHeader = payload.headers?.find(
-          (h) => h.name === "Subject",
+          (h: any) => h.name === "Subject",
         );
         const subject = subjectHeader ? subjectHeader.value : "No Subject";
         const snippet = messageResponse.data.snippet || "";
         const fullBody = getEmailBody(payload);
         const textToSearch = fullBody || snippet;
 
+        // Clean the text before matching
+        const cleanedText = textToSearch
+          .replace(/<[^>]*>/g, "") // Strip HTML tags
+          .replace(/&zwnj;/g, "")    // Remove zero-width non-joiners
+          .replace(/\s+/g, " ")      // Collapse whitespace
+          .trim();
+
         console.log(`Processing: ${subject}`);
 
         // 3. Parse Transaction Data using the rule's regex
-        const match = textToSearch.match(rule.amountRegex);
+        const match = cleanedText.match(rule.amountRegex);
 
         if (match) {
           const amountString = match[1].replace(",", ".");
           const expenseAmount = parseFloat(amountString);
 
           let merchant = "";
-          const merchantMatch = textToSearch.match(rule.merchantRegex);
+          const merchantMatch = cleanedText.match(rule.merchantRegex);
           if (merchantMatch && merchantMatch[1]) {
             merchant = merchantMatch[1].trim();
           } else {
             console.log(
-              `Merchant regex failed. Text length: ${textToSearch.length}. Snippet: "${snippet}"`,
+              `Merchant regex failed. Text length: ${cleanedText.length}. Snippet: "${snippet}"`,
             );
           }
 
@@ -300,7 +323,12 @@ async function processBankEmails() {
             importedCount++;
           }
         } else {
-          console.log(`Skipped: Regex did not match for ${msg.id}`);
+          console.log(
+            `Skipped: Regex did not match for message ID ${msg.id}. ` +
+            `Rule operation: '${rule.operation}'. ` +
+            `Amount Regex: ${rule.amountRegex}. ` +
+            `Cleaned text: """${cleanedText}"""`
+          );
         }
 
         // 5. Mark as Read
