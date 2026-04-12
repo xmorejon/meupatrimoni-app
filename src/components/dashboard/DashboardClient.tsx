@@ -2,8 +2,8 @@
 
 import { useState, useEffect, type FC } from "react";
 import { useRouter } from "next/navigation";
-import { Button } from "@/components/ui/button";
-import { ArrowRightLeft, Menu, RefreshCw } from "lucide-react";
+import { Button, buttonVariants } from "@/components/ui/button";
+import { ArrowRightLeft, LogOut, Menu, RefreshCw } from "lucide-react";
 import type { z } from "zod";
 
 import { NetWorthChart } from "./NetWorthChart";
@@ -34,6 +34,7 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import { getAuth, signOut } from "firebase/auth";
 import { getFunctions, httpsCallable } from "firebase/functions";
 import { getApp } from "firebase/app";
 import useMobile from "@/hooks/use-mobile";
@@ -212,6 +213,25 @@ export const DashboardClient: FC<DashboardClientProps> = ({ data }) => {
     }
   };
 
+  const handleLogout = async () => {
+    const auth = getAuth();
+    try {
+      await signOut(auth);
+      router.push("/"); // Redirect to home page after logout
+      toast({
+        title: "Sessió tancada",
+        description: "Has tancat la sessió correctament.",
+      });
+    } catch (error) {
+      console.error("Error signing out:", error);
+      toast({
+        variant: "destructive",
+        title: "Error",
+        description: "No s'ha pogut tancar la sessió.",
+      });
+    }
+  };
+
   const handleHistory = (
     item: { id: string; name: string },
     type: "Bank" | "Debt" | "Asset",
@@ -244,31 +264,25 @@ export const DashboardClient: FC<DashboardClientProps> = ({ data }) => {
   );
 
   const renderMenu = () => {
-    if (isMobile) {
-      return (
-        <DropdownMenu>
-          <DropdownMenuTrigger asChild>
-            <Button variant="outline" size="icon">
-              <Menu className="h-4 w-4" />
-            </Button>
-          </DropdownMenuTrigger>
-          <DropdownMenuContent align="end">
-            <DropdownMenuItem asChild>
-              <ConnectWithTrueLayer variant="ghost" />
-            </DropdownMenuItem>
-            <DropdownMenuItem asChild>
-              {renderImportButton(true)}
-            </DropdownMenuItem>
-          </DropdownMenuContent>
-        </DropdownMenu>
-      );
-    }
-
     return (
-      <div className="flex items-center gap-2">
-        <ConnectWithTrueLayer variant="outline" />
-        {renderImportButton(false)}
-      </div>
+      <DropdownMenu>
+        <DropdownMenuTrigger asChild>
+          <Button variant="outline" size={isMobile ? "icon" : "default"}>
+            <Menu className="h-4 w-4" />
+            {!isMobile && <span className="ml-2">Menú</span>}
+          </Button>
+        </DropdownMenuTrigger>
+        <DropdownMenuContent align="end">
+          <DropdownMenuItem asChild>
+            <ConnectWithTrueLayer variant="ghost" />
+          </DropdownMenuItem>
+          <DropdownMenuItem asChild>{renderImportButton(true)}</DropdownMenuItem>
+          <DropdownMenuItem onClick={handleLogout}>
+            <LogOut className="mr-2 h-4 w-4" />
+            <span>Tancar sessió</span>
+          </DropdownMenuItem>
+        </DropdownMenuContent>
+      </DropdownMenu>
     );
   };
 
@@ -313,7 +327,7 @@ export const DashboardClient: FC<DashboardClientProps> = ({ data }) => {
             ) : (
               <RefreshCw className="mr-2 h-4 w-4" />
             )}
-            Act. comptes
+            {isMobile ? "" : "Act. comptes"}
           </Button>
           {renderMenu()}
         </div>
