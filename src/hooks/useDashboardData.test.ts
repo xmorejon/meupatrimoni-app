@@ -1,5 +1,6 @@
+import { jest, describe, it, expect, beforeEach } from "@jest/globals";
 import { renderHook, waitFor } from "@testing-library/react";
-import { useDashboardData } from "./useDashboardData";
+import { useDashboardData } from "./useDashboardData"; // Import the actual hook
 import { getDashboardData } from "@/lib/firebase-service";
 import { User } from "firebase/auth";
 
@@ -29,7 +30,7 @@ describe("useDashboardData", () => {
 
   it("should fetch data successfully and update state", async () => {
     const mockData = { netWorth: 1000 };
-    mockedGetDashboardData.mockResolvedValue(mockData);
+    mockedGetDashboardData.mockResolvedValue(mockData as never);
 
     const { result } = renderHook(() => useDashboardData(mockUser));
 
@@ -50,7 +51,7 @@ describe("useDashboardData", () => {
 
   it("should handle errors during data fetching", async () => {
     const errorMessage = "Failed to load dashboard data.";
-    mockedGetDashboardData.mockRejectedValue(new Error("API Error"));
+    mockedGetDashboardData.mockRejectedValue(new Error("API Error") as never);
 
     const { result } = renderHook(() => useDashboardData(mockUser));
 
@@ -67,5 +68,27 @@ describe("useDashboardData", () => {
     expect(result.current.error).toBe(errorMessage);
     expect(mockedGetDashboardData).toHaveBeenCalledWith(mockUser.uid);
     expect(mockedGetDashboardData).toHaveBeenCalledTimes(1);
+  });
+
+  it("should reset data when user becomes null", async () => {
+    const mockData = { netWorth: 1000 };
+    mockedGetDashboardData.mockResolvedValue(mockData as never);
+
+    const { result, rerender } = renderHook(
+      ({ user }) => useDashboardData(user),
+      {
+        // The props for the hook's render function
+        initialProps: { user: mockUser as User | null },
+      }
+    );
+
+    await waitFor(() => expect(result.current.isFetching).toBe(false));
+    expect(result.current.data).toEqual(mockData);
+
+    rerender({ user: null });
+
+    expect(result.current.data).toBeNull();
+    expect(result.current.isFetching).toBe(false);
+    expect(result.current.error).toBeNull();
   });
 });
