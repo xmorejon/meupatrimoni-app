@@ -3,7 +3,7 @@ import { setGlobalOptions } from "firebase-functions/v2";
 import * as logger from "firebase-functions/logger";
 import * as admin from "firebase-admin";
 import axios from "axios";
-import { URLSearchParams } from "url";
+import { URL, URLSearchParams } from "url";
 import { startOfDay, endOfDay } from "date-fns";
 
 if (!admin.apps.length) {
@@ -15,10 +15,8 @@ const secrets = ["TRUELAYER_CLIENT_ID", "TRUELAYER_CLIENT_SECRET"];
 
 setGlobalOptions({ region: "europe-west1" });
 
-const truelayerAuthBaseUrl = "https://auth.truelayer.com";
-const truelayerApiBaseUrl = "https://api.truelayer.com";
-const redirectUri = "https://meupatrimoni-app.web.app/callback.html";
-//const redirectUri = "https://meupatrimoni-app.firebaseapp.com/callback.html";
+const TRUELAYER_AUTH_BASE_URL = "https://auth.truelayer.com";
+const TRUELAYER_API_BASE_URL = "https://api.truelayer.com";
 
 const mapAccountType = (truelayerType: string): string => {
   const type = truelayerType.toUpperCase();
@@ -55,6 +53,14 @@ async function getOrCreateEntry(
 }
 
 export const getTrueLayerAuthLink = onCall({ secrets }, async (request) => {
+  // Allow the client to specify its origin for the redirect URI
+  const origin = request.data.origin || "https://meupatrimoni-app.web.app";
+  const allowedOrigins = [
+    "https://meupatrimoni-app.web.app",
+    "https://meupatrimoni-app.firebaseapp.com",
+    "http://localhost:3000", // For local development
+  ];
+
   const clientId = process.env.TRUELAYER_CLIENT_ID;
   if (!clientId) {
     throw new HttpsError(
@@ -63,7 +69,16 @@ export const getTrueLayerAuthLink = onCall({ secrets }, async (request) => {
     );
   }
 
-  const authUrl = new URL(`${truelayerAuthBaseUrl}/`);
+  if (!allowedOrigins.includes(origin)) {
+    throw new HttpsError(
+      "invalid-argument",
+      "The provided origin is not allowed.",
+    );
+  }
+
+  const redirectUri = `${origin}/callback.html`;
+
+  const authUrl = new URL(`${TRUELAYER_AUTH_BASE_URL}/`);
   authUrl.searchParams.set("response_type", "code");
   authUrl.searchParams.set("client_id", clientId);
   authUrl.searchParams.set(
@@ -81,7 +96,7 @@ export const getTrueLayerAuthLink = onCall({ secrets }, async (request) => {
 
 export const handleTrueLayerCallback = onCall({ secrets }, async (request) => {
   const data = request.data;
-  if (!data.code) {
+  if (!data.code || !data.origin) {
     throw new HttpsError(
       "invalid-argument",
       'The function must be called with a "code".',
@@ -97,6 +112,8 @@ export const handleTrueLayerCallback = onCall({ secrets }, async (request) => {
     );
   }
 
+  const redirectUri = `${data.origin}/callback.html`;
+
   try {
     const tokenParams = new URLSearchParams();
     tokenParams.append("grant_type", "authorization_code");
@@ -106,7 +123,7 @@ export const handleTrueLayerCallback = onCall({ secrets }, async (request) => {
     tokenParams.append("code", data.code);
 
     const tokenResponse = await axios.post(
-      `${truelayerAuthBaseUrl}/connect/token`,
+      `${TRUELAYER_AUTH_BASE_URL}/connect/token`,
       tokenParams,
       {
         headers: { "Content-Type": "application/x-www-form-urlencoded" },
@@ -122,7 +139,7 @@ export const handleTrueLayerCallback = onCall({ secrets }, async (request) => {
     }
 
     const accountsResponse = await axios.get(
-      `${truelayerApiBaseUrl}/data/v1/accounts`,
+      `${TRUELAYER_API_BASE_URL}/data/v1/accounts`,
       {
         headers: { Authorization: `Bearer ${access_token}` },
       },
@@ -139,7 +156,7 @@ export const handleTrueLayerCallback = onCall({ secrets }, async (request) => {
       let balance = null;
       try {
         const balanceResponse = await axios.get(
-          `${truelayerApiBaseUrl}/data/v1/accounts/${account.account_id}/balance`,
+          `${TRUELAYER_API_BASE_URL}/data/v1/accounts/${account.account_id}/balance`,
           {
             headers: { Authorization: `Bearer ${access_token}` },
           },
@@ -164,7 +181,7 @@ export const handleTrueLayerCallback = onCall({ secrets }, async (request) => {
       let last20Movements: any[] = [];
       try {
         const transactionsResponse = await axios.get(
-          `${truelayerApiBaseUrl}/data/v1/accounts/${account.account_id}/transactions`,
+          `${TRUELAYER_API_BASE_URL}/data/v1/accounts/${account.account_id}/transactions`,
           {
             headers: { Authorization: `Bearer ${access_token}` },
           },
@@ -392,7 +409,7 @@ export const refreshTruelayerData = onCall({ secrets }, async (request) => {
 
       try {
         const tokenResponse = await axios.post(
-          `${truelayerAuthBaseUrl}/connect/token`,
+          `${TRUELAYER_AUTH_BASE_URL}/connect/token`,
           tokenParams,
           {
             headers: { "Content-Type": "application/x-www-form-urlencoded" },
@@ -420,7 +437,7 @@ export const refreshTruelayerData = onCall({ secrets }, async (request) => {
 
     try {
       const balanceResponse = await axios.get(
-        `${truelayerApiBaseUrl}/data/v1/accounts/${account.id}/balance`,
+        `${TRUELAYER_API_BASE_URL}/data/v1/accounts/${account.id}/balance`,
         {
           headers: { Authorization: `Bearer ${accessToken}` },
         },
@@ -437,7 +454,7 @@ export const refreshTruelayerData = onCall({ secrets }, async (request) => {
 
         try {
           const transactionsResponse = await axios.get(
-            `${truelayerApiBaseUrl}/data/v1/accounts/${account.id}/transactions`,
+            `${TRUELAYER_API_BASE_URL}/data/v1/accounts/${account.id}/transactions`,
             {
               headers: { Authorization: `Bearer ${accessToken}` },
             },
