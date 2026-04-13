@@ -241,21 +241,23 @@ export const DashboardClient: FC<DashboardClientProps> = ({ data }) => {
   const renderImportButton = (asChild: boolean) => (
     <Dialog open={isCsvImporterOpen} onOpenChange={setIsCsvImporterOpen}>
       <DialogTrigger asChild>
-        {asChild ? (
-          <button className="relative flex cursor-default select-none items-center rounded-sm px-2 py-1.5 text-sm outline-none transition-colors focus:bg-accent focus:text-accent-foreground data-[disabled]:pointer-events-none data-[disabled]:opacity-50 w-full text-left">
-            <ArrowRightLeft className="mr-2 h-4 w-4" />
-            Importar CSV
-          </button>
-        ) : (
-          <Button variant="outline">
-            <ArrowRightLeft className="mr-2 h-4 w-4" />
-            Importar CSV
-          </Button>
-        )}
+        <Button
+          variant={asChild ? "ghost" : "outline"}
+          className={asChild ? "w-full justify-start" : ""}
+        >
+          <ArrowRightLeft className="mr-2 h-4 w-4" />
+          Importar CSV
+        </Button>
       </DialogTrigger>
       <DialogContent>
         <DialogHeader>
-          <DialogTitle>Importar CSV</DialogTitle>
+          <DialogTitle>
+            {isMobile ? (
+              "Importar"
+            ) : (
+              <span className="text-lg">Importar un arxiu CSV</span>
+            )}
+          </DialogTitle>
         </DialogHeader>
         <CsvImporter />
       </DialogContent>
@@ -275,10 +277,18 @@ export const DashboardClient: FC<DashboardClientProps> = ({ data }) => {
           <DropdownMenuItem asChild>
             <ConnectWithTrueLayer variant="ghost" />
           </DropdownMenuItem>
-          <DropdownMenuItem asChild>{renderImportButton(true)}</DropdownMenuItem>
-          <DropdownMenuItem onClick={handleLogout}>
-            <LogOut className="mr-2 h-4 w-4" />
-            <span>Tancar sessió</span>
+          <DropdownMenuItem asChild>
+            {renderImportButton(true)}
+          </DropdownMenuItem>
+          <DropdownMenuItem asChild>
+            <Button
+              variant="ghost"
+              className="w-full justify-start"
+              onClick={handleLogout}
+            >
+              <LogOut className="mr-2 h-4 w-4" />
+              <span>Tancar sessió</span>
+            </Button>
           </DropdownMenuItem>
         </DropdownMenuContent>
       </DropdownMenu>
