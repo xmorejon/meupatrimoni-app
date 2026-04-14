@@ -1,4 +1,4 @@
-const CACHE_NAME = "meu-patrimoni-cache-v3";
+const CACHE_NAME = "meu-patrimoni-cache-v4"; // Increment cache version to force update
 const urlsToCache = ["/", "/manifest.json"];
 
 // Chunk files should never be cached since they are content-hashed
@@ -18,18 +18,34 @@ self.addEventListener("install", (event) => {
 });
 
 self.addEventListener("fetch", (event) => {
-  // Don't cache chunk files - always fetch fresh
-  if (isChunkFile(event.request.url)) {
-    event.respondWith(fetch(event.request));
+  // Use a "Network First, falling back to Cache" strategy for navigation requests.
+  if (event.request.mode === "navigate") {
+    event.respondWith(
+      (async () => {
+        try {
+          // Try to fetch from the network first.
+          const networkResponse = await fetch(event.request);
+
+          // If successful, clone the response and update the cache.
+          const cache = await caches.open(CACHE_NAME);
+          cache.put(event.request, networkResponse.clone());
+
+          return networkResponse;
+        } catch (error) {
+          // If the network fails (e.g., offline), serve from the cache.
+          console.log("Network request failed, serving from cache.");
+          return caches.match(event.request);
+        }
+      })(),
+    );
     return;
   }
 
+  // For other requests (like images, manifest), use a "Cache First" strategy.
+  // This is good for static assets that don't change often.
   event.respondWith(
-    caches.match(event.request).then((response) => {
-      if (response) {
-        return response;
-      }
-      return fetch(event.request);
+    caches.match(event.request).then((cachedResponse) => {
+      return cachedResponse || fetch(event.request);
     }),
   );
 });
