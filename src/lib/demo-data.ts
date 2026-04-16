@@ -1,23 +1,39 @@
 import type { DashboardData } from "@/lib/types";
 
+const generateHistoricalData = () => {
+  const data = [];
+  let netWorth = 150000;
+  let cashFlow = 500;
+  for (let i = 0; i < 100; i++) {
+    const date = new Date(2026, 3, i + 7); // April is month 3 (0-indexed)
+    netWorth += Math.random() * 500 - 200;
+    cashFlow += Math.random() * 50 - 25;
+    data.push({
+      date: `${String(date.getDate()).padStart(2, "0")}/${String(
+        date.getMonth() + 1,
+      ).padStart(2, "0")}/${String(date.getFullYear()).slice(-2)}`,
+      netWorth: parseFloat(netWorth.toFixed(2)),
+      cashFlow: parseFloat(cashFlow.toFixed(2)),
+    });
+  }
+  return data;
+};
+
+const newHistoricalData = generateHistoricalData();
+const lastEntry = newHistoricalData[newHistoricalData.length - 1];
+
 export const demoData: DashboardData = {
-  totalNetWorth: 150250.75,
-  netWorthChange: 1250.5,
-  currentCashFlow: 550.25,
-  cashFlowChange: -50.75,
-  historicalData: [
-    { date: "01/01/24", netWorth: 145000, cashFlow: 400 },
-    { date: "01/02/24", netWorth: 146500, cashFlow: 450 },
-    { date: "01/03/24", netWorth: 148000, cashFlow: 500 },
-    { date: "01/04/24", netWorth: 149000, cashFlow: 600 },
-    { date: "01/05/24", netWorth: 150250.75, cashFlow: 550.25 },
-  ],
+  totalNetWorth: lastEntry.netWorth,
+  netWorthChange: lastEntry.netWorth - newHistoricalData[0].netWorth,
+  currentCashFlow: lastEntry.cashFlow,
+  cashFlowChange: lastEntry.cashFlow - newHistoricalData[0].cashFlow,
+  historicalData: newHistoricalData,
   bankBreakdown: [
     {
       id: "demo-bank-1",
       name: "Compte Nòmina",
       balance: 5200.5,
-      providerId: "caixabank",
+      providerId: "xs2a-redsys-banco-santander",
       truelayerId: "demo-truelayer-1",
       lastUpdated: new Date(),
       type: "Current Account",
@@ -26,7 +42,7 @@ export const demoData: DashboardData = {
       id: "demo-bank-2",
       name: "Compte Estalvis",
       balance: 15000.0,
-      providerId: "bbva",
+      providerId: "ob-revolut-es",
       truelayerId: "demo-truelayer-2",
       lastUpdated: new Date(),
       type: "Current Account",
@@ -51,7 +67,7 @@ export const demoData: DashboardData = {
       id: "demo-debt-2",
       name: "Targeta de Crèdit",
       balance: -1500.25,
-      providerId: "caixabank",
+      providerId: "xs2a-ing-spain",
       truelayerId: "demo-truelayer-3",
       lastUpdated: new Date(),
       type: "Credit Card",

@@ -22,7 +22,7 @@ import {
   addOrUpdateBank,
   addOrUpdateDebt,
   addOrUpdateAsset,
-} from "@/lib/firebase-service";
+} from "@/lib/firebase-service"; // Can be removed if only used for types
 import type { DashboardData } from "@/lib/types";
 import { useToast } from "@/components/ui/use-toast";
 import ConnectWithTrueLayer from "@/components/connect-with-truelayer";
@@ -91,6 +91,20 @@ export const DashboardClient: FC<DashboardClientProps> = ({ data }) => {
     name: string;
     type: "Bank" | "Debt" | "Asset";
   } | null>(null);
+
+  const getDemoHistory = (
+    item: { id: string; type: "Bank" | "Debt" | "Asset" } | null,
+  ) => {
+    if (
+      isDemoMode &&
+      item &&
+      item.type === "Bank" &&
+      localData?.historicalBankData
+    ) {
+      return localData.historicalBankData[item.id] || [];
+    }
+    return undefined;
+  };
 
   const handleEntry = async (
     values: EntryData,

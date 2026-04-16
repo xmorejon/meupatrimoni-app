@@ -46,6 +46,11 @@ export interface ChartDataPoint {
   hasChange?: boolean;
 }
 
+export interface HistoricalData {
+  date: string;
+  value: number;
+}
+
 export interface DashboardData {
   totalNetWorth: number;
   netWorthChange: number;
@@ -56,6 +61,9 @@ export interface DashboardData {
   debtBreakdown: Debt[];
   assetBreakdown: Asset[];
   debug?: Array<any>;
+  historicalBankData?: {
+    [id: string]: HistoricalData[];
+  };
 }
 
 export type Entry = Bank | Debt | Asset;
