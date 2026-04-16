@@ -33,7 +33,7 @@ function CallbackProcessor() {
         description: "Un moment, si us plau.",
       });
 
-      exchangeCode(code)
+      exchangeCode(code, window.location.origin)
         .then((result) => {
           if (result.success) {
             toast({
