@@ -64,10 +64,26 @@ const BANK_RULES: BankRule[] = [
   {
     cardIdentifier: "4830",
     query:
-      "from:SantanderInforma@emailing.bancosantander-mail.es is:unread \"4830\" subject:\"S'han retingut diners de la targeta\"",
+      'from:SantanderInforma@emailing.bancosantander-mail.es is:unread "4830" subject:"S\'han retingut diners de la targeta"',
     amountRegex: /una\s+retenci(?:o|ó)n? de\s+(\d+[.,]\d{2})\s+EUR/i,
     merchantRegex: /t'informem que\s+(.+?)\s+ha efectuat/i,
     operation: "Retenció",
+  },
+  {
+    cardIdentifier: "4830",
+    query:
+      'from:SantanderInforma@emailing.bancosantander-mail.es is:unread "4830" subject:"S\'ha efectuat un pagament amb la targeta"',
+    amountRegex: /has pagat\s+(\d+[.,]\d{2})\s+EUR/i,
+    merchantRegex: /EUR a\s+(.+?)\s+amb la targeta/i,
+    operation: "Pagament",
+  },
+  {
+    cardIdentifier: "1031",
+    query:
+      'from:SantanderInforma@emailing.bancosantander-mail.es is:unread "1031" subject:(Pago realizado con tu tarjeta)',
+    amountRegex: /has pagado\s+(\d+[,.]\d{2})\s+EUR/i,
+    merchantRegex: /en\s+([^.]+)\.\s*Consulta/i,
+    operation: "Pago",
   },
 ];
 
@@ -186,8 +202,8 @@ async function processBankEmails() {
         // Clean the text before matching
         const cleanedText = textToSearch
           .replace(/<[^>]*>/g, "") // Strip HTML tags
-          .replace(/&zwnj;/g, "")    // Remove zero-width non-joiners
-          .replace(/\s+/g, " ")      // Collapse whitespace
+          .replace(/&zwnj;/g, "") // Remove zero-width non-joiners
+          .replace(/\s+/g, " ") // Collapse whitespace
           .trim();
 
         console.log(`Processing: ${subject}`);
@@ -325,9 +341,9 @@ async function processBankEmails() {
         } else {
           console.log(
             `Skipped: Regex did not match for message ID ${msg.id}. ` +
-            `Rule operation: '${rule.operation}'. ` +
-            `Amount Regex: ${rule.amountRegex}. ` +
-            `Cleaned text: """${cleanedText}"""`
+              `Rule operation: '${rule.operation}'. ` +
+              `Amount Regex: ${rule.amountRegex}. ` +
+              `Cleaned text: """${cleanedText}"""`,
           );
         }
 
