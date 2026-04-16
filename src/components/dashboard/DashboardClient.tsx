@@ -1,9 +1,15 @@
 "use client";
 
 import { useState, useEffect, type FC } from "react";
-import { useRouter } from "next/navigation";
+import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { Button, buttonVariants } from "@/components/ui/button";
-import { ArrowRightLeft, LogOut, Menu, RefreshCw } from "lucide-react";
+import {
+  ArrowRightLeft,
+  LogOut,
+  Menu,
+  RefreshCw,
+  TestTube,
+} from "lucide-react";
 import type { z } from "zod";
 
 import { NetWorthChart } from "./NetWorthChart";
@@ -40,6 +46,7 @@ import { getApp } from "firebase/app";
 import useMobile from "@/hooks/use-mobile";
 import { ItemHistoryDialog } from "@/components/dashboard/ItemHistoryDialog";
 
+import { demoData } from "@/lib/demo-data";
 interface DashboardClientProps {
   data: DashboardData | null;
 }
@@ -61,11 +68,23 @@ export const DashboardClient: FC<DashboardClientProps> = ({ data }) => {
   const { toast } = useToast();
   const [isCsvImporterOpen, setIsCsvImporterOpen] = useState(false);
   const [isRefreshing, setIsRefreshing] = useState(false);
+  const searchParams = useSearchParams();
+  const pathname = usePathname();
+  const [isDemoMode, setIsDemoMode] = useState(
+    searchParams.get("demo") === "true",
+  );
   const [localData, setLocalData] = useState<DashboardData | null>(data);
+  // isDemoMode ? demoData : data,
 
   useEffect(() => {
-    setLocalData(data);
-  }, [data]);
+    setLocalData(isDemoMode ? demoData : data);
+  }, [data, isDemoMode]);
+
+  const toggleDemoMode = () => {
+    const newDemoMode = !isDemoMode;
+    setIsDemoMode(newDemoMode);
+    router.replace(pathname + (newDemoMode ? "?demo=true" : ""));
+  };
   const isMobile = useMobile();
   const [historyItem, setHistoryItem] = useState<{
     id: string;
@@ -276,6 +295,16 @@ export const DashboardClient: FC<DashboardClientProps> = ({ data }) => {
         <DropdownMenuContent align="end">
           <DropdownMenuItem asChild>
             <ConnectWithTrueLayer variant="ghost" />
+          </DropdownMenuItem>
+          <DropdownMenuItem asChild>
+            <Button
+              variant="ghost"
+              className="w-full justify-start"
+              onClick={toggleDemoMode}
+            >
+              <TestTube className="mr-2 h-4 w-4" />
+              <span>{isDemoMode ? "Sortir del Mode Demo" : "Mode Demo"}</span>
+            </Button>
           </DropdownMenuItem>
           <DropdownMenuItem asChild>
             {renderImportButton(true)}
