@@ -1,15 +1,11 @@
 import { onCall, HttpsError } from "firebase-functions/v2/https";
 import { setGlobalOptions } from "firebase-functions/v2";
 import * as logger from "firebase-functions/logger";
-import * as admin from "firebase-admin";
 import axios from "axios";
 import { URL, URLSearchParams } from "url";
-import { startOfDay, endOfDay } from "date-fns";
-
-if (!admin.apps.length) {
-  admin.initializeApp();
-}
-const db = admin.firestore();
+import { getOrCreateEntry } from "./utils"; // Assuming getOrCreateEntry is in utils.ts
+import { db } from "./firebase"; // Import db from firebase.ts
+import * as admin from "firebase-admin"; // Explicitly import admin
 
 const secrets = ["TRUELAYER_CLIENT_ID", "TRUELAYER_CLIENT_SECRET"];
 
@@ -31,34 +27,14 @@ const mapAccountType = (truelayerType: string): string => {
   }
 };
 
-async function getOrCreateEntry(
-  collectionName: string,
-  itemIdField: string,
-  itemId: string,
-  timestamp: admin.firestore.Timestamp,
-) {
-  const start = startOfDay(timestamp.toDate());
-  const end = endOfDay(timestamp.toDate());
-  const q = db
-    .collection(collectionName)
-    .where(itemIdField, "==", itemId)
-    .where("timestamp", ">=", start)
-    .where("timestamp", "<=", end);
-  const querySnapshot = await q.get();
-  if (!querySnapshot.empty) {
-    return querySnapshot.docs[0].ref;
-  } else {
-    return db.collection(collectionName).doc();
-  }
-}
-
 export const getTrueLayerAuthLink = onCall({ secrets }, async (request) => {
   // Allow the client to specify its origin for the redirect URI
-  const origin = request.data.origin || "https://meupatrimoni-app.web.app";
+  const origin = request.data?.origin || "https://meupatrimoni-app.web.app";
   const allowedOrigins = [
     "https://meupatrimoni-app.web.app",
     "https://meupatrimoni-app.firebaseapp.com",
     "http://localhost:3000", // For local development
+    "https://meupatrimoni.morejon.cat",
   ];
 
   const clientId = process.env.TRUELAYER_CLIENT_ID;
@@ -95,11 +71,22 @@ export const getTrueLayerAuthLink = onCall({ secrets }, async (request) => {
 });
 
 export const handleTrueLayerCallback = onCall({ secrets }, async (request) => {
-  const data = request.data;
-  if (!data.code || !data.origin) {
+  const { code, origin } = request.data || {};
+
+  // Add detailed logging to inspect the incoming request
+  logger.info("Handling TrueLayer callback with data:", {
+    data: request.data,
+  });
+  if (!code || !origin) {
+    // Log the invalid payload for easier debugging
+    logger.error("handleTrueLayerCallback called with invalid data.", {
+      receivedData: request.data,
+      hasCode: !!code,
+      hasOrigin: !!origin,
+    });
     throw new HttpsError(
       "invalid-argument",
-      'The function must be called with a "code".',
+      'The function must be called with "code" and "origin" in the data payload.',
     );
   }
 
@@ -112,7 +99,7 @@ export const handleTrueLayerCallback = onCall({ secrets }, async (request) => {
     );
   }
 
-  const redirectUri = `${data.origin}/callback.html`;
+  const redirectUri = `${origin}/callback.html`;
 
   try {
     const tokenParams = new URLSearchParams();
@@ -120,7 +107,7 @@ export const handleTrueLayerCallback = onCall({ secrets }, async (request) => {
     tokenParams.append("client_id", clientId);
     tokenParams.append("client_secret", clientSecret);
     tokenParams.append("redirect_uri", redirectUri);
-    tokenParams.append("code", data.code);
+    tokenParams.append("code", code);
 
     const tokenResponse = await axios.post(
       `${TRUELAYER_AUTH_BASE_URL}/connect/token`,

@@ -1,9 +1,8 @@
 import { onRequest } from "firebase-functions/v2/https";
 import * as admin from "firebase-admin";
 import { parse } from "csv-parse/sync";
-import { startOfDay, endOfDay } from "date-fns";
-
-const db = admin.firestore();
+import { db } from "./firebase";
+import { getOrCreateEntry } from "./utils";
 
 // Helper to parse DD/MM/YYYY
 const parseDate = (dateString: string): Date | null => {
@@ -27,27 +26,6 @@ const parseValue = (valueString: string): number => {
   const cleanedString = valueString.replace(/\./g, "").replace(",", ".");
   return parseFloat(cleanedString);
 };
-
-async function getOrCreateEntry(
-  collectionName: string,
-  itemIdField: string,
-  itemId: string,
-  timestamp: admin.firestore.Timestamp,
-) {
-  const start = startOfDay(timestamp.toDate());
-  const end = endOfDay(timestamp.toDate());
-  const q = db
-    .collection(collectionName)
-    .where(itemIdField, "==", itemId)
-    .where("timestamp", ">=", start)
-    .where("timestamp", "<=", end);
-  const querySnapshot = await q.get();
-  if (!querySnapshot.empty) {
-    return querySnapshot.docs[0].ref;
-  } else {
-    return db.collection(collectionName).doc();
-  }
-}
 
 export const importCsv = onRequest(
   { cors: true, region: "europe-west1" },

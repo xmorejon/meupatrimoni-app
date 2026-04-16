@@ -1,15 +1,8 @@
 import { onSchedule } from "firebase-functions/v2/scheduler";
 import { onCall, HttpsError } from "firebase-functions/v2/https";
-import * as admin from "firebase-admin";
 import { google } from "googleapis";
 import { startOfDay, endOfDay } from "date-fns";
-
-// Ensure admin is initialized
-if (!admin.apps.length) {
-  admin.initializeApp();
-}
-
-const db = admin.firestore();
+import { db, admin } from "./firebase";
 
 // Configuration
 interface BankRule {
@@ -80,7 +73,7 @@ const BANK_RULES: BankRule[] = [
   {
     cardIdentifier: "1031",
     query:
-      'from:SantanderInforma@emailing.bancosantander-mail.es is:unread "1031" subject:(Pago realizado con tu tarjeta)',
+      'from:SantanderInforma@emailing.bancosantander-mail.es is:unread "1031" subject:(Se ha efectuado un pago con la tarjeta)',
     amountRegex: /has pagado\s+(\d+[,.]\d{2})\s+EUR/i,
     merchantRegex: /en\s+([^.]+)\.\s*Consulta/i,
     operation: "Pago",
@@ -113,10 +106,180 @@ function getEmailBody(payload: any): string {
   return "";
 }
 
+async function processMessage(
+  gmail: any,
+  msg: any,
+  rule: BankRule,
+  debtInfo: { id: string; name: string; type: string },
+) {
+  if (!msg.id) return false;
+
+  // 2. Fetch email details
+  const messageResponse = await gmail.users.messages.get({
+    userId: "me",
+    id: msg.id,
+    format: "full",
+  });
+
+  const payload = messageResponse.data.payload;
+  if (!payload) return false;
+
+  const internalDateStr = messageResponse.data.internalDate;
+  const emailDate = internalDateStr
+    ? new Date(parseInt(internalDateStr, 10))
+    : new Date();
+  const emailIsoString = emailDate.toISOString();
+
+  const snippet = messageResponse.data.snippet || "";
+  const fullBody = getEmailBody(payload);
+  const textToSearch = fullBody || snippet;
+
+  // Clean the text before matching
+  const cleanedText = textToSearch
+    .replace(/<[^>]*>/g, "") // Strip HTML tags
+    .replace(/&zwnj;/g, "") // Remove zero-width non-joiners
+    .replace(/\s+/g, " ") // Collapse whitespace
+    .trim();
+
+  // 3. Parse Transaction Data using the rule's regex
+  const match = cleanedText.match(rule.amountRegex);
+  let wasImported = false;
+
+  if (match) {
+    const amountString = match[1].replace(",", ".");
+    const expenseAmount = parseFloat(amountString);
+
+    let merchant = "";
+    const merchantMatch = cleanedText.match(rule.merchantRegex);
+    if (merchantMatch && merchantMatch[1]) {
+      merchant = merchantMatch[1].trim();
+    }
+
+    const description = merchant
+      ? `${rule.operation}: ${merchant}`
+      : `Imported: ${rule.operation}`;
+
+    // 4. Differential Update
+    wasImported = await db.runTransaction(async (transaction) => {
+      const debtRef = db.collection("debts").doc(debtInfo.id);
+      const movementsRef = db.collection("debtMovements").doc(debtInfo.id);
+      const timestamp = admin.firestore.Timestamp.now();
+
+      // READS: Must be performed before any writes
+      const debtSnapshot = await transaction.get(debtRef);
+      const movementsDoc = await transaction.get(movementsRef);
+
+      // Check for existing entry for today
+      const start = startOfDay(timestamp.toDate());
+      const end = endOfDay(timestamp.toDate());
+      const entryQuery = db
+        .collection("debtEntries")
+        .where("debtId", "==", debtInfo.id)
+        .where("timestamp", ">=", start)
+        .where("timestamp", "<=", end)
+        .limit(1);
+      const entrySnapshot = await transaction.get(entryQuery);
+
+      if (!debtSnapshot.exists) {
+        throw new Error(`Debt document ${debtInfo.id} does not exist.`);
+      }
+
+      let movements = [];
+      if (movementsDoc.exists) {
+        movements = movementsDoc.data()?.movements || [];
+      }
+
+      // Avoid duplicates: Check if transaction_id already exists
+      const existingIndex = movements.findIndex(
+        (m: any) => m.transaction_id === `email-${msg.id}`,
+      );
+
+      if (existingIndex !== -1) {
+        return false; // Skip this transaction
+      }
+
+      const currentBalance = debtSnapshot.data()?.balance || 0;
+      const newBalance =
+        Math.round((currentBalance + expenseAmount) * 100) / 100;
+
+      const newMovement = {
+        transaction_id: `email-${msg.id}`,
+        amount: -expenseAmount, // Negative to indicate spending
+        currency: "EUR",
+        description: description,
+        timestamp: emailIsoString,
+        transaction_type: "CREDIT",
+        meta: {
+          transaction_type: "CREDIT",
+          timestamp: emailIsoString,
+          transaction_category: "PURCHASE",
+        },
+      };
+
+      // WRITES
+      // 1) Update the balance in the debts collection
+      transaction.update(debtRef, {
+        balance: newBalance,
+        lastUpdated: timestamp,
+      });
+
+      // 2) Upsert an entry in the debtEntries collection
+      let newEntryRef;
+      if (!entrySnapshot.empty) {
+        newEntryRef = entrySnapshot.docs[0].ref;
+      } else {
+        newEntryRef = db.collection("debtEntries").doc();
+      }
+      transaction.set(newEntryRef, {
+        debtId: debtInfo.id,
+        balance: newBalance,
+        name: debtInfo.name,
+        type: debtInfo.type,
+        timestamp: timestamp,
+        isAutoImport: true,
+      });
+
+      // 3) Update debtMovements with last 20 transactions
+      movements.push(newMovement);
+      // Sort descending by timestamp
+      movements.sort(
+        (a: any, b: any) =>
+          new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime(),
+      );
+      // Limit to 20
+      if (movements.length > 20) {
+        movements = movements.slice(0, 20);
+      }
+
+      transaction.set(
+        movementsRef,
+        {
+          debtId: debtInfo.id,
+          movements: movements,
+          lastUpdated: timestamp,
+        },
+        { merge: true },
+      );
+      return true;
+    });
+  }
+
+  // 5. Mark as Read
+  await gmail.users.messages.modify({
+    userId: "me",
+    id: msg.id,
+    requestBody: {
+      removeLabelIds: ["UNREAD"],
+    },
+  });
+
+  return wasImported;
+}
+
 /**
- * Shared logic to check Gmail for bank emails.
+ * Initializes the Gmail API client with OAuth2 credentials.
  */
-async function processBankEmails() {
+function initializeGmailClient() {
   const clientId = process.env.GMAIL_CLIENT_ID;
   const clientSecret = process.env.GMAIL_CLIENT_SECRET;
   const refreshToken = process.env.GMAIL_REFRESH_TOKEN;
@@ -129,7 +292,11 @@ async function processBankEmails() {
   auth.setCredentials({ refresh_token: refreshToken });
 
   const gmail = google.gmail({ version: "v1", auth });
+  return gmail;
+}
 
+async function processBankEmails() {
+  const gmail = initializeGmailClient();
   let importedCount = 0;
 
   // Fetch all debts to link cards dynamically
@@ -150,211 +317,34 @@ async function processBankEmails() {
         continue;
       }
       const debtId = debtDoc.id;
-      const debtData = debtDoc.data();
-      const debtName = debtData.name;
-      const debtType = debtData.type || "Credit Card";
+      const { name: debtName, type: debtType = "Credit Card" } = debtDoc.data();
 
-      // 1. Search for unread emails using the rule's query
       const listResponse = await gmail.users.messages.list({
         userId: "me",
         q: rule.query,
         maxResults: 10,
       });
 
-      const messages = listResponse.data.messages;
-
-      if (!messages || messages.length === 0) {
+      if (
+        !listResponse.data.messages ||
+        listResponse.data.messages.length === 0
+      ) {
         console.log(`No new emails found for rule: ${rule.cardIdentifier}`);
         continue;
       }
 
+      const messages = listResponse.data.messages;
       console.log(
         `Found ${messages.length} new emails for rule: ${rule.cardIdentifier}`,
       );
 
       for (const msg of messages) {
-        if (!msg.id) continue;
-
-        // 2. Fetch email details
-        const messageResponse = await gmail.users.messages.get({
-          userId: "me",
-          id: msg.id,
-          format: "full",
+        const wasImported = await processMessage(gmail, msg, rule, {
+          id: debtId,
+          name: debtName,
+          type: debtType,
         });
-
-        const payload = messageResponse.data.payload;
-        if (!payload) continue;
-
-        const internalDateStr = messageResponse.data.internalDate;
-        const emailDate = internalDateStr
-          ? new Date(parseInt(internalDateStr, 10))
-          : new Date();
-        const emailIsoString = emailDate.toISOString();
-
-        const subjectHeader = payload.headers?.find(
-          (h: any) => h.name === "Subject",
-        );
-        const subject = subjectHeader ? subjectHeader.value : "No Subject";
-        const snippet = messageResponse.data.snippet || "";
-        const fullBody = getEmailBody(payload);
-        const textToSearch = fullBody || snippet;
-
-        // Clean the text before matching
-        const cleanedText = textToSearch
-          .replace(/<[^>]*>/g, "") // Strip HTML tags
-          .replace(/&zwnj;/g, "") // Remove zero-width non-joiners
-          .replace(/\s+/g, " ") // Collapse whitespace
-          .trim();
-
-        console.log(`Processing: ${subject}`);
-
-        // 3. Parse Transaction Data using the rule's regex
-        const match = cleanedText.match(rule.amountRegex);
-
-        if (match) {
-          const amountString = match[1].replace(",", ".");
-          const expenseAmount = parseFloat(amountString);
-
-          let merchant = "";
-          const merchantMatch = cleanedText.match(rule.merchantRegex);
-          if (merchantMatch && merchantMatch[1]) {
-            merchant = merchantMatch[1].trim();
-          } else {
-            console.log(
-              `Merchant regex failed. Text length: ${cleanedText.length}. Snippet: "${snippet}"`,
-            );
-          }
-
-          const description = merchant
-            ? `${rule.operation}: ${merchant}`
-            : `Imported: ${rule.operation}`;
-
-          // 4. Differential Update
-          const wasImported = await db.runTransaction(async (transaction) => {
-            const debtRef = db.collection("debts").doc(debtId);
-            const movementsRef = db.collection("debtMovements").doc(debtId);
-            const timestamp = admin.firestore.Timestamp.now();
-
-            // READS: Must be performed before any writes
-            const debtSnapshot = await transaction.get(debtRef);
-            const movementsDoc = await transaction.get(movementsRef);
-
-            // Check for existing entry for today
-            const start = startOfDay(timestamp.toDate());
-            const end = endOfDay(timestamp.toDate());
-            const entryQuery = db
-              .collection("debtEntries")
-              .where("debtId", "==", debtId)
-              .where("timestamp", ">=", start)
-              .where("timestamp", "<=", end)
-              .limit(1);
-            const entrySnapshot = await transaction.get(entryQuery);
-
-            if (!debtSnapshot.exists) {
-              throw new Error(`Debt document ${debtId} does not exist.`);
-            }
-
-            let movements = [];
-            if (movementsDoc.exists) {
-              movements = movementsDoc.data()?.movements || [];
-            }
-
-            // Avoid duplicates: Check if transaction_id already exists
-            const existingIndex = movements.findIndex(
-              (m: any) => m.transaction_id === `email-${msg.id}`,
-            );
-
-            if (existingIndex !== -1) {
-              return false; // Skip this transaction
-            }
-
-            const currentBalance = debtSnapshot.data()?.balance || 0;
-            const newBalance =
-              Math.round((currentBalance + expenseAmount) * 100) / 100;
-
-            const newMovement = {
-              transaction_id: `email-${msg.id}`,
-              amount: -expenseAmount, // Negative to indicate spending
-              currency: "EUR",
-              description: description,
-              timestamp: emailIsoString,
-              transaction_type: "CREDIT",
-              meta: {
-                transaction_type: "CREDIT",
-                timestamp: emailIsoString,
-                transaction_category: "PURCHASE",
-              },
-            };
-
-            // WRITES
-            // 1) Update the balance in the debts collection
-            transaction.update(debtRef, {
-              balance: newBalance,
-              lastUpdated: timestamp,
-            });
-
-            // 2) Upsert an entry in the debtEntries collection
-            let newEntryRef;
-            if (!entrySnapshot.empty) {
-              newEntryRef = entrySnapshot.docs[0].ref;
-            } else {
-              newEntryRef = db.collection("debtEntries").doc();
-            }
-            transaction.set(newEntryRef, {
-              debtId: debtId,
-              balance: newBalance,
-              name: debtName,
-              type: debtType,
-              timestamp: timestamp,
-              isAutoImport: true,
-            });
-
-            // 3) Update debtMovements with last 20 transactions
-            movements.push(newMovement);
-            // Sort descending by timestamp
-            movements.sort(
-              (a: any, b: any) =>
-                new Date(b.timestamp).getTime() -
-                new Date(a.timestamp).getTime(),
-            );
-            // Limit to 20
-            if (movements.length > 20) {
-              movements = movements.slice(0, 20);
-            }
-
-            transaction.set(
-              movementsRef,
-              {
-                debtId: debtId,
-                movements: movements,
-                lastUpdated: timestamp,
-              },
-              { merge: true },
-            );
-            return true;
-          });
-
-          if (wasImported) {
-            console.log(`Imported transaction: ${expenseAmount}`);
-            importedCount++;
-          }
-        } else {
-          console.log(
-            `Skipped: Regex did not match for message ID ${msg.id}. ` +
-              `Rule operation: '${rule.operation}'. ` +
-              `Amount Regex: ${rule.amountRegex}. ` +
-              `Cleaned text: """${cleanedText}"""`,
-          );
-        }
-
-        // 5. Mark as Read
-        await gmail.users.messages.modify({
-          userId: "me",
-          id: msg.id,
-          requestBody: {
-            removeLabelIds: ["UNREAD"],
-          },
-        });
+        if (wasImported) importedCount++;
       }
     }
 
