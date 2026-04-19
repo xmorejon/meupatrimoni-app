@@ -1,19 +1,23 @@
 "use client";
 
-import { useState, useEffect } from 'react';
-import { formatDistanceToNow } from 'date-fns';
-import type { Locale } from 'date-fns';
+import { useState, useEffect } from "react";
+import { formatDistanceToNow } from "date-fns";
+import type { Locale } from "date-fns";
 
 interface TimeAgoProps {
   date: Date;
   locale: Locale;
   translations: {
     updated: string;
-  }
+  };
 }
 
-export const TimeAgo: React.FC<TimeAgoProps> = ({ date, locale, translations }) => {
-  const [timeAgo, setTimeAgo] = useState('');
+export const TimeAgo: React.FC<TimeAgoProps> = ({
+  date,
+  locale,
+  translations,
+}) => {
+  const [timeAgo, setTimeAgo] = useState("");
 
   useEffect(() => {
     // This code only runs on the client, after hydration
@@ -28,7 +32,7 @@ export const TimeAgo: React.FC<TimeAgoProps> = ({ date, locale, translations }) 
   // Render the actual time ago string once the client has mounted
   return (
     <div className="text-xs text-muted-foreground">
-      {translations.updated.replace('{time}', timeAgo)}
+      {translations.updated.replace("{time}", timeAgo)}
     </div>
   );
 };

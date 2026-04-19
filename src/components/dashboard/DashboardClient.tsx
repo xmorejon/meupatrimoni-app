@@ -73,8 +73,9 @@ export const DashboardClient: FC<DashboardClientProps> = ({ data }) => {
   const [isDemoMode, setIsDemoMode] = useState(
     searchParams.get("demo") === "true",
   );
-  const [localData, setLocalData] = useState<DashboardData | null>(data);
-  // isDemoMode ? demoData : data,
+  const [localData, setLocalData] = useState<DashboardData | null>(
+    isDemoMode ? demoData : data,
+  );
 
   useEffect(() => {
     setLocalData(isDemoMode ? demoData : data);
@@ -85,6 +86,7 @@ export const DashboardClient: FC<DashboardClientProps> = ({ data }) => {
     setIsDemoMode(newDemoMode);
     router.replace(pathname + (newDemoMode ? "?demo=true" : ""));
   };
+
   const isMobile = useMobile();
   const [historyItem, setHistoryItem] = useState<{
     id: string;
@@ -130,60 +132,12 @@ export const DashboardClient: FC<DashboardClientProps> = ({ data }) => {
           break;
       }
 
-      // Manually update local state to reflect changes immediately (Optimistic UI)
-      if (localData && values.id) {
-        const newData = { ...localData };
-        const now = new Date();
-
-        if (type === "Bank") {
-          const list = [...(newData.bankBreakdown || [])];
-          const index = list.findIndex((i) => i.id === values.id);
-          if (index !== -1) {
-            list[index] = {
-              ...list[index],
-              name: values.name,
-              type: values.type as any,
-              balance: values.balance ?? 0,
-              lastUpdated: now,
-            };
-            newData.bankBreakdown = list;
-          }
-        } else if (type === "Debt") {
-          const list = [...(newData.debtBreakdown || [])];
-          const index = list.findIndex((i) => i.id === values.id);
-          if (index !== -1) {
-            list[index] = {
-              ...list[index],
-              name: values.name,
-              type: values.type as any,
-              balance: values.balance ?? 0,
-              lastUpdated: now,
-            };
-            newData.debtBreakdown = list;
-          }
-        } else if (type === "Asset") {
-          const list = [...(newData.assetBreakdown || [])];
-          const index = list.findIndex((i) => i.id === values.id);
-          if (index !== -1) {
-            list[index] = {
-              ...list[index],
-              name: values.name,
-              type: values.type as any,
-              value: values.value ?? 0,
-              lastUpdated: now,
-            };
-            newData.assetBreakdown = list;
-          }
-        }
-        setLocalData(newData);
-      }
-
       const translatedType = typeTranslations[type];
       toast({
         title: "Èxit",
         description: `${translatedType} '${values.name}' ${action} correctament.`,
       });
-      router.refresh();
+      router.refresh(); // Re-fetch data
     } catch (error) {
       console.error(`Failed to add/update ${type}:`, error);
       toast({
@@ -197,6 +151,29 @@ export const DashboardClient: FC<DashboardClientProps> = ({ data }) => {
 
   const handleRefresh = async () => {
     setIsRefreshing(true);
+
+    // Optimistic UI Update: Update timestamps immediately for instant feedback
+    const now = new Date();
+    setLocalData((prevData) => {
+      if (!prevData) return null;
+      return {
+        ...prevData,
+        bankBreakdown: prevData.bankBreakdown.map((b) => ({
+          ...b,
+          lastUpdated: now,
+        })),
+        debtBreakdown: prevData.debtBreakdown.map((d) => ({
+          ...d,
+          lastUpdated: now,
+        })),
+        assetBreakdown: prevData.assetBreakdown.map((a) => ({
+          ...a,
+          lastUpdated: now,
+        })),
+      };
+    });
+
+    // Now, perform the actual data fetching
     const app = getApp();
     const functions = getFunctions(app, "europe-west1");
     const refreshTruelayerData = httpsCallable(
@@ -230,9 +207,9 @@ export const DashboardClient: FC<DashboardClientProps> = ({ data }) => {
         title: "Actualització completada",
         description: `${truelayerMessage} ${emailMessage}`,
       });
-      router.refresh();
     } catch (error: any) {
-      console.error("Error refreshing accounts:", error);
+      // It's good practice to log the full error for debugging
+      console.error("Error during handleRefresh:", error);
       toast({
         variant: "destructive",
         title: "Error",
@@ -242,6 +219,8 @@ export const DashboardClient: FC<DashboardClientProps> = ({ data }) => {
       });
     } finally {
       setIsRefreshing(false);
+      // Re-fetch data from the server to get the actual updated balances.
+      router.refresh();
     }
   };
 
