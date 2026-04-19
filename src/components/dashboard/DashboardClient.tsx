@@ -158,18 +158,20 @@ export const DashboardClient: FC<DashboardClientProps> = ({ data }) => {
       if (!prevData) return null;
       return {
         ...prevData,
-        bankBreakdown: prevData.bankBreakdown.map((b) => ({
-          ...b,
-          lastUpdated: now,
-        })),
-        debtBreakdown: prevData.debtBreakdown.map((d) => ({
-          ...d,
-          lastUpdated: now,
-        })),
-        assetBreakdown: prevData.assetBreakdown.map((a) => ({
-          ...a,
-          lastUpdated: now,
-        })),
+        bankBreakdown: prevData.bankBreakdown.map((b) =>
+          b.truelayerId || (b as any).emailAutomated
+            ? { ...b, lastUpdated: now }
+            : b,
+        ),
+        debtBreakdown: prevData.debtBreakdown.map((d) =>
+          d.truelayerId || (d as any).emailAutomated
+            ? { ...d, lastUpdated: now }
+            : d,
+        ),
+        assetBreakdown: prevData.assetBreakdown.map((a) =>
+          // Assets are typically manual or email-automated
+          (a as any).emailAutomated ? { ...a, lastUpdated: now } : a,
+        ),
       };
     });
 
