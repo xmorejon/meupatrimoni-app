@@ -3,6 +3,7 @@ import { renderHook, waitFor } from "@testing-library/react";
 import { useDashboardData } from "./useDashboardData"; // Import the actual hook
 import { getDashboardData } from "@/lib/firebase-service";
 import { User } from "firebase/auth";
+import { demoData } from "@/lib/demo-data"; // Import actual demo data
 
 declare const jest: any;
 
@@ -31,8 +32,7 @@ describe("useDashboardData", () => {
   });
 
   it("should fetch data successfully and update state", async () => {
-    const mockData = { netWorth: 1000 };
-    mockedGetDashboardData.mockResolvedValue(mockData as never);
+    mockedGetDashboardData.mockResolvedValue(demoData as never);
     
     const { result } = renderHook(() => useDashboardData(mockUser));
 
@@ -43,7 +43,7 @@ describe("useDashboardData", () => {
       expect(result.current.isFetching).toBe(false);
     });
 
-    expect(result.current.data).toEqual(mockData);
+    expect(result.current.data).toEqual(demoData);
     expect(result.current.error).toBeNull();
     expect(mockedGetDashboardData).toHaveBeenCalledWith(mockUser.uid);
   });
@@ -66,8 +66,7 @@ describe("useDashboardData", () => {
   });
 
   it("should reset data when user becomes null", async () => {
-    const mockData = { netWorth: 1000 };
-    mockedGetDashboardData.mockResolvedValue(mockData as never);
+    mockedGetDashboardData.mockResolvedValue(demoData as never);
 
     const { result, rerender } = renderHook(
       ({ user }) => useDashboardData(user),
@@ -80,7 +79,7 @@ describe("useDashboardData", () => {
       expect(result.current.isFetching).toBe(false);
     });
     
-    expect(result.current.data).toEqual(mockData);
+    expect(result.current.data).toEqual(demoData);
 
     rerender({ user: null });
 
