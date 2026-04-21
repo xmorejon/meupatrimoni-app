@@ -31,6 +31,14 @@ describe("useDashboardData", () => {
     expect(mockedGetDashboardData).not.toHaveBeenCalled();
   });
 
+  it("should not fetch data if user is undefined (still loading auth state)", () => {
+    const { result } = renderHook(() => useDashboardData(undefined));
+
+    expect(result.current.data).toBeNull();
+    expect(result.current.isFetching).toBe(false);
+    expect(mockedGetDashboardData).not.toHaveBeenCalled();
+  });
+
   it("should fetch data successfully and update state", async () => {
     mockedGetDashboardData.mockResolvedValue(demoData as never);
     
@@ -52,6 +60,9 @@ describe("useDashboardData", () => {
     const errorMessage = "Failed to load dashboard data.";
     mockedGetDashboardData.mockRejectedValue(new Error("API Error") as never);
 
+    // Silence the expected console.error just for this test
+    const consoleSpy = jest.spyOn(console, "error").mockImplementation(() => {});
+
     const { result } = renderHook(() => useDashboardData(mockUser));
 
     expect(result.current.isFetching).toBe(true);
@@ -63,6 +74,9 @@ describe("useDashboardData", () => {
     expect(result.current.data).toBeNull();
     expect(result.current.error).toBe(errorMessage);
     expect(mockedGetDashboardData).toHaveBeenCalledWith(mockUser.uid);
+
+    // Clean up the spy
+    consoleSpy.mockRestore();
   });
 
   it("should reset data when user becomes null", async () => {
