@@ -199,7 +199,8 @@ export const DashboardClient: FC<DashboardClientProps> = ({ data }) => {
     } finally {
       setIsRefreshing(false);
       // Re-fetch data from the server to get the actual updated balances.
-      router.refresh();
+      //router.refresh();
+      window.location.reload();
     }
   };
 
