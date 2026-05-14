@@ -85,6 +85,12 @@ export const importCsv = onRequest(
         type?: string;
       };
 
+      interface CsvEntry {
+        timestamp: Date;
+        value?: number;
+        balance?: number;
+      }
+
       const entries = records
         .map((row: any) => {
           const keys = Object.keys(row);
@@ -125,7 +131,7 @@ export const importCsv = onRequest(
             return { timestamp, balance: parsedAmount };
           }
         })
-        .filter((e: any) => e !== null);
+        .filter((e) => e !== null) as CsvEntry[];
 
       if (entries.length > 0) {
         const batch = db.batch();

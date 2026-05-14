@@ -1,4 +1,4 @@
-const { PHASE_PRODUCTION_BUILD } = require("next/constants");
+import { PHASE_PRODUCTION_BUILD } from "next/constants.js";
 
 /** @type {import('next').NextConfig} */
 const nextConfig = {
@@ -27,11 +27,17 @@ const nextConfig = {
         port: "",
         pathname: "/**",
       },
+      {
+        protocol: "https",
+        hostname: "picsum.photos",
+        port: "",
+        pathname: "/**",
+      },
     ],
   },
 };
 
-module.exports = (phase) => {
+export default (phase) => {
   if (phase === PHASE_PRODUCTION_BUILD) {
     process.env.NEXT_PUBLIC_PREVIEW_MODE = "false";
   }
