@@ -180,7 +180,7 @@ export function HistoryChart({ data, itemId, itemType }: HistoryChartProps) {
       {hasData ? (
         <ChartContainer
           config={chartConfig}
-          className="h-[220px] w-full overflow-hidden min-w-0"
+          className="h-[220px] shrink-0 w-full overflow-hidden min-w-0"
         >
           <div className="flex h-full min-h-0 w-full min-w-0">
             {/* Fixed Y-axis */}
