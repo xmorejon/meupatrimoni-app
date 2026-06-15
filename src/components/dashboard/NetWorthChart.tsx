@@ -114,15 +114,27 @@ export function NetWorthChart({ data }: NetWorthChartProps) {
   const chartWidth = Math.max(calculatedWidth, minChartWidth);
 
   useEffect(() => {
-    const timer = setTimeout(() => {
-      if (scrollContainerRef.current) {
-        scrollContainerRef.current.scrollLeft =
-          scrollContainerRef.current.scrollWidth;
-      }
-    }, 300);
-
-    return () => clearTimeout(timer);
-  }, [filteredData]);
+    if (scrollContainerRef.current) {
+      // Scroll to the right end whenever data changes
+      const scrollToEnd = () => {
+        if (scrollContainerRef.current) {
+          scrollContainerRef.current.scrollLeft = scrollContainerRef.current.scrollWidth;
+        }
+      };
+      
+      // Call immediately
+      scrollToEnd();
+      
+      // Call after a short delay to account for rendering/animations
+      const timer1 = setTimeout(scrollToEnd, 100);
+      const timer2 = setTimeout(scrollToEnd, 500);
+      
+      return () => {
+        clearTimeout(timer1);
+        clearTimeout(timer2);
+      };
+    }
+  }, [filteredData, chartWidth]);
 
   if (!data || data.length === 0) {
     return (
@@ -198,9 +210,9 @@ export function NetWorthChart({ data }: NetWorthChartProps) {
           </div>
         </div>
       </CardHeader>
-      <CardContent className="px-2">
-        <ChartContainer config={chartConfig} className="h-[320px] w-full">
-          <div style={{ display: "flex", height: "100%", width: "100%" }}>
+      <CardContent className="px-2 min-w-0">
+        <ChartContainer config={chartConfig} className="h-[320px] w-full min-w-0">
+          <div style={{ display: "flex", height: "100%", width: "100%", minWidth: 0 }}>
             {/* Left Y-Axis Chart */}
             <div style={{ flex: "0 0 40px" }}>
               <ResponsiveContainer width="100%" height="100%">
@@ -231,9 +243,11 @@ export function NetWorthChart({ data }: NetWorthChartProps) {
             {/* Scrollable Main Chart */}
             <div
               ref={scrollContainerRef}
+              className="custom-scrollbar"
               style={{
                 flex: "1 1 auto",
-                overflowX: "auto",
+                minWidth: 0,
+                overflowX: "scroll",
                 overflowY: "hidden",
               }}
             >

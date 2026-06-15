@@ -137,18 +137,30 @@ export function HistoryChart({ data, itemId, itemType }: HistoryChartProps) {
   const calculatedWidth = filteredData.length * itemWidth;
   const chartWidth = Math.max(calculatedWidth, minChartWidth);
 
-  useEffect(() => {
-    const timer = setTimeout(() => {
-      if (scrollContainerRef.current) {
-        scrollContainerRef.current.scrollLeft =
-          scrollContainerRef.current.scrollWidth;
-      }
-    }, 300);
-
-    return () => clearTimeout(timer);
-  }, [filteredData]);
-
   const hasData = data && data.length > 0;
+
+  useEffect(() => {
+    if (scrollContainerRef.current) {
+      // Scroll to the right end whenever data changes
+      const scrollToEnd = () => {
+        if (scrollContainerRef.current) {
+          scrollContainerRef.current.scrollLeft = scrollContainerRef.current.scrollWidth;
+        }
+      };
+      
+      // Call immediately
+      scrollToEnd();
+      
+      // Call after a short delay to account for rendering/animations
+      const timer1 = setTimeout(scrollToEnd, 100);
+      const timer2 = setTimeout(scrollToEnd, 500);
+      
+      return () => {
+        clearTimeout(timer1);
+        clearTimeout(timer2);
+      };
+    }
+  }, [filteredData, chartWidth]);
 
   const calculateDomain = ([dataMin, dataMax]: [number, number]): [
     number,
@@ -168,9 +180,9 @@ export function HistoryChart({ data, itemId, itemType }: HistoryChartProps) {
       {hasData ? (
         <ChartContainer
           config={chartConfig}
-          className="h-[220px] w-full overflow-hidden"
+          className="h-[220px] w-full overflow-hidden min-w-0"
         >
-          <div className="flex h-full min-h-0">
+          <div className="flex h-full min-h-0 w-full min-w-0">
             {/* Fixed Y-axis */}
             <div className="w-[42px] flex-shrink-0 h-full">
               <ResponsiveContainer width="100%" height="100%">
@@ -201,7 +213,7 @@ export function HistoryChart({ data, itemId, itemType }: HistoryChartProps) {
             {/* Scrollable chart */}
             <div
               ref={scrollContainerRef}
-              className="flex-1 overflow-x-auto overflow-y-hidden h-full min-h-0"
+              className="flex-1 min-w-0 overflow-x-scroll overflow-y-hidden h-full min-h-0 custom-scrollbar"
             >
               <div
                 style={{ width: chartWidth, height: "100%" }}
