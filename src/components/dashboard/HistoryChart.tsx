@@ -176,7 +176,7 @@ export function HistoryChart({ data, itemId, itemType }: HistoryChartProps) {
   };
 
   return (
-    <div className="flex flex-col min-h-0 space-y-6 overflow-hidden">
+    <div className="flex flex-col min-h-0 flex-1 w-full space-y-6 overflow-hidden">
       {hasData ? (
         <ChartContainer
           config={chartConfig}
@@ -270,7 +270,7 @@ export function HistoryChart({ data, itemId, itemType }: HistoryChartProps) {
         </span>
       )}
       {movements.length > 0 && (
-        <div className="flex-1 h-full max-h-[80vh] overflow-auto border rounded-md">
+        <div className="flex-1 overflow-auto border rounded-md min-h-0 custom-scrollbar">
           <Table>
             <TableHeader>
               <TableRow>

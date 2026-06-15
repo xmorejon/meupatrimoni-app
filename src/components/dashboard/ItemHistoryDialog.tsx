@@ -60,7 +60,7 @@ export function ItemHistoryDialog({
             <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
           </div>
         ) : (
-          <div className="w-full flex-1 overflow-hidden min-h-0">
+          <div className="w-full flex-1 overflow-hidden min-h-0 flex flex-col">
             <HistoryChart data={data} itemId={item?.id} itemType={item?.type} />
           </div>
         )}
